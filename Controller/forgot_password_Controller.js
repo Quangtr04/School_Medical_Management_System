@@ -42,16 +42,25 @@ const forgotPasswordByPhoneController = async (username) => {
 const newPassword = async (username, newPass) => {
   try {
     const pool = await sqlServerPool;
-    const result = await pool
-      .request()
-      .input("email", sql.NVarChar, username)
-      .input("newPassword", sql.NVarChar, newPass)
-      .query("UPDATE dbo.[User] SET password = @newPassword WHERE email = @email");
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+    if (emailRegex.test(username)) {
+      const result = await pool
+        .request()
+        .input("email", sql.NVarChar, username)
+        .input("newPassword", sql.NVarChar, newPass)
+        .query("UPDATE dbo.[User] SET password = @newPassword WHERE email = @email");
 
-    if (result.rowsAffected[0] > 0) {
-      return "Password updated successfully.";
-    } else {
-      throw new Error("Failed to update password.");
+      if (result.rowsAffected[0] > 0) {
+        return "Password updated successfully.";
+      } else {
+        throw new Error("Failed to update password.");
+      }
+    } else if (!emailRegex.test(username)) {
+      const result = await pool
+        .request()
+        .input("phone", sql.Int, username)
+        .input("newPassword", sql.NVarChar, newPass)
+        .query("UPDATE dbo.[User] SET password = @newPassword WHERE phone = @phone");
     }
   } catch (error) {
     console.error("Update password query failed:", error);
