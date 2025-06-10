@@ -1,10 +1,10 @@
-const sqlServerPool = require("../Utils/connectMySql");
+const sqlServerPool = require("../../Utils/connectMySql");
 const sql = require("mssql");
 
 const healthDeclarationController = async (req, res, next) => {
-  const pool = await sqlServerPool;
   const student_id = req.params.studentId;
   const healthDeclarationData = req.body;
+  const pool = await sqlServerPool;
 
   // Insert health declaration data into the database
   const result = await pool

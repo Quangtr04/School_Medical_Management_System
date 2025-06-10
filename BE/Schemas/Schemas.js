@@ -30,24 +30,24 @@ const Checkup_Result = {
   },
 };
 
-// const HealthDeclaration = {
-//   Constructors: {
-//     student_id: "int",
-//     height_cm: "int",
-//     weight_kg: "int",
-//     blood_type: "string",
-//     allergy: "string",
-//     chronic_disease: "string",
-//     vision_left: "string",
-//     vision_right: "string",
-//     hearing_left: "string",
-//     hearing_right: "string",
-//     health_status: "string"
-//   },
-// };
+const HealthDeclaration = {
+  Constructors: {
+    student_id: "int",
+    height_cm: "int",
+    weight_kg: "int",
+    blood_type: "string",
+    allergy: "string",
+    chronic_disease: "string",
+    vision_left: "string",
+    vision_right: "string",
+    hearing_left: "string",
+    hearing_right: "string",
+    health_status: "string",
+  },
+};
 
 module.exports = {
   Information,
-  User,
   Checkup_Result,
+  HealthDeclaration,
 };

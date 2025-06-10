@@ -1,6 +1,6 @@
-// controllers/loginController.js
 const sql = require("mssql");
 const sqlServerPool = require("../../Utils/connectMySql"); // đúng đường dẫn tới pool
+const generateToken = require("../../Utils/jwt");
 
 const loginController = async (req, res, next) => {
   const { username, password } = req.body;
@@ -18,7 +18,8 @@ const loginController = async (req, res, next) => {
         .request()
         .input("user_id", sql.Int, user_id)
         .query("SELECT * FROM [Infomation] WHERE user_id = @user_id");
-      res.status(200).json({ status: "success", user: user.recordset[0] });
+      const token = generateToken({ user_id, role: role_id });
+      res.status(200).json({ status: "success", token, user: user.recordset[0] });
     } else {
       res.status(401).json({ status: "fail", message: "Invalid username or password" });
     }

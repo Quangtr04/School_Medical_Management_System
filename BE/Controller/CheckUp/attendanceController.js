@@ -1,8 +1,9 @@
-const db = require("../../Utils/connectMySql");
+const sqlServerPool = require("../../Utils/connectMySql");
 
 const getAttendanceList = async (req, res, next) => {
   const { schedule_id } = req.params;
-  const list = await db.request().input("checkup_id", schedule_id).query(`SELECT * FROM Checkup_Participation `);
+  const pool = await sqlServerPool;
+  const list = await pool.request().input("checkup_id", schedule_id).query(`SELECT * FROM Checkup_Participation `);
   res.json({ list: list.recordset });
 };
 
@@ -10,7 +11,7 @@ const markAttendance = async (req, res, next) => {
   const { schedule_id, student_id } = req.params;
   const { present } = req.body;
 
-  await db
+  await pool
     .request()
     .input("checkup_id", schedule_id)
     .input("student_id", student_id)

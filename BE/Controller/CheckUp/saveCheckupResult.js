@@ -1,11 +1,12 @@
 const sql = require("mssql");
-const db = require("../Utils/connectMySql");
+const sqlServerPool = require("../../Utils/connectMySql");
 
 const saveCheckupResult = async (req, res) => {
+  const pool = await sqlServerPool;
   const { checkup_id, student_id } = req.params;
   const { Checkup_Result } = req.body;
 
-  await db
+  await pool
     .request()
     .input("checkup_id", sql.Int, checkup_id)
     .input("student_id", sql.Int, student_id)

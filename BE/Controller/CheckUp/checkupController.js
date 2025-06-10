@@ -1,11 +1,12 @@
-const db = require("../../Utils/connectMySql"); // cấu hình pool sql
+const sqlServerPool = require("../../Utils/connectMySql"); // cấu hình pool sql
 const sql = require("mssql");
 
 const createSchedule = async (req, res, next) => {
   const { title, description, scheduled_date, fee } = req.body;
   const created_by = req.user.user_id;
+  const pool = await sqlServerPool;
 
-  const result = await db
+  const result = await pool
     .request()
     .input("title", title)
     .input("description", description)
@@ -23,27 +24,31 @@ const createSchedule = async (req, res, next) => {
 };
 
 const getPending = async (req, res, next) => {
-  const schedules = await db.request().query("SELECT * FROM MedicalCheckup_Schedule WHERE approval_status = 'PENDING'");
+  const pool = await sqlServerPool;
+  const schedules = await pool
+    .request()
+    .query("SELECT * FROM MedicalCheckup_Schedule WHERE approval_status = 'PENDING'");
   res.status(201).json({ data: schedules.recordset });
 };
 
 const responseSchedule = async (req, res, next) => {
   const { id } = req.params;
   const { status } = req.body;
-  const update = await db.request().input("id", sql.Int, id).input("status", sql.NVarChar, status).query(`
+  const pool = await sqlServerPool;
+  const update = await pool.request().input("id", sql.Int, id).input("status", sql.NVarChar, status).query(`
       UPDATE MedicalCheckup_Schedule
-      SET approval_status = @status
+      SET approval_status = @status && approved_by = 'principal'
       WHERE checkup_id = @id;
     `);
   if (status === "APPROVED") {
-    const students = await db.query(`
+    const students = await pool.query(`
     SELECT student_info_id, parent_id FROM Student_Information
   `);
-    const checkup = await db
+    const checkup = await pool
       .request()
       .input("id", sql.Int, id)
       .query("SELECT * FROM MedicalCheckup_Schedule WHERE checkup_id = @id");
-    const request = db.request();
+    const request = pool.request();
     for (let stu of students.recordset) {
       request
         .input("student_id", sql.Int, stu.student_info_id)
