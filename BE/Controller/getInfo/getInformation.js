@@ -4,7 +4,9 @@ const getRole = require("../../Utils/getRole");
 
 const getParentInfo = async (req, res, next) => {
   const pool = await sqlServerPool;
-  const result = await pool.request().query("SELECT * FROM [Infomation] WHERE user_id = @user_id");
+  const result = await pool
+    .request()
+    .query("SELECT * FROM [Infomation] WHERE user_id = @user_id");
   if (result.recordset.length > 0) {
     res.status(200).json({
       status: "success",
@@ -42,7 +44,9 @@ const getAllStudentByParentId = async (req, res, next) => {
 
 const getAllStudentInfo = async (req, res, next) => {
   const pool = await sqlServerPool;
-  const result = await pool.request().query("SELECT * FROM [SWP391].[dbo].[Student_Information]");
+  const result = await pool
+    .request()
+    .query("SELECT * FROM [SWP391].[dbo].[Student_Information]");
   if (result.recordset.length > 0) {
     res.status(200).json({
       status: "success",
@@ -60,7 +64,8 @@ const getStudentInfoById = async (req, res, next) => {
   const { student_id } = req.params;
 
   const pool = await sqlServerPool;
-  const result = await pool.request().input("student_id", sql.Int, student_id).query(`
+  const result = await pool.request().input("student_id", sql.Int, student_id)
+    .query(`
         SELECT [student_info_id],
                [student_code],
                [full_name],
@@ -78,6 +83,35 @@ const getStudentInfoById = async (req, res, next) => {
     res.status(404).json({
       status: "fail",
       message: "Student information not found",
+    });
+  }
+};
+
+const getStudentHealthById = async (req, res, next) => {
+  const { student_id } = req.params;
+
+  const pool = await sqlServerPool;
+  const result = await pool.request().input("student_id", sql.Int, student_id)
+    .query(`
+        SELECT [height_cm],
+               [weight_kg],
+               [blood_type],
+               [allergy],
+               [chronic_diseases],
+               [vision_left],
+               [vision_right],
+               [hearing_left],
+               [hearing_right],
+               [health_status] FROM [SWP391].[dbo].[Student_Health] WHERE student_id = @student_id`);
+  if (result.recordset.length > 0) {
+    res.status(200).json({
+      status: "success",
+      data: result.recordset[0],
+    });
+  } else {
+    res.status(404).json({
+      status: "fail",
+      message: "Student health information not found",
     });
   }
 };
