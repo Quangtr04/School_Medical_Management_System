@@ -25,10 +25,4 @@ nurseRouter.post(
   saveCheckupResult
 );
 
-nurseRouter.post(
-  "/health-declarations/:studentId",
-  validateInput(HealthDeclaration.Constructors),
-  healthDeclarationController
-);
-
 module.exports = nurseRouter;
