@@ -1,8 +1,0 @@
-@import "tailwindcss";
-
-/* Tùy chọn: thêm hỗ trợ typography (markdown đẹp) nếu dùng plugin */
-@layer base {
-  h2 {
-    @apply font-semibold text-3xl;
-  }
-}
