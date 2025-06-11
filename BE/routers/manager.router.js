@@ -1,7 +1,7 @@
 const express = require("express");
 const { getPending, responseSchedule } = require("../Controller/CheckUp/checkupController");
 
-const managerRouter = express().Router();
+const managerRouter = express.Router();
 
 // Manager duyệt lịch
 // managerRouter.get("/pending", auth, authorize("manager"), getPending);

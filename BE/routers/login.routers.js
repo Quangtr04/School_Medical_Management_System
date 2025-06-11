@@ -9,7 +9,7 @@ const {
 const generateToken = require("../Utils/jwt");
 const loginRouter = express.Router();
 
-loginRouter.post("/login", loginController);
+loginRouter.post("", loginController);
 
 loginRouter.post("/forgot-password", forgotPasswordByEmailController);
 

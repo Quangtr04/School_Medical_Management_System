@@ -37,7 +37,7 @@ const responseSchedule = async (req, res, next) => {
   const pool = await sqlServerPool;
   const update = await pool.request().input("id", sql.Int, id).input("status", sql.NVarChar, status).query(`
       UPDATE MedicalCheckup_Schedule
-      SET approval_status = @status && approved_by = 'principal'
+      SET approval_status = @status AND approved_by = 'principal'
       WHERE checkup_id = @id;
     `);
   if (status === "APPROVED") {

@@ -10,7 +10,7 @@ const { Checkup_Result, HealthDeclaration } = require("../Schemas/Schemas");
 const healthDeclarationController = require("../Controller/Health/healthDeclaration");
 const { saveCheckupResult } = require("../Controller/CheckUp/saveCheckupResult");
 
-const nurseRouter = express.nurse();
+const nurseRouter = express.Router();
 // Nurse tạo lịch
 // nurse.post("/", auth, authorize("nurse"), createSchedule);
 nurseRouter.post("/", authenticateToken, createSchedule);
