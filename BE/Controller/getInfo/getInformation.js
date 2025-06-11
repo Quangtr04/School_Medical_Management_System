@@ -42,6 +42,8 @@ const getAllStudentByParentId = async (req, res, next) => {
   }
 };
 
+
+
 const getAllStudentInfo = async (req, res, next) => {
   const pool = await sqlServerPool;
   const result = await pool
@@ -120,5 +122,5 @@ module.exports = {
   getParentInfo,
   getAllStudentInfo,
   getStudentInfoById,
-  getAllStudentByParentId,
+  getAllStudentByParentId,getStudentHealthById
 };

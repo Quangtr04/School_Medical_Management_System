@@ -46,6 +46,19 @@ const HealthDeclaration = {
   },
 };
 
+const StudentInformation ={
+  Constructors: {
+    student_info_id: "int",
+    student_code: "string",
+    full_name: "string",
+    gender: "string",
+    day_of_birth: "string",
+    class_name: "string",
+    parent_id: "int",
+    address: "string"
+  },
+};
+
 module.exports = {
   Information,
   Checkup_Result,
