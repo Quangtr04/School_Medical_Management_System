@@ -54,9 +54,6 @@ CREATE TABLE Student_Information (
 
 );
 
-
-
-
 -- Medication Request
 CREATE TABLE Medication_Submisstion_Request (
     id_req INT IDENTITY(1,1) PRIMARY KEY,
