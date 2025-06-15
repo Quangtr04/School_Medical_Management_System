@@ -15,11 +15,7 @@ const medicalSupplies = async (req, res, next) => {
     .input("unit", sql.NVarChar, medicalSupplyData.unit)
     .input("quantity", sql.Int, medicalSupplyData.quantity)
     .input("description", sql.NVarChar, medicalSupplyData.description)
-    .input(
-      "expired_date",
-      sql.DateTime,
-      new Date(medicalSupplyData.expired_date)
-    )
+    .input("expired_date", sql.DateTime, new Date(medicalSupplyData.expired_date))
     .input("is_active", sql.Int, medicalSupplyData.is_active)
     .input("nurse_id", sql.Int, medicalSupplyData.nurse_id)
     .input("usage_note", sql.NVarChar, medicalSupplyData.usage_note)
