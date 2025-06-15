@@ -104,11 +104,11 @@ const medicalUpdateById = async (req, res, next) => {
   const medical = await pool.request();
 
   medical
+    .input("supplyid", sql.Int, supply_id)
     .input("unit", sql.NVarChar, newUpdate.unit)
     .input("quantity", sql.Int, newUpdate.quantity)
     .input("is_active", sql.Int, newUpdate.is_active)
     .input("expired_date", sql.DateTime, new Date(newUpdate.expired_date))
-    .input("is_active", sql.Int, newUpdate.is_active)
     .query(
       `UPDATE Medical_Supply SET unit = @unit, quantity = @quantity, expired_date = @expired_date, is_active = @is_active WHERE supply_id = @supplyid`
     );
