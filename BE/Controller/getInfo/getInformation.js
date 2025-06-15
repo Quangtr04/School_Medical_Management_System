@@ -1,12 +1,9 @@
 const sql = require("mssql");
 const sqlServerPool = require("../../Utils/connectMySql");
-const getRole = require("../../Utils/getRole");
 
 const getParentInfo = async (req, res, next) => {
   const pool = await sqlServerPool;
-  const result = await pool
-    .request()
-    .query("SELECT * FROM [Infomation] WHERE user_id = @user_id");
+  const result = await pool.request().query("SELECT * FROM [Infomation] WHERE role_id = 4");
   if (result.recordset.length > 0) {
     res.status(200).json({
       status: "success",
@@ -42,13 +39,9 @@ const getAllStudentByParentId = async (req, res, next) => {
   }
 };
 
-
-
 const getAllStudentInfo = async (req, res, next) => {
   const pool = await sqlServerPool;
-  const result = await pool
-    .request()
-    .query("SELECT * FROM [SWP391].[dbo].[Student_Information]");
+  const result = await pool.request().query("SELECT * FROM [SWP391].[dbo].[Student_Information]");
   if (result.recordset.length > 0) {
     res.status(200).json({
       status: "success",
@@ -66,8 +59,7 @@ const getStudentInfoById = async (req, res, next) => {
   const { student_id } = req.params;
 
   const pool = await sqlServerPool;
-  const result = await pool.request().input("student_id", sql.Int, student_id)
-    .query(`
+  const result = await pool.request().input("student_id", sql.Int, student_id).query(`
         SELECT [student_info_id],
                [student_code],
                [full_name],
@@ -93,8 +85,7 @@ const getStudentHealthById = async (req, res, next) => {
   const { student_id } = req.params;
 
   const pool = await sqlServerPool;
-  const result = await pool.request().input("student_id", sql.Int, student_id)
-    .query(`
+  const result = await pool.request().input("student_id", sql.Int, student_id).query(`
         SELECT [height_cm],
                [weight_kg],
                [blood_type],
@@ -122,5 +113,6 @@ module.exports = {
   getParentInfo,
   getAllStudentInfo,
   getStudentInfoById,
-  getAllStudentByParentId,getStudentHealthById
+  getAllStudentByParentId,
+  getStudentHealthById,
 };

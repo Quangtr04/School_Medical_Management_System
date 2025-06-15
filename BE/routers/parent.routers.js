@@ -1,9 +1,14 @@
 const express = require("express");
-const { getAllStudentByParentId, getStudentInfoById, getStudentHealthById } = require("../Controller/getInfo/getInformation");
+const {
+  getAllStudentByParentId,
+  getStudentInfoById,
+  getStudentHealthById,
+} = require("../Controller/getInfo/getInformation");
 const { listPendingConsent, respondConsent } = require("../Controller/CheckUp/consentController");
 const { HealthDeclaration } = require("../Schemas/Schemas");
 const healthDeclarationController = require("../Controller/Health/healthDeclaration");
 const validateInput = require("../Utils/validateInput");
+const Schemas = require("../Schemas/Schemas");
 
 const parentRouter = express.Router();
 
@@ -20,7 +25,7 @@ parentRouter.get("/StudentHealth/:student_id", getStudentHealthById);
 
 parentRouter.post(
   "/health-declarations/:studentId",
-  validateInput(HealthDeclaration.Constructors),
+  validateInput(Schemas, "HealthDeclaration"),
   healthDeclarationController
 );
 

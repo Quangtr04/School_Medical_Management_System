@@ -2,11 +2,11 @@ const express = require("express");
 const { getAllStudentInfo, getStudentInfoById } = require("../Controller/getInfo/getInformation");
 const registerController = require("../Controller/Login/registerController");
 const validateInput = require("../Utils/validateInput");
-const { Information } = require("../Schemas/Schemas");
+const Schemas = require("../Schemas/Schemas");
 
 const adminRouter = express.Router();
 
-adminRouter.post("/register", validateInput(Information.Constructors), registerController);
+adminRouter.post("/register", validateInput(Schemas, "Information"), registerController);
 
 adminRouter.get("/InformationStudent", getAllStudentInfo);
 
