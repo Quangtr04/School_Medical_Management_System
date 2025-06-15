@@ -8,13 +8,13 @@ const medicalHandling = async (req, res, next) => {
 
   const result = await pool
     .request()
-    .input("type", sql.NVarChar, medicalHandlingData.type)
+    .input("nurse_id", sql.Int, medicalHandlingData.nurse_id)
     .input("id_req", sql.NVarChar, medicalHandlingData.id_req)
     .input("status", sql.Int, medicalHandlingData.status)
     .input("handled_at", sql.Int, medicalHandlingData.handled_at)
     .query(
-      `INSERT INTO Handling_Medicine (id_req, status, handled_at) 
-             VALUES (@id_req, @status, @handled_at)`
+      `INSERT INTO Handling_Medicine (nurse_id, id_req, status, handled_at) 
+             VALUES (@nurse_id, @id_req, @status, @handled_at)`
     );
 
   if (result.rowsAffected.length > 0) {

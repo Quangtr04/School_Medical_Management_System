@@ -12,9 +12,14 @@ const medicalSubmissionReq = async (req, res, next) => {
     .input("student_id", sql.Int, medicalSubmissionData.student_id)
     .input("status", sql.DateTime, new Date(medicalSubmissionData.status))
     .input("note", sql.NVarChar, medicalSubmissionData.note)
+    .input(
+      "appointment_date",
+      sql.DateTime,
+      medicalSubmissionData.appointment_date
+    )
     .query(
-      `INSERT INTO Medication_Submission_Request (parent_id, student_id, status, note) 
-             VALUES (@parent_id, @student_id, @status, @note)`
+      `INSERT INTO Medication_Submission_Request (parent_id, student_id, status, note, appointment_date) 
+             VALUES (@parent_id, @student_id, @status, @note, @appointment_date)`
     );
 
   if (result.rowsAffected.length > 0) {
@@ -30,7 +35,7 @@ const medicalSubmissionReq = async (req, res, next) => {
   }
 };
 
-const getAllMedicationSubmissions = async (req, res, next) => {
+const getAllMedicationSubmissionReq = async (req, res, next) => {
   const pool = await sqlServerPool;
   const result = await pool
     .request()
@@ -48,18 +53,47 @@ const getAllMedicationSubmissions = async (req, res, next) => {
   }
 };
 
-const updateMedicationSubmission = async (req, res, next) => {
-  const submissionId = req.params.submissionId;
-  const { status, note } = req.body;
+const updateMedicationSubmissionReqByParent = async (req, res, next) => {
+  const submissionReqId = req.params.submissionId;
+  const { note, appointment_date } = req.body;
   const pool = await sqlServerPool;
 
   const result = await pool
     .request()
-    .input("status", sql.DateTime, new Date(status))
     .input("note", sql.NVarChar, note)
+    .input("appointment_date", sql.DateTime, new Date(appointment_date))
+    .input("id_req", sql.Int, submissionReqId)
     .query(
       `UPDATE Medication_Submission_Request  
-       SET status = @status, note = @note 
+       SET note = @note, appointment_date = @appointment_date
+       WHERE id_req = @id_req AND status = 'Pending'`
+    );
+
+  if (result.rowsAffected[0] > 0) {
+    res.status(200).json({
+      status: "success",
+      message: "Medication submission updated successfully",
+    });
+  } else {
+    res.status(400).json({
+      status: "fail",
+      message: "Update failed. Only 'Pending' requests can be updated.",
+    });
+  }
+};
+
+const updateMedicationSubmissionReqByAdmin = async (req, res, next) => {
+  const submissionReqId = req.params.submissionId;
+  const { status } = req.body;
+  const pool = await sqlServerPool;
+
+  const result = await pool
+    .request()
+    .input("status", sql.Int, status)
+    .input("id_req", sql.Int, submissionReqId)
+    .query(
+      `UPDATE Medication_Submission_Request  
+       SET status = @status
        WHERE id_req = @id_req`
     );
 
@@ -78,6 +112,7 @@ const updateMedicationSubmission = async (req, res, next) => {
 
 module.exports = {
   medicalSubmissionReq,
-  getAllMedicationSubmissions,
-  updateMedicationSubmission,
+  getAllMedicationSubmissionReq,
+  updateMedicationSubmissionReqByParent,
+  updateMedicationSubmissionReqByAdmin,
 };

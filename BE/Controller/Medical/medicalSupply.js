@@ -8,18 +8,24 @@ const medicalSupplies = async (req, res, next) => {
 
   const result = await pool
     .request()
+    .input("parent_id", sql.Int, medicalSupplyData.parent_id)
+    .input("student_id", sql.Int, medicalSupplyData.student_id)
     .input("name", sql.NVarChar, medicalSupplyData.name)
     .input("type", sql.NVarChar, medicalSupplyData.type)
     .input("unit", sql.NVarChar, medicalSupplyData.unit)
     .input("quantity", sql.Int, medicalSupplyData.quantity)
     .input("description", sql.NVarChar, medicalSupplyData.description)
-    .input("expired_date", sql.DateTime, new Date(medicalSupplyData.expired_date))
+    .input(
+      "expired_date",
+      sql.DateTime,
+      new Date(medicalSupplyData.expired_date)
+    )
     .input("is_active", sql.Int, medicalSupplyData.is_active)
-    .input("nurse_id", sql.Int, nurse_id)
+    .input("nurse_id", sql.Int, medicalSupplyData.nurse_id)
     .input("usage_note", sql.NVarChar, medicalSupplyData.usage_note)
     .query(
-      `INSERT INTO Medical_Supply (name, quantity, type, unit, description, expired_date, is_active, nurse_id, usage_note) 
-            VALUES (@name, @quantity, @type, @unit, @description, @expired_date, @is_active, @nurse_id, @usage_note)`
+      `INSERT INTO Medical_Supply (parent_id, student_id, name, quantity, type, unit, description, expired_date, is_active, nurse_id, usage_note) 
+            VALUES (@parent_id, @student_id, @name, @quantity, @type, @unit, @description, @expired_date, @is_active, @nurse_id, @usage_note)`
     );
 
   if (result.rowsAffected.length > 0) {
@@ -92,7 +98,7 @@ const FindlMedicalSuppliesByName = async (req, res, next) => {
 };
 
 const medicalUpdateById = async (req, res, next) => {
-  const supplyid = req.param.supplyid;
+  const supply_id = req.param.supplyid;
   const newUpdate = req.body;
   const pool = await sqlServerPool;
   const medical = await pool.request();
@@ -127,3 +133,4 @@ module.exports = {
   FindlMedicalSuppliesByName,
   medicalUpdateById,
 };
+l2;
