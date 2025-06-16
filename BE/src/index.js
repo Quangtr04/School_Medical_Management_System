@@ -24,13 +24,13 @@ app.use(express.json());
 
 app.use("/api/login", loginRouter);
 
-app.use("/parent", parentRouter);
+app.use("/api/parent", parentRouter);
 
-app.use("/admin", adminRouter);
+app.use("/api/admin", adminRouter);
 
-app.use("/nurse", nurseRouter);
+app.use("/api/nurse", nurseRouter);
 
-app.use("/manager", managerRouter);
+app.use("/api/manager", managerRouter);
 
 app.listen(port, "0.0.0.0", () => {
   console.log(`Server is running on http://localhost:${port}`);

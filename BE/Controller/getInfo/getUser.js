@@ -1,21 +1,7 @@
 const sql = require("mssql");
 
 const sqlServerPool = require("../../Utils/connectMySql");
-
-const getAllUser = async (req, res, next) => {
-  const pool = await sqlServerPool;
-  const result = await pool.request().query("SELECT * FROM Users");
-  if (result.recordset.length > 0) {
-    res.status(200).json({
-      message: "Success",
-      data: result,
-    });
-  } else {
-    res.status(400).json({
-      message: "Some thing went wrong",
-    });
-  }
-};
+const { getRoleIdByName } = require("../../Utils/getRoleUtils");
 
 const getUserByUserId = async (req, res, next) => {
   const pool = await sqlServerPool;
@@ -37,12 +23,73 @@ const getUserByUserId = async (req, res, next) => {
 };
 
 const getUserByRole = async (req, res, next) => {
+  const path = req.path.toLowerCase();
+  let role_name;
+
+  if (path.includes("parents")) {
+    role_name = "Parent";
+  } else if (path.includes("managers")) {
+    role_name = "Manager";
+  } else if (path.includes("nurses")) {
+    role_name = "School_Nurse";
+  } else {
+    return res.status(400).json({ message: "Invalid role route" });
+  }
   const pool = await sqlServerPool;
-  const role = req.param.role;
-  const result = await getRole();
+  const role_id = await getRoleIdByName(role_name);
+  const result = await pool
+    .request()
+    .input("role_id", sql.Int, role_id)
+    .query("SELECT u.*, i.fullname FROM Users u JOIN Infomation i ON u.user_id = i.user_id WHERE u.role_id = @role_id");
+  if (result.recordset.length > 0) {
+    res.status(200).json({
+      message: "Success",
+      data: result.recordset,
+    });
+  } else {
+    res.status(400).json({
+      message: "Some thing went wrong",
+    });
+  }
+};
+
+const getUserById = async (req, res, next) => {
+  const path = req.path.toLowerCase();
+  const user_id = parseInt(req.params.user_id); // chuyển sang kiểu số nguyên
+  let role_name;
+
+  if (path.includes("parents")) {
+    role_name = "Parent";
+  } else if (path.includes("managers")) {
+    role_name = "Manager";
+  } else if (path.includes("nurses")) {
+    role_name = "School_Nurse";
+  } else {
+    return res.status(400).json({ message: "Invalid role route" });
+  }
+  const pool = await sqlServerPool;
+  const role_id = await getRoleIdByName(role_name);
+  const result = await pool
+    .request()
+    .input("user_id", sql.Int, user_id)
+    .input("role_id", sql.Int, role_id)
+    .query(
+      "SELECT * FROM Users u JOIN Infomation i ON u.user_id = i.user_id WHERE u.role_id = @role_id AND u.user_id = @user_id"
+    );
+  if (result.recordset.length > 0) {
+    res.status(200).json({
+      message: "Success",
+      data: result.recordset,
+    });
+  } else {
+    res.status(400).json({
+      message: "Some thing went wrong",
+    });
+  }
 };
 
 module.exports = {
-  getAllUser,
   getUserByUserId,
+  getUserByRole,
+  getUserById,
 };

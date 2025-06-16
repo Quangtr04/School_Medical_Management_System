@@ -6,9 +6,9 @@ const {
 } = require("../Controller/getInfo/getInformation");
 const { listPendingConsent, respondConsent } = require("../Controller/CheckUp/consentController");
 const { HealthDeclaration } = require("../Schemas/Schemas");
-const healthDeclarationController = require("../Controller/Health/healthDeclaration");
 const validateInput = require("../Utils/validateInput");
 const Schemas = require("../Schemas/Schemas");
+const { healthDeclarationController } = require("../Controller/Health/healthDeclaration");
 
 const parentRouter = express.Router();
 
