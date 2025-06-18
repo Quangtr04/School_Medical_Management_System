@@ -51,6 +51,7 @@ CREATE TABLE Medication_Submisstion_Request (
 CREATE TABLE Medication_Daily_Log (
     log_id INT PRIMARY KEY IDENTITY(1,1),
     id_req INT NOT NULL FOREIGN KEY REFERENCES Medication_Submisstion_Request(id_req),
+	 nurse_id INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
     date DATE NOT NULL,
     status VARCHAR(50) NOT NULL,
     note TEXT,
