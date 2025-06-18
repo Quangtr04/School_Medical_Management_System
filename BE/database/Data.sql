@@ -17,19 +17,6 @@ INSERT INTO Class (class_name, number_of_student) VALUES
 ('10A1', 30),
 ('10A2', 25);
 
-INSERT INTO Student_Health (
-    student_id, height_cm, weight_kg, blood_type, allergy, chronic_disease,
-    vision_left, vision_right, hearing_left, hearing_right, health_status,
-    created_at, updated_at
-) VALUES
-(1, 145, 40, 'O', NULL, NULL, 1.0, 1.0, 'Normal', 'Normal', 'Healthy', GETDATE(), NULL),
-(2, 140, 35, 'A', 'Peanuts', NULL, 0.9, 1.0, 'Normal', 'Normal', 'Allergy - Monitored', GETDATE(), NULL),
-(3, 146, 42, 'B', NULL, 'Asthma', 0.8, 1.0, 'Normal', 'Slightly impaired', 'Asthma - Follow up needed', GETDATE(), NULL),
-(4, 138, 32, 'AB', 'Dust', NULL, 1.0, 1.0, 'Normal', 'Normal', 'Healthy', GETDATE(), NULL),
-(5, 142, 37, 'O', NULL, NULL, 0.9, 0.9, 'Normal', 'Normal', 'Mild myopia', GETDATE(), NULL),
-(6, 144, 39, 'A', NULL, NULL, 1.0, 1.0, 'Normal', 'Normal', 'Healthy', GETDATE(), NULL);
-
-
 
 INSERT INTO Student_Information (student_code, full_name, gender, date_of_birth, class_name, parent_id, address) VALUES
 ('STU001', N'Nguyen Van D', 'Male', '2010-09-01', '10A1', 4, N'12 Student Lane, Hanoi'),
@@ -61,3 +48,40 @@ INSERT INTO Vaccination_Campaign (title, description, scheduled_date, created_by
 -- MedicalCheckup_Schedule
 INSERT INTO MedicalCheckup_Schedule (title, description, scheduled_date, created_by, approved_by, approval_status, sponsor, class) VALUES
 ('Annual Checkup 2025', 'General health checkup for all students', '2025-11-01', 3, 1, 'APPROVED', N'Department of Education', NULL);
+
+
+-- Checkup_Consent_Form
+INSERT INTO Checkup_Consent_Form (checkup_id, student_id, parent_id, status, submitted_at, note) VALUES
+(1, 1, 2, 'APPROVED', GETDATE(), N'Confirmed for checkup'),
+(1, 2, 3, 'APPROVED', GETDATE(), N'Available for checkup');
+
+-- Checkup_Participation
+INSERT INTO Checkup_Participation (checkup_id, student_id, consent_form_id, checked_at, height_cm, weight_kg,
+vision_left, vision_right, hearing_left, hearing_right, blood_pressure, notes, abnormal_signs, needs_counseling, note) VALUES
+(1, 1, 1, GETDATE(), 145, 38, 1.0, 1.0, 'Normal', 'Normal', '110/70', N'All normal', NULL, 0, NULL),
+(1, 2, 2, GETDATE(), 142, 36, 0.9, 1.0, 'Normal', 'Normal', '105/68', N'Slight myopia', N'Vision check recommended', 1, N'Follow-up needed');
+
+-- Incident_Medication_Log
+INSERT INTO Incident_Medication_Log (event_id, supply_id, quantity_used) VALUES
+(1, 1, 2),
+(1, 2, 1);
+
+-- Medical_Incident
+INSERT INTO Medical_Incident (serverity_id, subject_info_id, student_id, description, occurred_at, reported_at, nurse_id, status, resolution_notes, resolved_at) VALUES
+(1, 2, 1, N'Student fainted during PE class', GETDATE(), GETDATE(), 4, 'RESOLVED', N'Hydration and rest advised', GETDATE()),
+(2, 3, 2, N'Allergic reaction to unknown substance', GETDATE(), GETDATE(), 4, 'MONITORING', N'Antihistamines given, monitor for 24h', NULL);
+
+-- Medication_Submisstion_Request
+INSERT INTO Medication_Submisstion_Request (parent_id, student_id, status, created_at, nurse_id, note, image_url, start_date, end_date) VALUES
+(2, 1, 'APPROVED', GETDATE(), 4, N'Paracetamol for fever', NULL, GETDATE(), DATEADD(day, 3, GETDATE())),
+(3, 2, 'PENDING', GETDATE(), 4, N'Cough syrup', NULL, GETDATE(), DATEADD(day, 2, GETDATE()));
+
+-- Vaccination_Consent_Form
+INSERT INTO Vaccination_Consent_Form (campaign_id, student_id, parent_id, status, submitted_at, note) VALUES
+(1, 1, 2, 'APPROVED', GETDATE(), N'Consent given'),
+(1, 2, 3, 'APPROVED', GETDATE(), N'Consent approved');
+
+-- Vaccination_Result
+INSERT INTO Vaccination_Result (campaign_id, student_id, consent_form_id, vaccinated_at, vaccine_name, dose_number, reaction, follow_up_required, note) VALUES
+(1, 1, 1, GETDATE(), 'MMR', 1, NULL, 0, N'No issues observed'),
+(1, 2, 2, GETDATE(), 'MMR', 1, 'Slight fever', 1, N'Monitor for 2 days');
