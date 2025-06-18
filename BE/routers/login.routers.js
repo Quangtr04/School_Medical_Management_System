@@ -5,7 +5,7 @@ const {
   forgotPasswordController,
   newPassword,
 } = require("../Controller/Login/forgot_password_Controller");
-const generateToken = require("../Utils/jwt");
+
 const loginRouter = express.Router();
 
 loginRouter.post("", loginController);
