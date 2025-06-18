@@ -165,7 +165,7 @@ CREATE TABLE Medical_Checkup_Schedule (
 
 CREATE TABLE Checkup_Consent_Form (
     form_id INT PRIMARY KEY IDENTITY(1,1),
-    checkup_id INT NOT NULL FOREIGN KEY REFERENCES MedicalCheckup_Schedule(checkup_id),
+    checkup_id INT NOT NULL FOREIGN KEY REFERENCES Medical_Checkup_Schedule(checkup_id),
     student_id INT NOT NULL FOREIGN KEY REFERENCES Student_Information(student_id),
     parent_id INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
     status VARCHAR(50) NOT NULL,
@@ -175,7 +175,7 @@ CREATE TABLE Checkup_Consent_Form (
 
 CREATE TABLE Checkup_Participation (
     id INT PRIMARY KEY IDENTITY(1,1),
-    checkup_id INT NOT NULL FOREIGN KEY REFERENCES MedicalCheckup_Schedule(checkup_id),
+    checkup_id INT NOT NULL FOREIGN KEY REFERENCES Medical_Checkup_Schedule(checkup_id),
     student_id INT NOT NULL FOREIGN KEY REFERENCES Student_Information(student_id),
     consent_form_id INT NOT NULL FOREIGN KEY REFERENCES Checkup_Consent_Form(form_id),
     checked_at DATETIME,
