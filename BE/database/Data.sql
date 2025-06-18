@@ -1,4 +1,4 @@
--- Roles
+﻿-- Roles
 INSERT INTO Role (name) VALUES
 ('Admin'),
 ('Manager'),
@@ -57,11 +57,11 @@ INSERT INTO Medical_Supply (name, type, unit, quantity, description, expired_dat
 
 -- Vaccination Campaign
 INSERT INTO Vaccination_Campaign (title, description, scheduled_date, created_by, approved_by, approval_status, sponsor, class) VALUES
-('Flu Vaccination 2025', 'Annual flu vaccination campaign', '2025-10-01', 3, 1, 'APPROVED', N'Ministry of Health', NULL);
+('Flu Vaccination 2025', 'Annual flu vaccination campaign', '2025-10-01', 3, null, 'APPROVED', N'Ministry of Health', NULL);
 
--- MedicalCheckup_Schedule
-INSERT INTO MedicalCheckup_Schedule (title, description, scheduled_date, created_by, approved_by, approval_status, sponsor, class) VALUES
-('Annual Checkup 2025', 'General health checkup for all students', '2025-11-01', 3, 1, 'APPROVED', N'Department of Education', NULL);
+-- Medical_Checkup_Schedule
+INSERT INTO Medical_Checkup_Schedule (title, description, scheduled_date, created_by, approved_by, approval_status, sponsor, class) VALUES
+('Annual Checkup 2025', 'General health checkup for all students', '2025-11-01', 3, null, 'APPROVED', N'Department of Education', NULL);
 
 
 -- Checkup_Consent_Form

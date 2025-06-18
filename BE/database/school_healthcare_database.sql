@@ -51,7 +51,7 @@ CREATE TABLE Medication_Submisstion_Request (
 CREATE TABLE Medication_Daily_Log (
     log_id INT PRIMARY KEY IDENTITY(1,1),
     id_req INT NOT NULL FOREIGN KEY REFERENCES Medication_Submisstion_Request(id_req),
-	 nurse_id INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
+	nurse_id INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
     date DATE NOT NULL,
     status VARCHAR(50) NOT NULL,
     note TEXT,
@@ -121,7 +121,7 @@ CREATE TABLE Vaccination_Campaign (
     scheduled_date DATE NOT NULL,
     created_at DATETIME DEFAULT GETDATE(),
     created_by INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
-    approved_by INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
+    approved_by NVARCHAR(255) NULL ,
     approval_status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
     sponsor NVARCHAR(255) NOT NULL,
     class INT
@@ -150,14 +150,14 @@ CREATE TABLE Vaccination_Result (
     note TEXT
 );
 
-CREATE TABLE MedicalCheckup_Schedule (
+CREATE TABLE Medical_Checkup_Schedule (
     checkup_id INT PRIMARY KEY IDENTITY(1,1),
     title VARCHAR(255) NOT NULL,
     description TEXT,
     scheduled_date DATE NOT NULL,
     created_at DATETIME DEFAULT GETDATE(),
     created_by INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
-    approved_by INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
+    approved_by NVARCHAR(255) NULL,
     approval_status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
     sponsor NVARCHAR(255) NOT NULL,
     class INT

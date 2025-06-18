@@ -3,25 +3,6 @@ const sql = require("mssql");
 const sqlServerPool = require("../../Utils/connectMySql");
 const { getRoleIdByName } = require("../../Utils/getRoleUtils");
 
-const getUserByUserId = async (req, res, next) => {
-  const pool = await sqlServerPool;
-  const user_id = req.params.id;
-  const result = await pool
-    .request()
-    .input("user_id", sql.Int, user_id)
-    .query(`SELECT * FROM Users WHERE user_id = @user_id`);
-  if (result.recordset.length > 0) {
-    res.status(200).json({
-      message: "Success",
-      data: result,
-    });
-  } else {
-    res.status(400).json({
-      message: "Some thing went wrong",
-    });
-  }
-};
-
 const getUserByRole = async (req, res, next) => {
   const path = req.path.toLowerCase();
   let role_name;
@@ -53,7 +34,7 @@ const getUserByRole = async (req, res, next) => {
   }
 };
 
-const getUserById = async (req, res, next) => {
+const getUserByUserId = async (req, res, next) => {
   const path = req.path.toLowerCase();
   const user_id = parseInt(req.params.user_id); // chuyển sang kiểu số nguyên
   let role_name;
@@ -73,9 +54,7 @@ const getUserById = async (req, res, next) => {
     .request()
     .input("user_id", sql.Int, user_id)
     .input("role_id", sql.Int, role_id)
-    .query(
-      "SELECT * FROM Users u JOIN Infomation i ON u.user_id = i.user_id WHERE u.role_id = @role_id AND u.user_id = @user_id"
-    );
+    .query("SELECT * FROM Users WHERE user_id = @user_id AND role_id = @role_id");
   if (result.recordset.length > 0) {
     res.status(200).json({
       message: "Success",
@@ -91,5 +70,4 @@ const getUserById = async (req, res, next) => {
 module.exports = {
   getUserByUserId,
   getUserByRole,
-  getUserById,
 };
