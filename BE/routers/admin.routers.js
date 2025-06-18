@@ -14,10 +14,10 @@ adminRouter.get("/managers", getUserByRole);
 
 adminRouter.get("/nurses", getUserByRole);
 
-adminRouter.get("/parents/:user_id", getUserById);
+adminRouter.get("/parents/:user_id", getUserByUserId);
 
-adminRouter.get("/managers/:user_id", getUserById);
+adminRouter.get("/managers/:user_id", getUserByUserId);
 
-adminRouter.get("/nurses/:user_id", getUserById);
+adminRouter.get("/nurses/:user_id", getUserByUserId);
 
 module.exports = adminRouter;
