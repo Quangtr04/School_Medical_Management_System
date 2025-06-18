@@ -17,6 +17,20 @@ INSERT INTO Class (class_name, number_of_student) VALUES
 ('10A1', 30),
 ('10A2', 25);
 
+INSERT INTO Student_Health (
+    student_id, height_cm, weight_kg, blood_type, allergy, chronic_disease,
+    vision_left, vision_right, hearing_left, hearing_right, health_status,
+    created_at, updated_at
+) VALUES
+(1, 145, 40, 'O', NULL, NULL, 1.0, 1.0, 'Normal', 'Normal', 'Healthy', GETDATE(), NULL),
+(2, 140, 35, 'A', 'Peanuts', NULL, 0.9, 1.0, 'Normal', 'Normal', 'Allergy - Monitored', GETDATE(), NULL),
+(3, 146, 42, 'B', NULL, 'Asthma', 0.8, 1.0, 'Normal', 'Slightly impaired', 'Asthma - Follow up needed', GETDATE(), NULL),
+(4, 138, 32, 'AB', 'Dust', NULL, 1.0, 1.0, 'Normal', 'Normal', 'Healthy', GETDATE(), NULL),
+(5, 142, 37, 'O', NULL, NULL, 0.9, 0.9, 'Normal', 'Normal', 'Mild myopia', GETDATE(), NULL),
+(6, 144, 39, 'A', NULL, NULL, 1.0, 1.0, 'Normal', 'Normal', 'Healthy', GETDATE(), NULL);
+
+
+
 
 INSERT INTO Student_Information (student_code, full_name, gender, date_of_birth, class_name, parent_id, address) VALUES
 ('STU001', N'Nguyen Van D', 'Male', '2010-09-01', '10A1', 4, N'12 Student Lane, Hanoi'),
