@@ -2,7 +2,7 @@ const express = require("express");
 const registerController = require("../Controller/Login/registerController");
 const validateInput = require("../Utils/validateInput");
 const Schemas = require("../Schemas/Schemas");
-const { getUserByRole } = require("../Controller/getInfo/getUser");
+const { getUserByRole, getUserByUserId } = require("../Controller/getInfo/getUser");
 
 const adminRouter = express.Router();
 

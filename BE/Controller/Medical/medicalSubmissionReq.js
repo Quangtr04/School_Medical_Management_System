@@ -36,9 +36,7 @@ const medicalSubmissionReq = async (req, res, next) => {
 
 const getAllMedicalSubmissionReq = async (req, res, next) => {
   const pool = await sqlServerPool;
-  const result = await pool
-    .request()
-    .query("SELECT * FROM Medication_Submisstion_Request");
+  const result = await pool.request().query("SELECT * FROM Medication_Submisstion_Request");
   if (result.recordset.length > 0) {
     res.status(200).json({
       status: "success",
@@ -58,9 +56,7 @@ const getMedicalSubmissionReqByID = async (req, res, next) => {
   const result = await pool
     .request()
     .input("id_req", sql.Int, ReqId)
-    .query(
-      "SELECT * FROM Medication_Submisstion_Request WHERE id_req = @id_req"
-    );
+    .query("SELECT * FROM Medication_Submisstion_Request WHERE id_req = @id_req");
 
   if (result.recordset.length > 0) {
     res.status(200).json({
@@ -110,6 +106,5 @@ module.exports = {
   medicalSubmissionReq,
   getAllMedicalSubmissionReq,
   getMedicalSubmissionReqByID,
-  updateMedicalSubmissionReq
-  ,
+  updateMedicalSubmissionReq,
 };

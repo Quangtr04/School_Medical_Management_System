@@ -21,7 +21,7 @@ const getUserByRole = async (req, res, next) => {
   const result = await pool
     .request()
     .input("role_id", sql.Int, role_id)
-    .query("SELECT u.*, i.fullname FROM Users u JOIN Infomation i ON u.user_id = i.user_id WHERE u.role_id = @role_id");
+    .query("SELECT u.*, i.fullname FROM Users u JOIN Users i ON u.user_id = i.user_id WHERE u.role_id = @role_id");
   if (result.recordset.length > 0) {
     res.status(200).json({
       message: "Success",

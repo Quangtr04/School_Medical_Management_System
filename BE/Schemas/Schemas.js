@@ -51,6 +51,13 @@ const StudentInformation = {
   address: { type: "string", required: true },
 };
 
+const MedicalSubmissionRequest = {
+  parent_id: { type: "int", required: true },
+  student_id: { type: "int", required: true },
+  nurse_id: { type: "int", required: true },
+  status: { type: "string", required: true, default: "pending" },
+};
+
 module.exports = {
   Information,
   Checkup_Result,
