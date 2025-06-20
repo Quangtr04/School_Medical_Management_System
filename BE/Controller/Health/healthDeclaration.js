@@ -69,7 +69,7 @@ const getHealthDeclarationOfStudentByParent = async (req, res, next) => {
       FROM 
         Student_Health sh
       JOIN 
-        Student_Information si ON sh.student_id = si.student_info_id
+        Student_Information si ON sh.student_id = si.student_id
       WHERE 
         si.parent_id = @parent_id
     `);
@@ -94,16 +94,9 @@ const updateHealthDeclarationByStudentId = async (req, res, next) => {
 
   const result = await pool
     .request()
-    .input("student_id", sql.Int, studentId)
     .input("height_cm", sql.Int, healthDeclarationData.height_cm)
     .input("weight_kg", sql.Int, healthDeclarationData.weight_kg)
-    .input("blood_type", sql.NVarChar, healthDeclarationData.blood_type)
     .input("allergy", sql.NVarChar, healthDeclarationData.allergy)
-    .input(
-      "chronic_disease",
-      sql.NVarChar,
-      healthDeclarationData.chronic_disease
-    )
     .input("vision_left", sql.Float, healthDeclarationData.vision_left)
     .input("vision_right", sql.Float, healthDeclarationData.vision_right)
     .input("hearing_left", sql.NVarChar, healthDeclarationData.hearing_left)
@@ -111,8 +104,8 @@ const updateHealthDeclarationByStudentId = async (req, res, next) => {
     .input("health_status", sql.NVarChar, healthDeclarationData.health_status)
     .query(
       `UPDATE Student_Health 
-         SET height_cm = @height_cm, weight_kg = @weight_kg, blood_type = @blood_type, allergy = @allergy,
-             chronic_disease = @chronic_disease, vision_left = @vision_left, vision_right = @vision_right,
+         SET height_cm = @height_cm, weight_kg = @weight_kg, allergy = @allergy,
+             vision_left = @vision_left, vision_right = @vision_right,
              hearing_left = @hearing_left, hearing_right = @hearing_right, health_status = @health_status,
              updated_at = GETDATE()
          WHERE student_id = @student_id`
