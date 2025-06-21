@@ -55,7 +55,8 @@ CREATE TABLE Medication_Daily_Log (
     date DATE NOT NULL,
     status VARCHAR(50) NOT NULL,
     note TEXT,
-    updated_at DATETIME DEFAULT GETDATE()
+    updated_at DATETIME DEFAULT GETDATE(),
+    image_url VARCHAR(255),
 );
 
 CREATE TABLE Student_Health (
@@ -116,7 +117,7 @@ CREATE TABLE Incident_Medication_Log (
 
 CREATE TABLE Vaccination_Campaign (
     campaign_id INT PRIMARY KEY IDENTITY(1,1),
-    title VARCHAR(255) NOT NULL,
+    title NVARCHAR(255) NOT NULL,
     description TEXT,
     scheduled_date DATE NOT NULL,
     created_at DATETIME DEFAULT GETDATE(),
@@ -143,7 +144,7 @@ CREATE TABLE Vaccination_Result (
     student_id INT NOT NULL FOREIGN KEY REFERENCES Student_Information(student_id),
     consent_form_id INT NOT NULL FOREIGN KEY REFERENCES Vaccination_Consent_Form(form_id),
     vaccinated_at DATETIME,
-    vaccine_name VARCHAR(255),
+    vaccine_name NVARCHAR(255),
     dose_number INT,
     reaction TEXT,
     follow_up_required BIT DEFAULT 0,
@@ -152,7 +153,7 @@ CREATE TABLE Vaccination_Result (
 
 CREATE TABLE Medical_Checkup_Schedule (
     checkup_id INT PRIMARY KEY IDENTITY(1,1),
-    title VARCHAR(255) NOT NULL,
+    title NVARCHAR(255) NOT NULL,
     description TEXT,
     scheduled_date DATE NOT NULL,
     created_at DATETIME DEFAULT GETDATE(),
@@ -191,3 +192,16 @@ CREATE TABLE Checkup_Participation (
     needs_counseling BIT DEFAULT 0,
     note TEXT
 );
+
+CREATE TABLE Notification (
+  notification_id INT IDENTITY(1,1) PRIMARY KEY,
+  title NVARCHAR(255) NOT NULL,
+  message NVARCHAR(MAX) NOT NULL,
+  receiver_id INT NOT NULL,
+  created_at DATETIME DEFAULT GETDATE(),
+  is_read BIT DEFAULT 0,
+  CONSTRAINT FK_Notification_User FOREIGN KEY (receiver_id)
+    REFERENCES Users(user_id)
+    ON DELETE CASCADE -- (Tùy chọn: khi xóa user thì xóa luôn thông báo)
+);
+

@@ -10,7 +10,7 @@ function validateInput(schemaDefinitions, schemaName) {
 
     for (const key in schema) {
       const { type, required } = schema[key];
-      const value = data[key];
+      let value = data[key];
 
       // Nếu là required nhưng không có giá trị
       if (required && (value === undefined || value === null || value === "")) {
@@ -21,6 +21,14 @@ function validateInput(schemaDefinitions, schemaName) {
       // Nếu không required và không có giá trị → bỏ qua
       if (!required && (value === undefined || value === null || value === "")) {
         continue;
+      }
+
+      // 👉 Xử lý trước khi validate kiểu boolean (chuyển đổi string/int về boolean)
+      if (type === "boolean") {
+        if (value === "true" || value === 1) value = true;
+        else if (value === "false" || value === 0) value = false;
+        // Gán lại vào body để controller dùng đúng kiểu
+        data[key] = value;
       }
 
       // Kiểm tra kiểu dữ liệu
@@ -59,6 +67,8 @@ function isValidType(value, type) {
       return typeof value === "string";
     case "date":
       return !isNaN(Date.parse(value));
+    case "boolean":
+      return typeof value === "boolean";
     default:
       return false;
   }

@@ -16,12 +16,8 @@ const loginController = async (req, res, next) => {
       .query("SELECT * FROM [Users] WHERE email = @username AND password = @password");
     if (result.recordset.length > 0) {
       const { role_id, user_id } = result.recordset[0];
-      const user = await pool
-        .request()
-        .input("user_id", sql.Int, user_id)
-        .query("SELECT * FROM [Infomation] WHERE user_id = @user_id");
       const token = generateToken({ user_id, role: role_id });
-      res.status(200).json({ status: "success", token, user: user.recordset[0] });
+      res.status(200).json({ status: "success", token, user: result.recordset[0] });
     } else {
       res.status(401).json({ status: "fail", message: "Invalid email or password" });
     }
@@ -34,12 +30,8 @@ const loginController = async (req, res, next) => {
         .query("SELECT * FROM [Users] WHERE phone = @username AND password = @password");
       if (result.recordset.length > 0) {
         const { role_id, user_id } = result.recordset[0];
-        const user = await pool
-          .request()
-          .input("user_id", sql.Int, user_id)
-          .query("SELECT * FROM [Infomation] WHERE user_id = @user_id");
         const token = generateToken({ user_id, role: role_id });
-        res.status(200).json({ status: "success", token, user: user.recordset[0] });
+        res.status(200).json({ status: "success", token, user: result.recordset[0] });
       } else {
         res.status(401).json({ status: "fail", message: "Invalid phone number or password" });
       }

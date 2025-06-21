@@ -1,51 +1,88 @@
 const { resolve } = require("path");
 const sqlServerPool = require("../../Utils/connectMySql");
 const sql = require("mssql");
+const sendNotification = require("../../Utils/sendNotification");
 
 const listPendingConsent = async (req, res, next) => {
-  const { user_id } = req.user;
+  const user_id = req.user?.user_id;
   const pool = await sqlServerPool;
   const forms = await pool.request().input("parent_id", sql.Int, user_id).query(`
       SELECT * FROM Checkup_Consent_Form
       WHERE parent_id = @parent_id AND status = 'PENDING';
     `);
-  res.json({ forms });
+  res.json({ forms: forms.recordset });
 };
 
 const respondConsent = async (req, res, next) => {
-  const { checkup_id } = req.params;
-  const { decision } = req.body; // "AGREED" or "DECLINED"
-  const pool = await sqlServerPool;
+  const { form_id } = req.params;
+  const { decision } = req.body;
+  const user_id = req.user?.user_id;
 
-  await pool.request().input("checkup_id", sql.Int, checkup_id).input("status", sql.NVarChar, decision).query(`
-      UPDATE Checkup_Consent_Form
-      SET status = @status, submitted_at = GETDATE()
-      WHERE checkup_id = @checkup_id;
-    `);
-  if (decision === "AGREED") {
-    const listStudent = await pool
-      .request()
-      .input("checkup_id", sql.Int, checkup_id)
-      .query(`SELECT * FROM Checkup_Consent_Form WHERE status = 'AGREED' AND checkup_id = @checkup_id`);
-    for (let student of listStudent.recordset) {
+  if (!["AGREED", "DECLINED"].includes(decision)) {
+    return res.status(400).json({ message: "Invalid decision value. Must be 'AGREED' or 'DECLINED'." });
+  }
+
+  try {
+    const pool = await sqlServerPool;
+
+    const formResult = await pool.request().input("form_id", sql.Int, form_id).input("parent_id", sql.Int, user_id)
+      .query(`
+        SELECT checkup_id, student_id FROM Checkup_Consent_Form
+        WHERE form_id = @form_id AND parent_id = @parent_id
+      `);
+
+    if (formResult.recordset.length === 0) {
+      return res.status(404).json({ message: "Consent form not found or access denied." });
+    }
+
+    const { checkup_id, student_id } = formResult.recordset[0];
+
+    await pool.request().input("status", sql.NVarChar, decision).input("form_id", sql.Int, form_id).query(`
+        UPDATE Checkup_Consent_Form
+        SET status = @status, submitted_at = GETDATE()
+        WHERE form_id = @form_id
+      `);
+
+    if (decision === "AGREED") {
+      // Thêm vào danh sách tham gia nếu đồng ý
       await pool
         .request()
         .input("checkup_id", sql.Int, checkup_id)
-        .input("student_id", sql.Int, student.student_id)
-        .input("consent_form_id", sql.Int, student.form_id)
-        .query(
-          `IF NOT EXISTS (
+        .input("student_id", sql.Int, student_id)
+        .input("consent_form_id", sql.Int, form_id).query(`
+          IF NOT EXISTS (
             SELECT 1 FROM Checkup_Participation
             WHERE checkup_id = @checkup_id AND student_id = @student_id
           )
           BEGIN
-            INSERT INTO Checkup_Participation (checkup_id, student_id, consent_form_id, is_present)
-            VALUES (@checkup_id, @student_id, @consent_form_id, NULL)
-          END`
+            INSERT INTO Checkup_Participation (checkup_id, student_id, consent_form_id)
+            VALUES (@checkup_id, @student_id, @consent_form_id)
+          END
+        `);
+
+      // 🔔 Gửi thông báo cho Nurse
+      const nurseInfo = await pool.request().input("checkup_id", sql.Int, checkup_id).query(`
+          SELECT created_by FROM Medical_Checkup_Schedule
+          WHERE checkup_id = @checkup_id
+        `);
+
+      if (nurseInfo.recordset.length > 0) {
+        const nurseId = nurseInfo.recordset[0].created_by;
+
+        await sendNotification(
+          pool,
+          nurseId,
+          "Phụ huynh đã đồng ý khám sức khỏe",
+          "Một phụ huynh đã đồng ý cho con em tham gia khám sức khỏe."
         );
+      }
     }
+
+    res.json({ message: "Consent updated successfully" });
+  } catch (error) {
+    console.error("respondConsent error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
-  res.json({ message: "Consent updated" });
 };
 
 module.exports = {

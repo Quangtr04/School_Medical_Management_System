@@ -15,7 +15,7 @@ const Information = {
 const Checkup_Result = {
   check_at: { type: "date", required: true },
   height_cm: { type: "int", required: true },
-  weight_kg: { type: "int", required: true },
+  weight_kg: { type: "float", required: true },
   vision_left: { type: "float", required: true },
   vision_right: { type: "float", required: true },
   hearing_left: { type: "string", required: true },
@@ -23,7 +23,7 @@ const Checkup_Result = {
   blood_pressure: { type: "string", required: true },
   notes: { type: "string", required: false },
   abnormal_signs: { type: "string", required: false },
-  needs_counseling: { type: "int", required: true },
+  needs_counseling: { type: "boolean", required: true },
 };
 
 const HealthDeclaration = {
@@ -63,4 +63,5 @@ module.exports = {
   Checkup_Result,
   HealthDeclaration,
   StudentInformation,
+  MedicalSubmissionRequest,
 };

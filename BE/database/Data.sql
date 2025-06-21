@@ -13,9 +13,10 @@ INSERT INTO Users (email, password, fullname, dayOfBirth, phone, gender, address
 ('parent1@gmail.com', 'hashed_password4', N'Pham Thi D', '1985-07-10', '0909888777', 'Female', N'321 Parent St, Hanoi', NULL, (SELECT role_id FROM Role WHERE name = 'Parent'), 1);
 
 -- Class
-INSERT INTO Class (class_name, number_of_student) VALUES
-('10A1', 30),
-('10A2', 25);
+INSERT INTO Class (class_name, number_of_student)
+VALUES 
+('5A1', 30),
+('4A1', 30);
 
 INSERT INTO Student_Health (
     student_id, height_cm, weight_kg, blood_type, allergy, chronic_disease,
@@ -33,12 +34,12 @@ INSERT INTO Student_Health (
 
 
 INSERT INTO Student_Information (student_code, full_name, gender, date_of_birth, class_name, parent_id, address) VALUES
-('STU001', N'Nguyen Van D', 'Male', '2010-09-01', '10A1', 4, N'12 Student Lane, Hanoi'),
-('STU002', N'Tran Thi E', 'Female', '2011-02-15', '10A2', 2, N'34 Student Lane, Hanoi'),
-('STU003', N'Nguyen Van D', 'Male', '2010-11-21', '10A1', 4, N'12 Street, Hanoi'),
-('STU004', N'Nguyen Thi B', 'Female', '2010-05-05', '10A1', 3, N'55A Neko Lane, Hanoi'),
-('STU005', N'Nguyen Quynh Q', 'Female', '2010-02-28', '10A1', 3, N'189 Nguyen Duy, Hanoi'),
-('STU006', N'Nguyen Duy T', 'Male', '2010-09-01', '10A1', 2, N'122 Study Lane, Hanoi');
+('STU001', N'Nguyen Van D', 'Male', '2010-09-01', '5A1', 4, N'12 Student Lane, Hanoi'),
+('STU002', N'Tran Thi E', 'Female', '2011-02-15', '4A1', 2, N'34 Student Lane, Hanoi'),
+('STU003', N'Nguyen Van D', 'Male', '2010-11-21', '5A1', 4, N'12 Street, Hanoi'),
+('STU004', N'Nguyen Thi B', 'Female', '2010-05-05', '5A1', 3, N'55A Neko Lane, Hanoi'),
+('STU005', N'Nguyen Quynh Q', 'Female', '2010-02-28', '4A1', 3, N'189 Nguyen Duy, Hanoi'),
+('STU006', N'Nguyen Duy T', 'Male', '2010-09-01', '4A1', 2, N'122 Study Lane, Hanoi');
 
 
 -- (Bỏ Class_Assignment vì liên quan Teacher)
