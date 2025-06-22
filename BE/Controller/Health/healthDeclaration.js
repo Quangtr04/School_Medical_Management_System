@@ -13,11 +13,7 @@ const healthDeclarationController = async (req, res, next) => {
     .input("weight_kg", sql.Int, healthDeclarationData.weight_kg)
     .input("blood_type", sql.NVarChar, healthDeclarationData.blood_type)
     .input("allergy", sql.NVarChar, healthDeclarationData.allergy)
-    .input(
-      "chronic_disease",
-      sql.NVarChar,
-      healthDeclarationData.chronic_disease
-    )
+    .input("chronic_disease", sql.NVarChar, healthDeclarationData.chronic_disease)
     .input("vision_left", sql.Float, healthDeclarationData.vision_left)
     .input("vision_right", sql.Float, healthDeclarationData.vision_right)
     .input("hearing_left", sql.NVarChar, healthDeclarationData.hearing_left)
@@ -47,8 +43,7 @@ const getHealthDeclarationOfStudentByParent = async (req, res, next) => {
   const parentId = req.params.parentId;
   const pool = await sqlServerPool;
 
-  const result = await pool.request().input("parent_id", sql.Int, parentId)
-    .query(`
+  const result = await pool.request().input("parent_id", sql.Int, parentId).query(`
       SELECT 
         sh.student_id, 
         si.student_code, 
