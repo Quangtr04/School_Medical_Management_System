@@ -15,6 +15,12 @@ const {
   getCheckupById,
 } = require("../Controller/CheckUp/getCheckup");
 const { getNotifications } = require("../Controller/Notification/getNotification");
+const {
+  createMedicalIncident,
+  getAllIncidents,
+  getIncidentById,
+  getIncidentsByUserId,
+} = require("../Controller/Medical/medical_Incident");
 
 const nurseRouter = express.Router();
 
@@ -49,6 +55,23 @@ nurseRouter.get("/checkups-approved/:id", getCheckupApprovedById);
 // Lấy lịch khám bị từ chối
 nurseRouter.get("/checkups-declined", getCheckupListDeclined);
 nurseRouter.get("/checkups-declined/:id", getCheckupDeclinedById);
+
+// Ghi nhận y tế
+nurseRouter.post(
+  "/Create Incident",
+  authenticateToken,
+  validateInput(Schemas, "MedicalIncidentSchema"),
+  createMedicalIncident
+);
+
+// Lấy tất cả các sự cố y tế
+nurseRouter.get("/Incidents", getAllIncidents);
+
+// Lấy chi tiết sự cố y tế theo event_id
+nurseRouter.get("/incidents/:event_id", getIncidentById);
+
+// Lấy tất cả sự cố y tế liên quan đến một user
+nurseRouter.get("/incidents/user/:user_id", authenticateToken, getIncidentsByUserId);
 
 //lấy thông báo
 nurseRouter.get("/notifications", authenticateToken, getNotifications);

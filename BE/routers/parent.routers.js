@@ -18,6 +18,7 @@ const { medicalSubmissionReq } = require("../Controller/Medical/medicalSubmissio
 const { UpdateStatusCheckupParent } = require("../Controller/CheckUp/UpdateStatusCheckup");
 const { getNotifications } = require("../Controller/Notification/getNotification");
 const { getCheckupListApproved } = require("../Controller/CheckUp/getCheckup");
+const { getIncidentsByUserId, getIncidentById } = require("../Controller/Medical/medical_Incident");
 
 const parentRouter = express.Router();
 
@@ -73,6 +74,12 @@ parentRouter.post(
   validateInput(Schemas, "HealthDeclaration"),
   createHealthDeclarationById
 );
+
+// Lấy tất cả sự cố y tế liên quan đến một user
+parentRouter.get("/incidents/:user_id", authenticateToken, getIncidentsByUserId);
+
+// Lấy sự cố y tế của học sinh theo ID
+parentRouter.get("/incidents/view incedent", getIncidentById);
 
 /**
  * 🔔 Lấy danh sách thông báo của phụ huynh (có phân trang)

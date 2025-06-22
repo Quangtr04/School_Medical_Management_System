@@ -3,7 +3,7 @@ const sqlServerPool = require("../../Utils/connectMySql");
 
 const getParentInfo = async (req, res, next) => {
   const pool = await sqlServerPool;
-  const result = await pool.request().query("SELECT * FROM [Infomation] WHERE role_id = 4");
+  const result = await pool.request().query("SELECT * FROM [Users] WHERE role_id = 4");
   if (result.recordset.length > 0) {
     res.status(200).json({
       status: "success",
