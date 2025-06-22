@@ -40,7 +40,7 @@ const createHealthDeclarationById = async (req, res, next) => {
 };
 
 const getHealthDeclarationOfStudentByParent = async (req, res, next) => {
-  const parentId = req.params.parentId;
+  const parentId = req.user?.user_id;
   const pool = await sqlServerPool;
 
   const result = await pool.request().input("parent_id", sql.Int, parentId).query(`
@@ -84,11 +84,10 @@ const getHealthDeclarationOfStudentByParent = async (req, res, next) => {
 
 const getHealthDeclarationOfStudentById = async (req, res, next) => {
   const studentId = req.params.studentId;
+  const parentId = req.user?.user_id;
   const pool = await sqlServerPool;
 
-  const result = await pool
-    .request()
-    .input("student_id", sql.Int, studentId)
+  const result = await pool.request().input("student_id", sql.Int, studentId).input("parent_id", sql.Int, parentId)
     .query(`
       SELECT 
         sh.student_id, 
@@ -112,7 +111,7 @@ const getHealthDeclarationOfStudentById = async (req, res, next) => {
       JOIN 
         Student_Information si ON sh.student_id = si.student_id
       WHERE 
-        sh.student_id = @student_id
+        sh.student_id = @student_id AND si.parent_id = @parent_id
     `);
 
   if (result.recordset.length > 0) {
@@ -126,7 +125,7 @@ const getHealthDeclarationOfStudentById = async (req, res, next) => {
       message: "No health record found for this student",
     });
   }
-}
+};
 
 const updateHealthDeclarationByStudentId = async (req, res, next) => {
   const healthDeclarationData = req.body;
@@ -169,5 +168,4 @@ module.exports = {
   getHealthDeclarationOfStudentByParent,
   getHealthDeclarationOfStudentById,
   updateHealthDeclarationByStudentId,
-
 };

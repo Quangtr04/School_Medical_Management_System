@@ -10,46 +10,52 @@ const { listPendingConsent, respondConsent } = require("../Controller/CheckUp/co
 const {
   healthDeclarationController,
   getHealthDeclarationOfStudentByParent,
+  createHealthDeclarationById,
+  getHealthDeclarationOfStudentById,
 } = require("../Controller/Health/healthDeclaration");
 
 const { medicalSubmissionReq } = require("../Controller/Medical/medicalSubmissionReq");
 const { UpdateStatusCheckupParent } = require("../Controller/CheckUp/UpdateStatusCheckup");
 const { getNotifications } = require("../Controller/Notification/getNotification");
+const { getCheckupListApproved } = require("../Controller/CheckUp/getCheckup");
 
 const parentRouter = express.Router();
 
 /**
  * 🔍 Xem danh sách con cái của phụ huynh
  */
-parentRouter.get("/students", authenticateToken, getAllStudentByParentId);
+parentRouter.get("/students", authenticateToken, getAllStudentByParentId); //done
 
 /**
  * 🔍 Xem thông tin chi tiết của 1 học sinh
  */
-parentRouter.get("/students/:student_id", authenticateToken, getStudentInfoById);
+parentRouter.get("/students/:student_id", authenticateToken, getStudentInfoById); //done
+
+parentRouter.get("/consents/approved", authenticateToken, getCheckupListApproved);
 
 /**
  * 📋 Danh sách phiếu đồng ý khám sức khỏe chưa phản hồi
  */
-parentRouter.get("/consents/pending", authenticateToken, listPendingConsent);
+parentRouter.get("/consents/pending", authenticateToken, listPendingConsent); //done
 
 /**
  * ✅ Phản hồi phiếu đồng ý khám sức khỏe (AGREED / DECLINED)
  */
-parentRouter.post("/consents/:form_id/respond", authenticateToken, respondConsent);
+parentRouter.post("/consents/:form_id/respond", authenticateToken, respondConsent); //done
 
 /**
  * 📝 Phụ huynh cập nhật lại trạng thái đồng ý/từ chối cho 1 lịch khám cụ thể
  */
-parentRouter.patch("/checkups/:checkup_id/consent", authenticateToken, UpdateStatusCheckupParent);
+parentRouter.patch("/checkups/:checkup_id/consent", authenticateToken, UpdateStatusCheckupParent); //done
 
 /**
  * 📄 Lấy thông tin khai báo y tế của học sinh
  */
-parentRouter.get("/students/:student_id/health-declaration", authenticateToken, getHealthDeclarationOfStudentByParent);
+parentRouter.get("/students/health-declaration", authenticateToken, getHealthDeclarationOfStudentByParent);
+parentRouter.get("/students/:student_id/health-declaration", authenticateToken, getHealthDeclarationOfStudentById);
 
 /**
- * 📮 Gửi yêu cầu nộp hồ sơ y tế
+ * 📮 Gửi yêu cầu gửi thuốc
  */
 parentRouter.post(
   "/medical-submissions",
@@ -65,7 +71,7 @@ parentRouter.post(
   "/students/:studentId/health-declarations",
   authenticateToken,
   validateInput(Schemas, "HealthDeclaration"),
-  healthDeclarationController
+  createHealthDeclarationById
 );
 
 /**

@@ -7,13 +7,13 @@ const UpdateStatusCheckupByManager = async (req, res) => {
   const { status } = req.body;
 
   if (!["APPROVED", "DECLINED"].includes(status)) {
-    return res.status(400).json({ message: "Invalid status value. 'APPROVED' or 'DECLINED'." });
+    return res.status(400).json({ message: "Invalid status value. Must be 'APPROVED' or 'DECLINED'." });
   }
 
   try {
     const pool = await sqlServerPool;
 
-    // Kiểm tra lịch khám có tồn tại không
+    // 🔍 Kiểm tra lịch khám có tồn tại
     const checkExist = await pool
       .request()
       .input("checkup_id", sql.Int, checkup_id)
@@ -23,37 +23,75 @@ const UpdateStatusCheckupByManager = async (req, res) => {
       return res.status(404).json({ message: "Checkup not found." });
     }
 
-    // Cập nhật trạng thái
+    // Nếu đã duyệt rồi mà lại tiếp tục duyệt thì báo lỗi
+    if (checkExist.recordset[0].approval_status === "APPROVED" && status === "APPROVED") {
+      return res.status(400).json({ message: "Checkup already approved." });
+    }
+
+    // ✅ Cập nhật trạng thái
     await pool
       .request()
       .input("status", sql.NVarChar, status)
       .input("checkup_id", sql.Int, checkup_id)
       .query("UPDATE Medical_Checkup_Schedule SET approval_status = @status WHERE checkup_id = @checkup_id");
 
-    // Nếu bị từ chối, xóa cả consent form và participation
+    const nurseId = checkExist.recordset[0].created_by;
+    const className = checkExist.recordset[0].class;
+
+    // ❌ Nếu bị từ chối
     if (status === "DECLINED") {
       // Xóa dữ liệu liên quan
-      await pool
-        .request()
-        .input("checkup_id", sql.Int, checkup_id)
-        .query("DELETE FROM Checkup_Participation WHERE checkup_id = @checkup_id");
+      await pool.request().input("checkup_id", sql.Int, checkup_id).query(`
+        DELETE FROM Checkup_Participation WHERE checkup_id = @checkup_id;
+        DELETE FROM Checkup_Consent_Form WHERE checkup_id = @checkup_id;
+      `);
 
-      await pool
-        .request()
-        .input("checkup_id", sql.Int, checkup_id)
-        .query("DELETE FROM Checkup_Consent_Form WHERE checkup_id = @checkup_id");
-
-      // Lấy người tạo (nurse) để gửi thông báo
-      const result = await pool.request().input("checkup_id", sql.Int, checkup_id).query(`
-    SELECT created_by FROM Medical_Checkup_Schedule WHERE checkup_id = @checkup_id
-  `);
-      const nurseId = result.recordset[0]?.created_by;
+      // Gửi thông báo cho Nurse
       if (nurseId) {
         await sendNotification(
           pool,
           nurseId,
           "Lịch khám bị từ chối",
           "Lịch khám sức khỏe bạn tạo đã bị từ chối bởi quản lý."
+        );
+      }
+    }
+
+    // ✅ Nếu được duyệt
+    if (status === "APPROVED") {
+      // Gửi thông báo đến Nurse
+      if (nurseId) {
+        await sendNotification(
+          pool,
+          nurseId,
+          "Lịch khám được duyệt",
+          `Lịch khám sức khỏe cho lớp ${className} đã được duyệt.`
+        );
+      }
+
+      // Lấy danh sách học sinh và phụ huynh theo class
+      const students = await pool.request().input("class", sql.Int, className).query(`
+        SELECT student_id, parent_id FROM Student_Information
+        WHERE class_name LIKE CAST(@class AS NVARCHAR) + '%'
+      `);
+
+      for (let stu of students.recordset) {
+        // Tạo consent form cho mỗi học sinh
+        await pool
+          .request()
+          .input("student_id", sql.Int, stu.student_id)
+          .input("parent_id", sql.Int, stu.parent_id)
+          .input("checkup_id", sql.Int, checkup_id).query(`
+            INSERT INTO Checkup_Consent_Form (student_id, parent_id, checkup_id, status, submitted_at)
+            VALUES (@student_id, @parent_id, @checkup_id, 'PENDING', NULL)
+          `);
+
+        // Gửi thông báo cho phụ huynh
+        await sendNotification(
+          pool,
+          stu.parent_id,
+          "Cần xác nhận lịch khám sức khỏe",
+          `Vui lòng xác nhận lịch khám sức khỏe cho học sinh lớp ${className}.`
         );
       }
     }
@@ -123,6 +161,55 @@ const UpdateStatusCheckupParent = async (req, res) => {
           "Phụ huynh từ chối khám sức khỏe",
           "Một phụ huynh đã từ chối cho con em tham gia khám sức khỏe."
         );
+      }
+    }
+
+    if (status === "AGREED") {
+      // 🔄 Xóa Checkup_Participation cũ (nếu có)
+      await pool.request().input("checkup_id", sql.Int, checkup_id).input("parent_id", sql.Int, parent_id).query(`
+      DELETE CP
+      FROM Checkup_Participation CP
+      INNER JOIN Checkup_Consent_Form CF ON CP.consent_form_id = CF.form_id
+      WHERE CF.checkup_id = @checkup_id AND CF.parent_id = @parent_id
+    `);
+
+      // 🔍 Lấy lại form_id + student_id
+      const formInfo = await pool
+        .request()
+        .input("checkup_id", sql.Int, checkup_id)
+        .input("parent_id", sql.Int, parent_id).query(`
+      SELECT form_id, student_id
+      FROM Checkup_Consent_Form
+      WHERE checkup_id = @checkup_id AND parent_id = @parent_id
+    `);
+
+      if (formInfo.recordset.length > 0) {
+        const { form_id, student_id } = formInfo.recordset[0];
+
+        // ✅ Thêm mới Checkup_Participation
+        await pool
+          .request()
+          .input("checkup_id", sql.Int, checkup_id)
+          .input("student_id", sql.Int, student_id)
+          .input("consent_form_id", sql.Int, form_id).query(`
+        INSERT INTO Checkup_Participation (checkup_id, student_id, consent_form_id)
+        VALUES (@checkup_id, @student_id, @consent_form_id)
+      `);
+
+        // 🔔 Gửi thông báo cho Nurse
+        const nurseResult = await pool.request().input("checkup_id", sql.Int, checkup_id).query(`
+        SELECT created_by FROM Medical_Checkup_Schedule WHERE checkup_id = @checkup_id
+      `);
+
+        const nurseId = nurseResult.recordset[0]?.created_by;
+        if (nurseId) {
+          await sendNotification(
+            pool,
+            nurseId,
+            "Phụ huynh đồng ý khám sức khỏe",
+            "Một phụ huynh đã đồng ý cho con em tham gia khám sức khỏe."
+          );
+        }
       }
     }
 
