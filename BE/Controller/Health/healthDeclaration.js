@@ -1,7 +1,7 @@
 const sqlServerPool = require("../../Utils/connectMySql");
 const sql = require("mssql");
 
-const healthDeclarationController = async (req, res, next) => {
+const createHealthDeclarationById = async (req, res, next) => {
   const student_id = req.params.studentId;
   const healthDeclarationData = req.body;
   const pool = await sqlServerPool;
@@ -82,8 +82,53 @@ const getHealthDeclarationOfStudentByParent = async (req, res, next) => {
   }
 };
 
-const updateHealthDeclarationByStudentId = async (req, res, next) => {
+const getHealthDeclarationOfStudentById = async (req, res, next) => {
   const studentId = req.params.studentId;
+  const pool = await sqlServerPool;
+
+  const result = await pool
+    .request()
+    .input("student_id", sql.Int, studentId)
+    .query(`
+      SELECT 
+        sh.student_id, 
+        si.student_code, 
+        si.full_name,
+        si.class_name,
+        sh.height_cm,
+        sh.weight_kg, 
+        sh.blood_type,
+        sh.allergy,
+        sh.chronic_disease,
+        sh.vision_left, 
+        sh.vision_right,
+        sh.hearing_left,
+        sh.hearing_right,
+        sh.health_status,
+        sh.created_at,
+        sh.updated_at
+      FROM 
+        Student_Health sh
+      JOIN 
+        Student_Information si ON sh.student_id = si.student_id
+      WHERE 
+        sh.student_id = @student_id
+    `);
+
+  if (result.recordset.length > 0) {
+    res.status(200).json({
+      status: "success",
+      data: result.recordset[0],
+    });
+  } else {
+    res.status(400).json({
+      status: "fail",
+      message: "No health record found for this student",
+    });
+  }
+}
+
+const updateHealthDeclarationByStudentId = async (req, res, next) => {
   const healthDeclarationData = req.body;
   const pool = await sqlServerPool;
 
@@ -120,7 +165,9 @@ const updateHealthDeclarationByStudentId = async (req, res, next) => {
 };
 
 module.exports = {
-  healthDeclarationController,
+  createHealthDeclarationById,
   getHealthDeclarationOfStudentByParent,
+  getHealthDeclarationOfStudentById,
   updateHealthDeclarationByStudentId,
+
 };

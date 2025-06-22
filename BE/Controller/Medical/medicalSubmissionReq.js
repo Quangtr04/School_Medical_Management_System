@@ -1,6 +1,6 @@
 const sql = require("mssql");
 const sqlServerPool = require("../../Utils/connectMySql");
-const { stat } = require("fs");
+
 
 const medicalSubmissionReq = async (req, res, next) => {
   const medicalSubmissionReqData = req.body;
@@ -80,13 +80,11 @@ const updateMedicalSubmissionReq = async (req, res, next) => {
     .request()
     .input("id_req", sql.Int, ReqId)
     .input("status", sql.NVarChar, status)
-    .input("note", sql.NVarChar, medicalSubmissionReqData.note)
     .input("image_url", sql.NVarChar, medicalSubmissionReqData.image_url)
-    .input("start_date", sql.Date, medicalSubmissionReqData.start_date)
-    .input("end_date", sql.Date, medicalSubmissionReqData.end_date)
     .query(
       `UPDATE Medication_Submisstion_Request
-             SET status = @status, handled_at = @handled_at
+             SET status = @status,
+                 image_url = @image_url
              WHERE id_req = @id_req`
     );
 
