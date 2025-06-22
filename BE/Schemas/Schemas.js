@@ -1,3 +1,5 @@
+const { type } = require("os");
+
 const Information = {
   role_name: { type: "string", required: true },
   role_id: { type: "int", required: false },
@@ -54,8 +56,24 @@ const StudentInformation = {
 const MedicalSubmissionRequest = {
   parent_id: { type: "int", required: true },
   student_id: { type: "int", required: true },
+  status: { type: "string", required: true, default: "PENDING" },
   nurse_id: { type: "int", required: true },
-  status: { type: "string", required: true, default: "pending" },
+  note: { type: "string", required: false },
+  image_url: { type: "string", required: false }, 
+  start_date: { type: "date", required: true },
+  end_date: { type: "date", required: true },
+};
+
+const MedicalSupply = {
+  supply_id: { type: "int", required: false },
+  name: { type: "string", required: true },
+  type: { type: "string", required: true },
+  unit: { type: "string", required: true },
+  quantity: { type: "int", required: true },
+  description: { type: "string", required: false },
+  expired_date: { type: "date", required: false },
+  is_active: { type: "boolean", required: true, default: true },
+  usage_note: { type: "string", required: false },
 };
 
 module.exports = {
@@ -64,4 +82,5 @@ module.exports = {
   HealthDeclaration,
   StudentInformation,
   MedicalSubmissionRequest,
+  MedicalSupply,
 };
