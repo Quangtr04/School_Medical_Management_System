@@ -21,7 +21,8 @@ import {
   message,
 } from "antd";
 import { useNavigate } from "react-router-dom"; // For navigation after logout
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { logout } from "../redux/auth/authSlice";
 
 const { Header } = Layout;
 const { Search } = Input;
@@ -36,6 +37,7 @@ export default function AdminHeader() {
 
   console.log(user);
 
+  const dispatch = useDispatch();
   // useEffect để đọc thông tin người dùng từ localStorage khi component mount
   useEffect(() => {
     try {
@@ -56,12 +58,8 @@ export default function AdminHeader() {
   // Function to handle logout
   const handleLogout = () => {
     // Xóa thông tin người dùng và token khỏi localStorage
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("currentUser");
-    setCurrentUser(null); // Cập nhật state để UI reflect
-
-    navigate("/login"); // Redirect to login page
-    message.info("Bạn đã đăng xuất thành công!");
+    dispatch(logout(user));
+    navigate("/");
   };
 
   // Menu items for the user dropdown
