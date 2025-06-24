@@ -31,7 +31,6 @@ const { Text } = Typography;
 export default function AdminHeader() {
   const navigate = useNavigate();
   // State để lưu thông tin người dùng hiện tại
-  const [currentUser, setCurrentUser] = useState(null);
 
   const user = useSelector((state) => state.auth.user);
 
@@ -39,20 +38,7 @@ export default function AdminHeader() {
 
   const dispatch = useDispatch();
   // useEffect để đọc thông tin người dùng từ localStorage khi component mount
-  useEffect(() => {
-    try {
-      const userString = localStorage.getItem("currentUser");
-      if (userString) {
-        setCurrentUser(JSON.parse(userString));
-        console.log(currentUser);
-      }
-    } catch (error) {
-      console.error("Lỗi khi đọc thông tin người dùng từ localStorage:", error);
-      // Xóa dữ liệu không hợp lệ nếu có lỗi
-      localStorage.removeItem("currentUser");
-      localStorage.removeItem("authToken"); // Cũng xóa token nếu có lỗi user
-    }
-  }, []); // [] đảm bảo chỉ chạy một lần khi mount
+  // [] đảm bảo chỉ chạy một lần khi mount
 
   // const { fullname, role_id } = currentUser;
   // Function to handle logout
@@ -126,7 +112,7 @@ export default function AdminHeader() {
                 <Avatar
                   icon={<UserOutlined />}
                   // Sử dụng Avatar từ currentUser nếu có, hoặc avatar mặc định
-                  src={currentUser?.avatarUrl} // Giả sử user object có avatarUrl
+                  src={user?.avatarUrl} // Giả sử user object có avatarUrl
                 />
                 <div style={{ marginLeft: 8, lineHeight: "1.2" }}>
                   <Text
