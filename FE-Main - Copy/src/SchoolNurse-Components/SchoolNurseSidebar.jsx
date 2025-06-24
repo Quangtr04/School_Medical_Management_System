@@ -18,7 +18,6 @@ import { ArrowBigLeft } from "lucide-react";
 import React from "react";
 import { Link } from "react-router-dom";
 import HomePage from "../pages/HomePage";
-import { icon } from "@fortawesome/fontawesome-svg-core";
 import { PiStudent } from "react-icons/pi";
 import { MdVaccines } from "react-icons/md";
 import { FaUserNurse } from "react-icons/fa";
@@ -67,14 +66,19 @@ export default function SchoolNurseSideBar() {
       label: <Link to="/nurse/vaccinations">Lịch tiêm chủng</Link>,
     },
     {
-      key: "/nurse/examinations",
+      key: "/nurse/checkups",
       icon: <FileTextOutlined />,
-      label: <Link to="/nurse/examinations">Lịch khám sức khỏe</Link>,
+      label: <Link to="/nurse/checkups">Lịch khám sức khỏe</Link>,
     },
     {
       key: "/nurse/report",
       icon: <TbReportSearch />,
       label: <Link to="/nurse/report">Report</Link>,
+    },
+    {
+      key: "/",
+      icon: <ArrowLeftOutlined />,
+      label: <Link to="/">Quay về trang chủ</Link>,
     },
     {
       key: "/logout",
@@ -118,7 +122,7 @@ export default function SchoolNurseSideBar() {
       </div>
       <Menu
         mode="inline"
-        defaultSelectedKeys={["/admin"]} // Consider using location.pathname for dynamic selection
+        defaultSelectedKeys={["/nurse"]} // Consider using location.pathname for dynamic selection
         style={{ height: "calc(100% - 64px)", borderRight: 0 }}
         items={menuItems}
       />

@@ -42,34 +42,6 @@ const DashboardCards = () => {
       icon: <FaHeart />,
       iconWrapperClassName: "bg-red-500 text-white", // Nền đỏ nhạt, icon đỏ đậm
     },
-    {
-      title: "Doanh thu tháng này",
-      value: "₫125,430,000",
-      percentChange: 8.2,
-      icon: <FaDollarSign />,
-      iconWrapperClassName: "bg-green-500 text-white", // Nền xanh lá nhạt, icon xanh lá đậm (giống giáo viên)
-    },
-    {
-      title: "Chi phí tháng này",
-      value: "₫87,250,000",
-      percentChange: 5.1,
-      icon: <FaDollarSign />,
-      iconWrapperClassName: "bg-orange-500 text-white", // Nền cam nhạt, icon cam đậm
-    },
-    {
-      title: "Đơn hoạt động hôm nay",
-      value: 1234,
-      percentChange: 23,
-      icon: <FaChartLine />,
-      iconWrapperClassName: "bg-indigo-500 text-white", // Nền chàm nhạt, icon chàm đậm
-    },
-    {
-      title: "Cảnh báo hệ thống",
-      value: 3,
-      percentChange: -2,
-      icon: <FaExclamationTriangle />,
-      iconWrapperClassName: "bg-red-500 text-white", // Nền đỏ nhạt, icon đỏ đậm (giống y tế)
-    },
   ];
 
   return (

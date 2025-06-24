@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 // src/pages/AdminPage/ManagerManagementPage.jsx
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Table,
   Button,
@@ -23,116 +23,65 @@ import {
   DeleteOutlined,
   SearchOutlined,
   LoadingOutlined,
-  UserAddOutlined,
 } from "@ant-design/icons";
 import {
-  FiPlus,
   FiEdit2,
   FiTrash2,
-  FiSearch,
   FiUser,
   FiMail,
   FiPhone,
   FiCalendar,
   FiBriefcase, // Icon for Role
-  FiUsers, // Icon for Manager/Staff
+  FiUsers, // Icon for Manager/Staff in header
   FiLock, // Add lock icon for password
-  FiActivity, // Add icon for status (optional, not mandatory)
-} from "react-icons/fi"; // Add FiUsers, FiLock, FiActivity icons
+  FiActivity,
+  FiSearch, // Add icon for status
+} from "react-icons/fi";
 import { format } from "date-fns";
 import debounce from "lodash/debounce";
-import { v4 as uuidv4 } from "uuid";
-import api from "../../configs/config-axios";
-import { toast } from "react-toastify";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  fetchUsers,
+  createUser,
+  updateUser,
+  deleteUser,
+} from "../../redux/admin/adminSlice";
+// Đảm bảo đường dẫn chính xác
 
 const { Title, Paragraph } = Typography;
 const { Search } = Input;
 const { Option } = Select;
 
-// Removed color variables:
-// const primaryColor = "hsl(221 83% 53%)";
-// const primaryForeground = "hsl(210 20% 98%)";
-// const secondaryColor = "hsl(210 40% 96.1%)";
-// const secondaryForeground = "hsl(222.2 47.4% 11.2%)";
-// const foregroundColor = "hsl(222.2 47.4% 11.2%)";
-// const mutedForegroundColor = "hsl(215.4 16.3% 46.9%)";
-// const cardColor = "hsl(0 0% 100%)";
-// const backgroundColor = "hsl(0 0% 100%)";
-// const borderColor = "hsl(214.3 31.6% 91.4%)";
-// const inputColor = "hsl(214.3 31.6% 91.4%)";
-// const ringColor = "hsl(222.2 84% 4.9%)";
-// const activeTagColor = "hsl(142.1 76.2% 36.3%)";
-// const inactiveTagColor = "hsl(0 84.2% 60.2%)";
+// Định nghĩa thông tin cụ thể cho vai trò Manager
+const CURRENT_ROLE_INFO = {
+  id: 2, // Giả sử role_id cho Manager là 2. Hãy điều chỉnh theo hệ thống ID của bạn.
+  name: "Quản lý", // Tên vai trò
+  path: "managers", // Đường dẫn trong URL nếu có
+  tagColor: "blue", // Màu tag nếu bạn muốn sử dụng cho role tag
+  endpoint: "/admin/managers", // Endpoint API cụ thể cho Managers
+};
 
 export default function ManagerManagementPage() {
   const [searchText, setSearchText] = useState("");
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingManager, setEditingManager] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingManager, setEditingManager] = useState(null); // Giữ tên này để rõ ràng trong component
   const [form] = Form.useForm();
-  const [managers, setManagers] = useState([]);
 
-  const debouncedSearch = useCallback(
-    debounce((value) => {
-      setSearchText(value);
-    }, 300),
-    []
-  );
+  const dispatch = useDispatch();
+  // Lấy trạng thái từ Redux store
+  const { users, loading, error } = useSelector((state) => state.admin);
 
-  const handleSearch = (e) => {
-    debouncedSearch(e.target.value);
-  };
+  // Debounced search handler để tránh gọi API quá nhiều
 
-  const fetchManagers = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await api.get("/admin/managers");
-      console.log(response.data.data);
-
-      if (response.data && Array.isArray(response.data.data)) {
-        const formattedManagers = response.data.data.map((manager) => ({
-          ...manager,
-          key: manager.user_id,
-          registrationDate: manager.created_at
-            ? new Date(manager.created_at)
-            : null,
-        }));
-        setManagers(formattedManagers);
-      } else {
-        console.warn(
-          "Backend did not return manager data as an array in response.data.data:",
-          response.data
-        );
-        setManagers([]);
-        message.warn("No manager data found or data format is incorrect.");
-      }
-    } catch (error) {
-      console.error("Error fetching managers from backend:", error);
-      if (
-        error.response &&
-        error.response.data &&
-        error.response.data.message
-      ) {
-        // toast.error(error.response.data.message);
-        // message.error(`Lỗi: ${error.response.data.message}`);
-      } else {
-        // toast.error("Không thể tải dữ liệu quản lý. Vui lòng thử lại.");
-        // message.error("Không thể tải dữ liệu quản lý. Vui lòng thử lại.");
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
+  // Fetch users (managers) khi component mount
   useEffect(() => {
-    fetchManagers();
-  }, [fetchManagers]);
+    dispatch(fetchUsers({ endpointPath: CURRENT_ROLE_INFO.endpoint }));
+  }, [dispatch]); // Chỉ phụ thuộc vào dispatch (managersEndpoint đã được đưa vào CURRENT_ROLE_INFO, không cần làm dependency trực tiếp)
 
   const handleAddManager = () => {
     setEditingManager(null);
     form.resetFields();
-    form.setFieldsValue({ status: "Active" });
+    form.setFieldsValue({ status: "Active" }); // Trạng thái mặc định cho quản lý mới
     setIsModalVisible(true);
   };
 
@@ -140,69 +89,76 @@ export default function ManagerManagementPage() {
     setEditingManager(record);
     form.setFieldsValue({
       ...record,
-      status: record.is_active ? "Active" : "Inactive",
+      status: record.is_active ? "Active" : "Inactive", // Ánh xạ boolean sang chuỗi trạng thái
     });
     setIsModalVisible(true);
   };
 
   const handleDeleteManager = async (userId) => {
     try {
-      setLoading(true);
-      await api.delete(`/admin/managers/${userId}`);
+      await dispatch(
+        deleteUser({ endpointPath: CURRENT_ROLE_INFO.endpoint, id: userId })
+      ).unwrap();
       message.success("Đã xóa tài khoản quản lý thành công!");
-      fetchManagers();
+      // Re-fetch users để cập nhật danh sách sau khi xóa
+      dispatch(fetchUsers({ endpointPath: CURRENT_ROLE_INFO.endpoint }));
     } catch (error) {
       console.error("Lỗi khi xóa manager:", error);
-      if (
-        error.response &&
-        error.response.data &&
-        error.response.data.message
-      ) {
-        message.error(`Lỗi: ${error.response.data.message}`);
-      } else {
-        message.error("Không thể xóa tài khoản quản lý. Vui lòng thử lại.");
-      }
-    } finally {
-      setLoading(false);
+      message.error(
+        `Lỗi: ${
+          error.message || "Không thể xóa tài khoản quản lý. Vui lòng thử lại."
+        }`
+      );
     }
   };
 
   const handleFormSubmit = async (values) => {
-    setIsSubmitting(true);
     try {
       const payload = {
         ...values,
-        is_active: values.status === "Active",
+        is_active: values.status === "Active", // Ánh xạ chuỗi trạng thái sang boolean
       };
-      delete payload.status;
+      delete payload.status; // Xóa trường 'status' vì API mong đợi 'is_active'
 
       if (editingManager) {
-        await api.put(`/admin/managers/${editingManager.user_id}`, payload);
+        await dispatch(
+          updateUser({
+            endpointPath: CURRENT_ROLE_INFO.endpoint,
+            id: editingManager.user_id, // Giả sử user_id là định danh duy nhất
+            userData: payload,
+          })
+        ).unwrap();
         message.success("Cập nhật tài khoản quản lý thành công!");
       } else {
-        await api.post(`/admin/managers`, payload);
+        // Thêm role_id vào payload cho người dùng mới
+        const newManagerPayload = {
+          ...payload,
+          role_id: CURRENT_ROLE_INFO.id, // Gán role_id từ CURRENT_ROLE_INFO
+        };
+        await dispatch(
+          createUser({
+            endpointPath: CURRENT_ROLE_INFO.endpoint,
+            userData: newManagerPayload,
+          })
+        ).unwrap();
         message.success("Thêm tài khoản quản lý thành công!");
       }
       setIsModalVisible(false);
       form.resetFields();
-      fetchManagers();
+      // Re-fetch users để cập nhật danh sách sau khi thêm/cập nhật
+      dispatch(fetchUsers({ endpointPath: CURRENT_ROLE_INFO.endpoint }));
     } catch (error) {
       console.error("Lỗi khi thêm/cập nhật manager:", error);
-      if (
-        error.response &&
-        error.response.data &&
-        error.response.data.message
-      ) {
-        message.error(`Lỗi: ${error.response.data.message}`);
-      } else {
-        message.error("Thao tác thất bại. Vui lòng kiểm tra lại thông tin.");
-      }
-    } finally {
-      setIsSubmitting(false);
+      message.error(
+        `Lỗi: ${
+          error.message || "Thao tác thất bại. Vui lòng kiểm tra lại thông tin."
+        }`
+      );
     }
   };
 
-  const filteredManagers = managers.filter((manager) =>
+  // Lọc managers (hiện tại là users) dựa trên searchText
+  const filteredManagers = users.filter((manager) =>
     Object.values(manager).some((value) =>
       String(value).toLowerCase().includes(searchText.toLowerCase())
     )
@@ -214,7 +170,7 @@ export default function ManagerManagementPage() {
         <span
           className={`flex items-center gap-2 text-[hsl(222.2_47.4%_11.2%)]`}
         >
-          <FiUser className={`text-[hsl(221_83%_53%)]`} /> Full Name
+          <FiUser className={`text-[hsl(221_83%_53%)]`} /> Tên đầy đủ
         </span>
       ),
       dataIndex: "full_name",
@@ -236,7 +192,7 @@ export default function ManagerManagementPage() {
         <span
           className={`flex items-center gap-2 text-[hsl(222.2_47.4%_11.2%)]`}
         >
-          <FiPhone className={`text-[hsl(221_83%_53%)]`} /> Phone Number
+          <FiPhone className={`text-[hsl(221_83%_53%)]`} /> Số điện thoại
         </span>
       ),
       dataIndex: "phone",
@@ -247,14 +203,14 @@ export default function ManagerManagementPage() {
         <span
           className={`flex items-center gap-2 text-[hsl(222.2_47.4%_11.2%)]`}
         >
-          <FiBriefcase className={`text-[hsl(221_83%_53%)]`} /> Role{" "}
+          <FiBriefcase className={`text-[hsl(221_83%_53%)]`} /> Vai trò{" "}
         </span>
       ),
-      dataIndex: "role",
+      dataIndex: "role", // This might need to be 'role_name' if your API returns it like that
       key: "role",
     },
     {
-      title: "Status",
+      title: "Trạng thái",
       dataIndex: "is_active",
       key: "is_active",
       render: (is_active) => (
@@ -272,7 +228,7 @@ export default function ManagerManagementPage() {
                 : `bg-[hsl(0_84.2%_60.2%)]`
             }`}
           ></span>
-          {is_active ? "Active" : "Inactive"}
+          {is_active ? "Hoạt động" : "Không hoạt động"}
         </Tag>
       ),
     },
@@ -281,15 +237,15 @@ export default function ManagerManagementPage() {
         <span
           className={`flex items-center gap-2 text-[hsl(222.2_47.4%_11.2%)]`}
         >
-          <FiCalendar className={`text-[hsl(221_83%_53%)]`} /> Registration Date
+          <FiCalendar className={`text-[hsl(221_83%_53%)]`} /> Ngày đăng ký
         </span>
       ),
-      dataIndex: "registrationDate",
+      dataIndex: "registrationDate", // Đảm bảo trường này có trong dữ liệu API của bạn
       key: "registrationDate",
-      render: (date) => (date ? format(date, "MMM dd, yyyy") : "N/A"),
+      render: (date) => (date ? format(new Date(date), "dd/MM/yyyy") : "N/A"),
     },
     {
-      title: "Actions",
+      title: "Hành động",
       key: "actions",
       render: (_, record) => (
         <Space size="small">
@@ -300,10 +256,10 @@ export default function ManagerManagementPage() {
             icon={<FiEdit2 />}
           />
           <Popconfirm
-            title="Are you sure you want to delete this account?"
-            onConfirm={() => handleDeleteManager(record.user_id)}
-            okText="Yes"
-            cancelText="No"
+            title="Bạn có chắc chắn muốn xóa tài khoản này không?"
+            onConfirm={() => handleDeleteManager(record.user_id)} // Giả sử user_id là định danh duy nhất
+            okText="Có"
+            cancelText="Không"
             placement="topRight"
           >
             <Button
@@ -336,17 +292,18 @@ export default function ManagerManagementPage() {
               <FiUsers className={`w-10 h-10 text-3x1 text-green-500`} />
             </div>
             <div>
-              <h1
-                className={`text-[hsl(222.2_47.4%_11.2%)] font-bold text-3xl mb-2`}
+              <Title
+                level={1}
+                className={`!text-[hsl(222.2_47.4%_11.2%)] !font-bold !text-3xl !mb-2`}
               >
-                Quản lý tài khoản Manager
-              </h1>
-              <p
-                className={`text-[hsl(215.4_16.3%_46.9%)] flex items-center gap-2 text-sm`}
+                Quản lý tài khoản {CURRENT_ROLE_INFO.name}
+              </Title>
+              <Paragraph
+                className={`!text-[hsl(215.4_16.3%_46.9%)] flex items-center gap-2 text-sm`}
               >
                 <span>💼</span>
-                Quản lý và giám sát tài khoản Manager hiệu quả
-              </p>
+                Quản lý và giám sát tài khoản {CURRENT_ROLE_INFO.name} hiệu quả
+              </Paragraph>
             </div>
           </div>
         </header>
@@ -354,21 +311,22 @@ export default function ManagerManagementPage() {
         {/* Search and Add Button Section */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
           <div className="relative w-full md:w-64 mb-4 md:mb-0">
-            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-accent" />
+            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
             <input
               type="text"
-              placeholder="Tìm kiếm thông tin ph..."
-              className="w-full pl-10 pr-4 py-2 border border-[hsl(214.3_31.6%_91.4%)] rounded-md focus:outline-none focus:ring-2 focus:ring-[hsl(222.2_84%_4.9%)]"
-              onChange={handleSearch}
+              placeholder={`Tìm kiếm thông tin ${CURRENT_ROLE_INFO.name}`}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
             />
           </div>
           <Button
             type="primary"
-            icon={<UserAddOutlined className="mr-2" />}
+            icon={<PlusOutlined className="mr-2" />}
             onClick={handleAddManager}
             className="flex items-center gap-2 px-6 py-2 bg-green-500 text-white !rounded-lg hover:bg-green-600 transition-all transform hover:scale-105 shadow-lg hover:shadow-green-500/30 !border-none"
           >
-            Thêm tài khoản Manager
+            Thêm tài khoản {CURRENT_ROLE_INFO.name}
           </Button>
         </div>
 
@@ -381,13 +339,15 @@ export default function ManagerManagementPage() {
               <Spin
                 indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />}
               />
-              <p className={`text-[hsl(215.4_16.3%_46.9%)]`}>Loading data...</p>
+              <p className={`text-[hsl(215.4_16.3%_46.9%)]`}>
+                Đang tải dữ liệu...
+              </p>
             </div>
           ) : (
             <Table
               columns={columns}
               dataSource={filteredManagers}
-              rowKey="key"
+              rowKey="user_id" // Đảm bảo key này khớp với ID duy nhất của Manager từ API (ví dụ: _id hoặc user_id)
               pagination={{
                 pageSize: 10,
                 className: `
@@ -400,7 +360,9 @@ export default function ManagerManagementPage() {
                 `,
               }}
               scroll={{ x: "max-content" }}
-              locale={{ emptyText: "No manager data available" }}
+              locale={{
+                emptyText: `Không có dữ liệu ${CURRENT_ROLE_INFO.name.toLowerCase()} nào`,
+              }}
               className={`
                 !bg-[hsl(0_0%_100%)]
                 [&_.ant-table]:!bg-[hsl(0_0%_100%)]
@@ -418,7 +380,14 @@ export default function ManagerManagementPage() {
         {/* Modal Section */}
         <Modal
           title={
-            editingManager ? "Edit Manager Account" : "Add New Manager Account"
+            <Title
+              level={4}
+              className="!text-[hsl(222.2_47.4%_11.2%)] !font-semibold !mb-0"
+            >
+              {editingManager
+                ? `Chỉnh sửa tài khoản ${CURRENT_ROLE_INFO.name}`
+                : `Thêm tài khoản ${CURRENT_ROLE_INFO.name} mới`}
+            </Title>
           }
           open={isModalVisible}
           onCancel={() => setIsModalVisible(false)}
@@ -449,24 +418,24 @@ export default function ManagerManagementPage() {
                 <span
                   className={`flex items-center gap-2 text-[hsl(222.2_47.4%_11.2%)]`}
                 >
-                  <FiUser className={`text-[hsl(221_83%_53%)]`} /> Full Name
+                  <FiUser className={`text-[hsl(221_83%_53%)]`} /> Tên đầy đủ
                 </span>
               }
               rules={[
-                { required: true, message: "Please enter full name!" },
+                { required: true, message: "Vui lòng nhập tên đầy đủ!" },
                 {
                   pattern: /^[\p{L}\s]{3,50}$/u,
-                  message: "Full name should only contain letters and spaces.",
+                  message: "Tên đầy đủ chỉ được chứa chữ cái và khoảng trắng.",
                 },
-                { min: 3, message: "Full name must be at least 3 characters." },
+                { min: 3, message: "Tên đầy đủ phải có ít nhất 3 ký tự." },
                 {
                   max: 50,
-                  message: "Full name must not exceed 50 characters.",
+                  message: "Tên đầy đủ không được vượt quá 50 ký tự.",
                 },
               ]}
             >
               <Input
-                placeholder="Full Name"
+                placeholder="Tên đầy đủ"
                 className={`!border !border-[hsl(214.3_31.6%_91.4%)] !rounded-lg focus:!ring-2 focus:!ring-[hsl(222.2_84%_4.9%)] focus:!outline-none hover:!border-[hsl(221_83%_53%)]/[.50] !transition-colors !bg-[hsl(0_0%_100%)] !text-[hsl(222.2_47.4%_11.2%)]`}
               />
             </Form.Item>
@@ -482,14 +451,14 @@ export default function ManagerManagementPage() {
                 </span>
               }
               rules={[
-                { required: true, message: "Please enter email!" },
-                { type: "email", message: "Invalid email!" },
-                { max: 100, message: "Email must not exceed 100 characters." },
+                { required: true, message: "Vui lòng nhập email!" },
+                { type: "email", message: "Email không hợp lệ!" },
+                { max: 100, message: "Email không được vượt quá 100 ký tự." },
               ]}
             >
               <Input
-                placeholder="Email address"
-                className={`!border !border-[hsl(214.3_31.6%_91.4%)] !rounded-lg focus:!ring-2 focus:!ring-[hsl(222.2_84%_4.9%)] focus:!outline-none hover:!border-[hsl(221_83%_53%)]/[.50] !transition-colors !bg-[hsl(0_0%_100%)] !text-[hsl(222.2_47.4%_11.2%)]`}
+                placeholder="Địa chỉ email"
+                className={`!border !border-[hsl(214.3_31.6%_91.4%)] !rounded-lg focus:!ring-2 focus:!ring-[hsl(222.2_84%_4%)] focus:!outline-none hover:!border-[hsl(221_83%_53%)]/[.50] !transition-colors !bg-[hsl(0_0%_100%)] !text-[hsl(222.2_47.4%_11.2%)]`}
               />
             </Form.Item>
 
@@ -500,42 +469,43 @@ export default function ManagerManagementPage() {
                 <span
                   className={`flex items-center gap-2 text-[hsl(222.2_47.4%_11.2%)]`}
                 >
-                  <FiPhone className={`text-[hsl(221_83%_53%)]`} /> Phone Number
+                  <FiPhone className={`text-[hsl(221_83%_53%)]`} /> Số điện
+                  thoại
                 </span>
               }
               rules={[
-                { required: true, message: "Please enter phone number!" },
+                { required: true, message: "Vui lòng nhập số điện thoại!" },
                 {
                   pattern: /^(0|\+84)[3|5|7|8|9][0-9]{8}$/,
                   message:
-                    "Invalid phone number (e.g., 0912345678 or +84912345678).",
+                    "Số điện thoại không hợp lệ (ví dụ: 0912345678 hoặc +84912345678).",
                 },
               ]}
             >
               <Input
-                placeholder="Contact phone number"
+                placeholder="Số điện thoại liên hệ"
                 className={`!border !border-[hsl(214.3_31.6%_91.4%)] !rounded-lg focus:!ring-2 focus:!ring-[hsl(222.2_84%_4.9%)] focus:!outline-none hover:!border-[hsl(221_83%_53%)]/[.50] !transition-colors !bg-[hsl(0_0%_100%)] !text-[hsl(222.2_47.4%_11.2%)]`}
               />
             </Form.Item>
 
             {/* Role (Specific for Managers) */}
             <Form.Item
-              name="role"
+              name="role" // Tên trường này có thể cần khớp với cách API của bạn xử lý vai trò
               label={
                 <span
                   className={`flex items-center gap-2 text-[hsl(222.2_47.4%_11.2%)]`}
                 >
-                  <FiBriefcase className={`text-[hsl(221_83%_53%)]`} /> Role
+                  <FiBriefcase className={`text-[hsl(221_83%_53%)]`} /> Vai trò
                 </span>
               }
               rules={[
-                { required: true, message: "Please enter role!" },
-                { min: 3, message: "Role must be at least 3 characters." },
-                { max: 50, message: "Role must not exceed 50 characters." },
+                { required: true, message: "Vui lòng nhập vai trò!" },
+                { min: 3, message: "Vai trò phải có ít nhất 3 ký tự." },
+                { max: 50, message: "Vai trò không được vượt quá 50 ký tự." },
               ]}
             >
               <Input
-                placeholder="e.g., Senior Manager, Department Head"
+                placeholder="Ví dụ: Quản lý cấp cao, Trưởng phòng"
                 className={`!border !border-[hsl(214.3_31.6%_91.4%)] !rounded-lg focus:!ring-2 focus:!ring-[hsl(222.2_84%_4.9%)] focus:!outline-none hover:!border-[hsl(221_83%_53%)]/[.50] !transition-colors !bg-[hsl(0_0%_100%)] !text-[hsl(222.2_47.4%_11.2%)]`}
               />
             </Form.Item>
@@ -547,18 +517,19 @@ export default function ManagerManagementPage() {
                 <span
                   className={`flex items-center gap-2 text-[hsl(222.2_47.4%_11.2%)]`}
                 >
-                  <FiActivity className={`text-[hsl(221_83%_53%)]`} /> Status
+                  <FiActivity className={`text-[hsl(221_83%_53%)]`} /> Trạng
+                  thái
                 </span>
               }
-              rules={[{ required: true, message: "Please select status!" }]}
+              rules={[{ required: true, message: "Vui lòng chọn trạng thái!" }]}
             >
               <Select
-                placeholder="Select status"
+                placeholder="Chọn trạng thái"
                 className={`!border !border-[hsl(214.3_31.6%_91.4%)] !rounded-lg focus:!ring-2 focus:!ring-[hsl(222.2_84%_4.9%)] focus:!outline-none hover:!border-[hsl(221_83%_53%)]/[.50] !transition-colors
                   [&_.ant-select-selector]:!bg-[hsl(0_0%_100%)] [&_.ant-select-selector]:!text-[hsl(222.2_47.4%_11.2%)]`}
               >
-                <Option value="Active">Active</Option>
-                <Option value="Inactive">Inactive</Option>
+                <Option value="Active">Hoạt động</Option>
+                <Option value="Inactive">Không hoạt động</Option>
               </Select>
             </Form.Item>
 
@@ -570,29 +541,29 @@ export default function ManagerManagementPage() {
                   <span
                     className={`flex items-center gap-2 text-[hsl(222.2_47.4%_11.2%)]`}
                   >
-                    <FiLock className={`text-[hsl(221_83%_53%)]`} /> Password
+                    <FiLock className={`text-[hsl(221_83%_53%)]`} /> Mật khẩu
                   </span>
                 }
                 rules={[
-                  { required: true, message: "Please enter password!" },
+                  { required: true, message: "Vui lòng nhập mật khẩu!" },
                   {
                     min: 6,
-                    message: "Password must be at least 6 characters.",
+                    message: "Mật khẩu phải có ít nhất 6 ký tự.",
                   },
                   {
                     max: 50,
-                    message: "Password must not exceed 50 characters.",
+                    message: "Mật khẩu không được vượt quá 50 ký tự.",
                   },
                   {
                     pattern:
                       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,50}$/,
                     message:
-                      "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
+                      "Mật khẩu phải chứa ít nhất một chữ hoa, một chữ thường, một số và một ký tự đặc biệt.",
                   },
                 ]}
               >
                 <Input.Password
-                  placeholder="Password for new account"
+                  placeholder="Mật khẩu cho tài khoản mới"
                   className={`!border !border-[hsl(214.3_31.6%_91.4%)] !rounded-lg focus:!ring-2 focus:!ring-[hsl(222.2_84%_4.9%)] focus:!outline-none hover:!border-[hsl(221_83%_53%)]/[.50] !transition-colors !bg-[hsl(0_0%_100%)] !text-[hsl(222.2_47.4%_11.2%)]`}
                 />
               </Form.Item>
@@ -602,18 +573,18 @@ export default function ManagerManagementPage() {
               <Space>
                 <Button
                   onClick={() => setIsModalVisible(false)}
-                  disabled={isSubmitting}
+                  disabled={loading}
                   className={`px-4 py-2 !border !border-[hsl(214.3_31.6%_91.4%)] !rounded-lg hover:!bg-[hsl(210_40%_96.1%)] !transition-colors !text-[hsl(222.2_47.4%_11.2%)]`}
                 >
-                  Cancel
+                  Hủy bỏ
                 </Button>
                 <Button
                   type="primary"
                   htmlType="submit"
-                  loading={isSubmitting}
+                  loading={loading}
                   className={`px-4 py-2 !bg-[hsl(221_83%_53%)] !text-[hsl(210_20%_98%)] !rounded-lg hover:!bg-[hsl(221_83%_53%)]/[.90] !transition-colors disabled:!opacity-50 !border-none`}
                 >
-                  {editingManager ? "Update" : "Add New"}
+                  {editingManager ? "Cập nhật" : "Thêm mới"}
                 </Button>
               </Space>
             </Form.Item>

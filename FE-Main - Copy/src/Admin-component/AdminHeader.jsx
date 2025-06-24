@@ -21,6 +21,7 @@ import {
   message,
 } from "antd";
 import { useNavigate } from "react-router-dom"; // For navigation after logout
+import { useSelector } from "react-redux";
 
 const { Header } = Layout;
 const { Search } = Input;
@@ -31,12 +32,17 @@ export default function AdminHeader() {
   // State để lưu thông tin người dùng hiện tại
   const [currentUser, setCurrentUser] = useState(null);
 
+  const user = useSelector((state) => state.auth.user);
+
+  console.log(user);
+
   // useEffect để đọc thông tin người dùng từ localStorage khi component mount
   useEffect(() => {
     try {
       const userString = localStorage.getItem("currentUser");
       if (userString) {
         setCurrentUser(JSON.parse(userString));
+        console.log(currentUser);
       }
     } catch (error) {
       console.error("Lỗi khi đọc thông tin người dùng từ localStorage:", error);
@@ -45,6 +51,7 @@ export default function AdminHeader() {
       localStorage.removeItem("authToken"); // Cũng xóa token nếu có lỗi user
     }
   }, []); // [] đảm bảo chỉ chạy một lần khi mount
+
   // const { fullname, role_id } = currentUser;
   // Function to handle logout
   const handleLogout = () => {
@@ -133,15 +140,14 @@ export default function AdminHeader() {
                   >
                     {/* Hiển thị tên đầy đủ, nếu không có thì username, nếu không có thì "Admin User" */}
                     {/* {fullname ? fullname : "Admin User"} */}
-                    Admin full name
+                    {user.fullname}
                   </Text>
                   <Text
                     type="secondary"
                     style={{ fontSize: "12px", display: "block" }}
                   >
                     {/* Hiển thị vai trò, nếu không có thì "Quản trị viên" */}
-                    {/* {role_id === 1 ? "Admin" : ""} */}
-                    User Roles
+                    {user.role_id === 1 ? "Admin" : ""}
                   </Text>
                 </div>
                 <DownOutlined

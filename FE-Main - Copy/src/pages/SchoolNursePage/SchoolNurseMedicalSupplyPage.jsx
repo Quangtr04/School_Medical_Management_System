@@ -107,7 +107,7 @@ export default function MedicalSuppliesPage() {
   }, []);
 
   const fetchSupplies = useCallback(async () => {
-    setLoading(true); // Set loading to true when fetching starts
+    setLoading(false); // Set loading to true when fetching starts
     try {
       const params = {
         page: pagination.current,
@@ -115,7 +115,7 @@ export default function MedicalSuppliesPage() {
         search: searchQuery,
         category: categoryFilter,
       };
-      const res = await api.get("/api/nurse/medical-supplies-inventory", {
+      const res = await api.get("/api/nurse/medical-supplies", {
         params,
       });
       setSupplies(res.data.data.records);
@@ -283,8 +283,8 @@ export default function MedicalSuppliesPage() {
   const columns = [
     {
       title: "Mã vật tư",
-      dataIndex: "itemId",
-      key: "itemId",
+      dataIndex: "supply_id",
+      key: "supply_i",
       sorter: (a, b) => a.itemId.localeCompare(b.itemId),
       className: "!font-semibold !text-gray-700",
     },
@@ -296,43 +296,48 @@ export default function MedicalSuppliesPage() {
       className: "!font-semibold !text-gray-700",
     },
     {
-      title: "Danh mục",
-      dataIndex: "category",
-      key: "category",
-      sorter: (a, b) => a.category.localeCompare(b.category),
+      title: "Thể loại",
+      dataIndex: "type",
+      key: "type",
+      sorter: (a, b) => a.type.localeCompare(b.type),
       className: "!font-semibold !text-gray-700",
     },
+    {
+      title: "Đơn vị",
+      dataIndex: "unit",
+      key: "unit",
+      className: "!font-semibold !text-gray-700",
+    },
+
     {
       title: "Số lượng",
       dataIndex: "quantity",
       key: "quantity",
-      sorter: (a, b) => a.quantity - b.quantity,
       className: "!font-semibold !text-gray-700",
     },
+
+    {
+      title: "Mô tả",
+      dataIndex: "description",
+      key: "description",
+      className: "!font-semibold !text-gray-700",
+    },
+
     {
       title: "Ngày hết hạn",
-      dataIndex: "expiryDate",
-      key: "expiryDate",
+      dataIndex: "expired_date",
+      key: "expired_date",
       render: (date) => (date ? format(parseISO(date), "yyyy-MM-dd") : "N/A"),
-      sorter: (a, b) => new Date(a.expiryDate) - new Date(b.expiryDate),
       className: "!font-semibold !text-gray-700",
     },
     {
       title: "Trạng thái",
-      dataIndex: "status",
+      dataIndex: "is_active",
       key: "status",
       render: (status) => getStatusTag(status),
-      sorter: (a, b) => a.status.localeCompare(b.status),
       className: "!font-semibold !text-gray-700",
     },
-    {
-      title: "Cập nhật lần cuối",
-      dataIndex: "lastUpdated",
-      key: "lastUpdated",
-      render: (date) => (date ? format(parseISO(date), "yyyy-MM-dd") : "N/A"),
-      sorter: (a, b) => new Date(a.lastUpdated) - new Date(b.lastUpdated),
-      className: "!font-semibold !text-gray-700",
-    },
+
     {
       title: "Hành động",
       key: "actions",
@@ -426,14 +431,6 @@ export default function MedicalSuppliesPage() {
               className="flex items-center gap-1 px-4 py-2 !rounded-lg !bg-green-500 hover:!bg-green-600 !transition-colors"
             >
               Nhập kho
-            </Button>
-            <Button
-              type="default"
-              icon={<FiMinusCircle />}
-              onClick={() => showStockModal("out")}
-              className="flex items-center gap-1 px-4 py-2 !rounded-lg !border !border-red-500 !text-red-500 hover:!bg-red-50 !transition-colors"
-            >
-              Xuất kho
             </Button>
           </Space>
         </header>
