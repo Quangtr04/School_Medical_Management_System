@@ -54,7 +54,7 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.error = null; // Clear any previous errors
       localStorage.removeItem("accessToken");
-      localStorage.removeItem("user");
+      localStorage.removeItem("currentUser");
     },
     // Có thể thêm các reducer khác nếu cần (ví dụ: clearError)
     clearAuthError: (state) => {

@@ -42,6 +42,7 @@ export default function SchoolNurseHeader() {
   const handleLogout = () => {
     // Xóa thông tin người dùng và token khỏi localStorage
     dispatch(logout(user));
+    navigate("/");
   };
 
   // Menu items for the user dropdown
