@@ -65,7 +65,7 @@ const createMedicalIncident = async (req, res) => {
       .input("event_id", sql.Int, event_id)
       .input("supply_id", sql.Int, supply_id)
       .input("quantity_used", sql.Int, IncidentData.quantity_used).query(`
-        INSERT INTO Incidenct_Medication_Log (event_id, supply_id, quantity_used)
+        INSERT INTO Incident_Medication_Log (event_id, supply_id, quantity_used)
         VALUES (@event_id, @supply_id, @quantity_used);
       `);
 
@@ -182,7 +182,7 @@ const getAllIncidents = async (req, res) => {
         -- Danh sách thuốc/vật tư sử dụng
         STUFF((
           SELECT ', ' + MS.name + ' (x' + CAST(IML.quantity_used AS VARCHAR) + ')'
-          FROM Incidenct_Medication_Log IML
+          FROM Incident_Medication_Log IML
           JOIN Medical_Supply MS ON IML.supply_id = MS.supply_id
           WHERE IML.event_id = MI.event_id
           FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, ''
@@ -245,7 +245,7 @@ const getIncidentsByUserId = async (req, res) => {
           -- Danh sách thuốc/vật tư sử dụng
           STUFF((
             SELECT ', ' + MS.name + ' (x' + CAST(IML.quantity_used AS VARCHAR) + ')'
-            FROM Incidenct_Medication_Log IML
+            FROM Incident_Medication_Log IML
             JOIN Medical_Supply MS ON IML.supply_id = MS.supply_id
             WHERE IML.event_id = MI.event_id
             FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, ''
@@ -260,7 +260,74 @@ const getIncidentsByUserId = async (req, res) => {
         WHERE 
           MI.subject_info_id = @user_id OR
           MI.nurse_id = @user_id OR
-          S.parent_id = @user_id
+          S.parent_id = @user_id 
+
+        ORDER BY MI.reported_at DESC
+      `);
+
+    return res.status(200).json({
+      status: "success",
+      data: result.recordset,
+    });
+  } catch (error) {
+    console.error("Error fetching incidents by user_id:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+const getIncidentByStudentId = async (req, res) => {
+  const user_id = parseInt(req.params.user_id);
+
+  try {
+    const pool = await sqlServerPool;
+
+    const result = await pool.request().input("user_id", sql.Int, user_id).query(`
+        SELECT 
+          MI.event_id,
+
+          -- Thông tin học sinh
+          S.full_name AS student_name,
+          S.student_code,
+          S.gender AS student_gender,
+          S.date_of_birth AS student_dob,
+          S.class_name,
+
+          -- Phụ huynh báo cáo
+          P.fullname AS parent_name,
+          P.email AS parent_email,
+          P.phone AS parent_phone,
+
+          -- Y tá phụ trách
+          N.fullname AS nurse_name,
+
+          -- Mức độ
+          SE.serverity AS severity_level,
+
+          -- Nội dung sự cố
+          MI.description,
+          MI.status,
+          MI.occurred_at,
+          MI.reported_at,
+          MI.resolution_notes,
+          MI.resolved_at,
+
+          -- Danh sách thuốc/vật tư sử dụng
+          STUFF((
+            SELECT ', ' + MS.name + ' (x' + CAST(IML.quantity_used AS VARCHAR) + ')'
+            FROM Incident_Medication_Log IML
+            JOIN Medical_Supply MS ON IML.supply_id = MS.supply_id
+            WHERE IML.event_id = MI.event_id
+            FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, ''
+          ) AS medication_used
+
+        FROM Medical_incident MI
+        JOIN Severity_Of_Incident SE ON MI.serverity_id = SE.serverity_id
+        JOIN Student_Information S ON MI.student_id = S.student_id
+        JOIN Users P ON MI.subject_info_id = P.user_id
+        LEFT JOIN Users N ON MI.nurse_id = N.user_id
+
+        WHERE 
+          S.student_id = @user_id 
 
         ORDER BY MI.reported_at DESC
       `);
@@ -314,7 +381,7 @@ const getIncidentById = async (req, res) => {
           -- Danh sách thuốc/vật tư sử dụng
           STUFF((
             SELECT ', ' + MS.name + ' (x' + CAST(IML.quantity_used AS VARCHAR) + ')'
-            FROM Incidenct_Medication_Log IML
+            FROM Incident_Medication_Log IML
             JOIN Medical_Supply MS ON IML.supply_id = MS.supply_id
             WHERE IML.event_id = MI.event_id
             FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, ''
@@ -349,4 +416,5 @@ module.exports = {
   getAllIncidents,
   getIncidentsByUserId,
   getIncidentById,
+  getIncidentByStudentId,
 };

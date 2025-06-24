@@ -1,5 +1,6 @@
 const sqlServerPool = require("../../Utils/connectMySql");
 const sql = require("mssql");
+const sendNotification = require("../../Utils/sendNotification");
 
 // Tạo lịch khám sức khỏe
 const createSchedule = async (req, res, next) => {
@@ -27,10 +28,11 @@ const createSchedule = async (req, res, next) => {
 
     // ✅ Gửi thông báo cho tất cả Manager
     const managers = await pool.request().query(`SELECT user_id FROM Users WHERE role_id = 2`);
+    const managerIds = managers.recordset.map((m) => m.user_id);
 
     await sendNotification(
       pool,
-      manager.user_id,
+      managerIds,
       "Lịch khám sức khỏe mới",
       `Có một lịch khám sức khỏe mới cần phê duyệt: "${title}".`
     );

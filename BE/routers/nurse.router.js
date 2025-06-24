@@ -20,7 +20,9 @@ const {
   getAllIncidents,
   getIncidentById,
   getIncidentsByUserId,
+  getIncidentByStudentId,
 } = require("../Controller/Medical/medical_Incident");
+const { getAllMedicalSupplies, getMedicalSupplyByID } = require("../Controller/Medical/medicalSupply");
 
 const nurseRouter = express.Router();
 
@@ -35,6 +37,8 @@ nurseRouter.get("/checkups/:id", getCheckupById);
 
 // 📌 Xóa một lịch khám theo ID
 nurseRouter.delete("/checkups/:id", deleteSchedule);
+
+// 📌 Lấy danh sách lịch khám đã được duyệt (để thực hiện khám)
 
 // 📌 Lưu kết quả khám sức khỏe cho học sinh
 nurseRouter.post(
@@ -65,13 +69,22 @@ nurseRouter.post(
 );
 
 // Lấy tất cả các sự cố y tế
-nurseRouter.get("/Incidents", getAllIncidents);
+nurseRouter.get("/incidents", getAllIncidents);
 
 // Lấy chi tiết sự cố y tế theo event_id
 nurseRouter.get("/incidents/:event_id", getIncidentById);
 
 // Lấy tất cả sự cố y tế liên quan đến một user
-nurseRouter.get("/incidents/user/:user_id", authenticateToken, getIncidentsByUserId);
+nurseRouter.get("/incidents/user", authenticateToken, getIncidentsByUserId);
+
+// Lấy tất cả sự cố y tế liên quan đến một học sinh
+nurseRouter.get("/incidents/student/:student_id", getIncidentByStudentId);
+
+// Lấy danh sách vật tư y tế
+nurseRouter.get("/medical-supplies", getAllMedicalSupplies);
+
+// Lấy danh sách vật tư y tế theo ID
+nurseRouter.get("/medical-supplies/:supplyId", getMedicalSupplyByID);
 
 //lấy thông báo
 nurseRouter.get("/notifications", authenticateToken, getNotifications);

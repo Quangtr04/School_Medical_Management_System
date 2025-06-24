@@ -14,11 +14,11 @@ const {
   getHealthDeclarationOfStudentById,
 } = require("../Controller/Health/healthDeclaration");
 
-const { medicalSubmissionReq } = require("../Controller/Medical/medicalSubmissionReq");
 const { UpdateStatusCheckupParent } = require("../Controller/CheckUp/UpdateStatusCheckup");
 const { getNotifications } = require("../Controller/Notification/getNotification");
 const { getCheckupListApproved } = require("../Controller/CheckUp/getCheckup");
 const { getIncidentsByUserId, getIncidentById } = require("../Controller/Medical/medical_Incident");
+const { medicationSubmissionReq } = require("../Controller/Medical/medicalSubmissionReq");
 
 const parentRouter = express.Router();
 
@@ -62,7 +62,7 @@ parentRouter.post(
   "/medical-submissions",
   authenticateToken,
   validateInput(Schemas, "MedicalSubmissionRequest"),
-  medicalSubmissionReq
+  medicationSubmissionReq
 );
 
 /**
