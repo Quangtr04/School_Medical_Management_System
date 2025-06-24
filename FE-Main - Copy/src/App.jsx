@@ -24,9 +24,14 @@ import Vaccinations from "./pages/SchoolNursePage/Vaccinations";
 import Examinations from "./pages/SchoolNursePage/Examinations";
 import Notification from "./pages/SchoolNursePage/Notification";
 import ReportsPage from "./pages/SchoolNursePage/Report";
-import ManagerLayOut from "./lay-outs/ManagerLayOut";
-import ManagerOverViewPage from "./pages/ManagerPage/ManagerOverViewPage";
-import ManagerApprovalRequestsPage from "./pages/ManagerPage/AppointmentApporvePage";
+
+// Parent imports
+import ParentLayOut from "./lay-outs/ParentLayOut";
+import ParentDashboard from "./pages/ParentPage/ParentDashboard";
+import ChildrenInfoPage from "./pages/ParentPage/ChildrenInfoPage";
+import HealthRecordsPage from "./pages/ParentPage/HealthRecordsPage";
+import VaccinationsPage from "./pages/ParentPage/VaccinationsPage";
+import MedicineRequestPage from "./pages/ParentPage/MedicineRequestPage";
 
 function App() {
   const router = createBrowserRouter([
@@ -56,7 +61,6 @@ function App() {
       element: <SupportPage />,
     },
 
-    //Admin
     {
       path: "/admin",
       element: <AdminLayOut />,
@@ -96,7 +100,6 @@ function App() {
       ],
     },
 
-    // Nurse
     {
       path: "/nurse",
       element: <SchoolNurseLayOut />,
@@ -106,22 +109,23 @@ function App() {
         { path: "medical-supplies", element: <SchoolNurseMedicalSupplyPage /> },
         { path: "medical-incidents", element: <MedicalIncident /> },
         { path: "vaccinations", element: <Vaccinations /> },
-        { path: "checkups", element: <Examinations /> },
+        { path: "examinations", element: <Examinations /> },
         { path: "notifications", element: <Notification /> },
         { path: "report", element: <ReportsPage /> },
       ],
     },
 
-    //Manager
+    // Parent routes
     {
-      path: "/manager",
-      element: <ManagerLayOut />,
+      path: "/parent",
+      element: <ParentLayOut />,
       children: [
-        { index: true, element: <ManagerOverViewPage /> },
-        {
-          path: "checkups",
-          element: <ManagerApprovalRequestsPage />,
-        },
+        { index: true, element: <ParentDashboard /> },
+        { path: "children", element: <ChildrenInfoPage /> },
+        { path: "health-records", element: <HealthRecordsPage /> },
+        { path: "vaccinations", element: <VaccinationsPage /> },
+        { path: "medicine-request", element: <MedicineRequestPage /> },
+        // Add more parent pages here as needed
       ],
     },
   ]);
@@ -134,3 +138,4 @@ function App() {
 }
 
 export default App;
+// import React from "react";
