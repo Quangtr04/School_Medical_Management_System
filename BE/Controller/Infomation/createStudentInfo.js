@@ -95,6 +95,79 @@ const createStudentInformation = async (req, res, next) => {
     });
   }
 };
+
+  const updateStudentInfoById = async (req, res, next) => {
+  const studentId = req.params.studentId;
+  const studentInfo = req.body;
+  const pool = await sqlServerPool;
+
+  try {
+    // check exist class
+    const classCheck = await pool
+      .request()
+      .input("class_name", sql.NVarChar, studentInfo.class_name)
+      .query("SELECT COUNT(*) AS count FROM Class WHERE class_name = @class_name");
+
+    if (classCheck.recordset[0].count === 0) {
+      return res.status(400).json({
+        status: "fail",
+        message: "Class does not exist",
+      });
+    }
+
+    // Lấy parent_id để gửi thông báo
+    const parentResult = await pool
+      .request()
+      .input("student_id", sql.Int, studentId)
+      .query("SELECT parent_id FROM Student_Information WHERE student_id = @student_id");
+
+    const parentId = parentResult.recordset[0]?.parent_id || null;
+
+    // update tt hs
+    const result = await pool
+      .request()
+      .input("student_id", sql.Int, studentId)
+      .input("class_name", sql.NVarChar, studentInfo.class_name)
+      .input("address", sql.NVarChar, studentInfo.address)
+      .input("updated_at", sql.DateTime, new Date())
+      .query(`
+        UPDATE Student_Information
+        SET class_name = @class_name, address = @address, updated_at = @updated_at
+        WHERE student_id = @student_id
+      `);
+
+    if (result.rowsAffected[0] > 0) {
+      // tb cho phụ huynh
+      if (parentId) {
+        await sendNotification(
+          pool,
+          parentId,
+          "Cập nhật thông tin học sinh",
+          `Thông tin học sinh đã được cập nhật thành công`
+        );
+      }
+
+      return res.status(200).json({
+        status: "success",
+        message: "Student information updated successfully",
+      });
+    } else {
+      return res.status(400).json({
+        status: "fail",
+        message: "Failed to update student information",
+      });
+    }
+  } catch (error) {
+    console.error("Error updating student information:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Server error while updating student information",
+    });
+  }
+};
+
+      
 module.exports = {
   createStudentInformation,
+  updateStudentInfoById
 };
