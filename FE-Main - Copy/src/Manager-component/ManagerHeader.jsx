@@ -39,6 +39,7 @@ export default function ManagerHeader() {
   const handleLogout = () => {
     // Xóa thông tin người dùng và token khỏi localStorage
     dispatcher(logout(user));
+    navigate("/");
   };
 
   // Menu items for the user dropdown
@@ -116,15 +117,13 @@ export default function ManagerHeader() {
                     }}
                   >
                     {/* Hiển thị tên đầy đủ, nếu không có thì username, nếu không có thì "Admin User" */}
-                    {user.fullname}
+                    {user?.fullname}
                   </Text>
                   <Text
                     type="secondary"
                     style={{ fontSize: "12px", display: "block" }}
                   >
-                    {/* Hiển thị vai trò, nếu không có thì "Quản trị viên" */}
-                    {/* {role_id === 1 ? "Admin" : ""} */}
-                    {user.role_id == 2 ? "Manager" : ""}
+                    {user.role_id === 2 ? "Manager" : ""}
                   </Text>
                 </div>
                 <DownOutlined

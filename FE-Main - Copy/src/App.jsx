@@ -116,18 +116,18 @@ function App() {
     },
 
     // Parent routes
-    {
-      path: "/parent",
-      element: <ParentLayOut />,
-      children: [
-        { index: true, element: <ParentDashboard /> },
-        { path: "children", element: <ChildrenInfoPage /> },
-        { path: "health-records", element: <HealthRecordsPage /> },
-        { path: "vaccinations", element: <VaccinationsPage /> },
-        { path: "medicine-request", element: <MedicineRequestPage /> },
-        // Add more parent pages here as needed
-      ],
-    },
+    // {
+    //   path: "/parent",
+    //   element: <ParentLayOut />,
+    //   children: [
+    //     { index: true, element: <ParentDashboard /> },
+    //     { path: "children", element: <ChildrenInfoPage /> },
+    //     { path: "health-records", element: <HealthRecordsPage /> },
+    //     { path: "vaccinations", element: <VaccinationsPage /> },
+    //     { path: "medicine-request", element: <MedicineRequestPage /> },
+    //     // Add more parent pages here as needed
+    //   ],
+    // },
   ]);
 
   return (

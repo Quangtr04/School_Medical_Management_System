@@ -1,89 +1,89 @@
-// src/redux/auth/authSlice.js
+// src/store/authSlice.js (Ví dụ)
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import api from "../../configs/config-axios"; // Đảm bảo đường dẫn này đúng
+import api from "../configs/config-axios"; // Đảm bảo đường dẫn đúng
 
-// Define an async thunk for user login
-// `createAsyncThunk` sẽ tạo ra 3 action types: pending, fulfilled, rejected
-export const loginUser = createAsyncThunk(
-  "loginUser", // Tên type cho action(action.type)
-  async (values, { rejectWithValue }) => {
-    try {
-      // Giả lập cuộc gọi API đăng nhập
-      console.log("Value:", values);
+const initialState = {
+  user: null,
+  isAuthenticated: false,
+  loading: false,
+  error: null,
+  // Thêm trạng thái cho thông báo
+  notificationMessage: null,
+  notificationType: null, // 'success', 'error', 'info', 'warning'
+};
 
-      const response = await api.post("/login", values);
-      console.log("Response", response);
-      console.log(response.data);
+export const loginUser = createAsyncThunk("loginUser", async (values, { rejectWithValue }) => {
+  try {
+    const response = await api.post("/login", values);
+    const { token, user } = response.data.data;
 
-      // Giả sử API trả về user info và token
-      const { token, user } = response.data;
-      console.log(user);
+    localStorage.setItem("accessToken", token);
+    localStorage.setItem("currentUser", JSON.stringify(user));
 
-      // Lưu token vào localStorage (hoặc sessionStorage) để duy trì trạng thái đăng nhập
-      localStorage.setItem("accessToken", token);
-      localStorage.setItem("currentUser", JSON.stringify(user));
-
-      // Trả về dữ liệu cần thiết để cập nhật state
-      return { user, token };
-    } catch (error) {
-      // Xử lý lỗi từ API
-      let errorMessage = "Đăng nhập thất bại. Vui lòng thử lại.";
-      if (error.response && error.response.data && error.response.data.message) {
-        errorMessage = error.response.data.message;
-      }
-      // `rejectWithValue` sẽ gửi lỗi này vào action.payload khi trạng thái là `rejected`
-      return rejectWithValue(errorMessage);
+    return { user, accessToken: token };
+  } catch (error) {
+    let errorMessage = "Đăng nhập thất bại. Vui lòng thử lại.";
+    if (error.response && error.response.data && error.response.data.message) {
+      errorMessage = error.response.data.message;
     }
+    return rejectWithValue(errorMessage);
   }
-);
+});
 
 const authSlice = createSlice({
-  name: "auth", // Tên của slice, dùng làm prefix cho action types
-  initialState: {
-    user: JSON.parse(localStorage.getItem("currentUser")) || null, // Lấy user từ localStorage nếu có
-    accessToken: localStorage.getItem("accessToken") || null, // Lấy token từ localStorage nếu có
-    isAuthenticated: !!localStorage.getItem("accessToken"), // Kiểm tra xem có token không để xác định trạng thái đăng nhập
-    loading: false,
-    error: null,
-  },
+  name: "auth",
+  initialState,
   reducers: {
-    // Reducer cho logout
+    // Action để thiết lập thông báo
+    setNotification: (state, action) => {
+      state.notificationMessage = action.payload.message;
+      state.notificationType = action.payload.type;
+    },
+    // Action để xóa thông báo
+    clearNotification: (state) => {
+      state.notificationMessage = null;
+      state.notificationType = null;
+    },
+    // ... các reducers khác (ví dụ: để khởi tạo user/isAuthenticated từ localStorage khi app load)
+    initializeAuth: (state) => {
+      const accessToken = localStorage.getItem("accessToken");
+      const currentUser = localStorage.getItem("currentUser");
+      if (accessToken && currentUser) {
+        state.isAuthenticated = true;
+        state.user = JSON.parse(currentUser);
+      }
+    },
     logout: (state) => {
-      state.user = null;
-      state.accessToken = null;
-      state.isAuthenticated = false;
-      state.error = null; // Clear any previous errors
       localStorage.removeItem("accessToken");
       localStorage.removeItem("currentUser");
-    },
-    // Có thể thêm các reducer khác nếu cần (ví dụ: clearError)
-    clearAuthError: (state) => {
-      state.error = null;
+      state.user = null;
+      state.isAuthenticated = false;
     },
   },
   extraReducers: (builder) => {
-    // Xử lý các action types được tạo bởi `createAsyncThunk`
     builder
       .addCase(loginUser.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.notificationMessage = null; // Xóa thông báo cũ
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload.user;
-        state.accessToken = action.payload.accessToken;
         state.isAuthenticated = true;
-        state.error = null;
+        state.user = action.payload.user;
+        state.notificationMessage = "Đăng nhập thành công!";
+        state.notificationType = "success";
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || "Đăng nhập thất bại."; // action.payload chứa lỗi từ rejectWithValue
         state.isAuthenticated = false;
-        state.user = null;
-        state.accessToken = null;
+        state.error = action.payload;
+        state.notificationMessage = action.payload; // Lỗi từ API
+        state.notificationType = "error";
       });
   },
 });
 
-export const { logout, clearAuthError } = authSlice.actions; // Export các action sync
-export default authSlice.reducer; // Export reducer mặc định
+export const { setNotification, clearNotification, initializeAuth, logout } = authSlice.actions;
+
+export default authSlice.reducer;

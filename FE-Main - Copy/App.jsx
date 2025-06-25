@@ -61,45 +61,49 @@ function App() {
       element: <SupportPage />,
     },
 
+    // Route gốc của Admin được bọc bởi AdminRoute
     {
       path: "/admin",
-      element: <AdminLayOut />,
+      element: <AdminRoute />, // Dùng AdminRoute ở đây để bảo vệ
       children: [
         {
-          index: true,
-          element: <AdminOverViewPage />,
+          // Khi truy cập /admin (path index), hiển thị AdminLayOut và sau đó AdminOverViewPage
+          // AdminLayOut sẽ được hiển thị trong <Outlet /> của AdminRoute
+          // AdminOverViewPage sẽ được hiển thị trong <Outlet /> của AdminLayOut
+          element: <AdminLayOut />, // Layout cho các trang admin
+          children: [
+            {
+              index: true,
+              element: <AdminOverViewPage />,
+            },
+            {
+              path: "nurses",
+              element: <NurseManagementPage />,
+            },
+            {
+              path: "parents",
+              element: <ParentManagementPage />,
+            },
+            {
+              path: "managers",
+              element: <ManagerManagementPage />,
+            },
+            {
+              path: "files",
+              element: <FileManagementSection />,
+            },
+            {
+              path: "settings",
+              element: <AdminSettingPage />,
+            },
+            {
+              path: "monitor",
+              element: <SystemActivityPage />,
+            },
+          ],
         },
-        {
-          path: "nurses",
-          element: <NurseManagementPage />,
-        },
-        {
-          path: "parents",
-          element: <ParentManagementPage />,
-        },
-        {
-          path: "managers",
-          element: <ManagerManagementPage />,
-        },
-        {
-          path: "files",
-          element: <FileManagementSection />,
-        },
-        {
-          path: "settings",
-          element: <AdminSettingPage />,
-        },
-        {
-          path: "monitor",
-          element: <SystemActivityPage />,
-        },
-        // {
-        //   path: "add-document",
-        //   element: <AddDocumentPage />,
-        // },
       ],
     },
-
     {
       path: "/nurse",
       element: <SchoolNurseLayOut />,
@@ -115,7 +119,7 @@ function App() {
       ],
     },
 
-    // Parent routes
+    //Parent routes
     {
       path: "/parent",
       element: <ParentLayOut />,

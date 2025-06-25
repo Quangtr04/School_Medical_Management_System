@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from "react"; // Import useState và useEffect
 import {
   BellOutlined,
   SearchOutlined,
@@ -18,7 +17,6 @@ import {
   Dropdown,
   Menu,
   Typography,
-  message,
 } from "antd";
 import { useNavigate } from "react-router-dom"; // For navigation after logout
 import { useDispatch, useSelector } from "react-redux";

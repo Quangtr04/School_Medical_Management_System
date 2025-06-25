@@ -282,6 +282,8 @@ export default function ParentManagementPage() {
     }
   };
 
+  console.log(parents);
+
   // Filter dữ liệu trên client-side dựa vào searchText từ Redux `users`
   // Nếu backend của bạn hỗ trợ lọc theo search query, hãy gửi `searchText` trong `fetchUsers`
   const filteredParents = parents.filter((parent) =>
