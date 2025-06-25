@@ -1,0 +1,70 @@
+const sql = require("mssql");
+const sqlServerPool = require("../../Utils/connectMySql");
+const sendNotification = require("../../Utils/sendNotification");
+
+const updateResultVaccine = async (req, res, next) => {
+  try {
+    const id = req.params.id;
+    const { vaccinated_at, vaccine_name, dose_number, reaction, follow_up_required, note } = req.body;
+
+    const pool = await sqlServerPool;
+
+    // 🔍 Kiểm tra bản ghi tồn tại
+    const checkExist = await pool
+      .request()
+      .input("id", sql.Int, id)
+      .query(`SELECT student_id FROM Vaccination_Result WHERE id = @id`);
+
+    if (checkExist.recordset.length === 0) {
+      return res.status(404).json({ message: "Vaccine record not found" });
+    }
+
+    const student_id = checkExist.recordset[0].student_id;
+
+    // ✅ Cập nhật bản ghi
+    await pool
+      .request()
+      .input("id", sql.Int, id)
+      .input("vaccinated_at", sql.DateTime, vaccinated_at || null)
+      .input("vaccine_name", sql.VarChar(255), vaccine_name || null)
+      .input("dose_number", sql.Int, dose_number || null)
+      .input("reaction", sql.NVarChar(255), reaction || null)
+      .input("follow_up_required", sql.NVarChar(255), follow_up_required || null)
+      .input("note", sql.NVarChar(255), note || null).query(`
+        UPDATE Vaccination_Result
+        SET
+          vaccinated_at = @vaccinated_at,
+          vaccine_name = @vaccine_name,
+          dose_number = @dose_number,
+          reaction = @reaction,
+          follow_up_required = @follow_up_required,
+          note = @note
+        WHERE id = @id
+      `);
+
+    // 🔁 Lấy parent_id
+    const getParent = await pool
+      .request()
+      .input("student_id", sql.Int, student_id)
+      .query("SELECT parent_id FROM Student_Information WHERE student_id = @student_id");
+
+    if (getParent.recordset.length > 0) {
+      const parent_id = getParent.recordset[0].parent_id;
+
+      // 🔔 Gửi thông báo
+      await sendNotification(
+        pool,
+        parent_id,
+        "Thông báo tiêm chủng",
+        "Tình trạng của học sinh sau khi tiêm chủng đã được cập nhật"
+      );
+    }
+
+    return res.status(200).json({ message: "Vaccination result updated successfully." });
+  } catch (error) {
+    console.error("Error in updateResultVaccine:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+module.exports = updateResultVaccine;

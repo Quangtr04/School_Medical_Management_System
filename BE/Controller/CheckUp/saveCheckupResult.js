@@ -4,7 +4,7 @@ const sendNotification = require("../../Utils/sendNotification");
 
 const saveCheckupResult = async (req, res) => {
   const pool = await sqlServerPool;
-  const { checkup_id, student_id } = req.params;
+  const { id } = req.params;
 
   const {
     height_cm,
@@ -21,12 +21,9 @@ const saveCheckupResult = async (req, res) => {
 
   try {
     // 🔍 Kiểm tra bản ghi tồn tại
-    const checkExist = await pool
-      .request()
-      .input("checkup_id", sql.Int, checkup_id)
-      .input("student_id", sql.Int, student_id).query(`
-        SELECT id FROM Checkup_Participation
-        WHERE checkup_id = @checkup_id AND student_id = @student_id
+    const checkExist = await pool.request().input("id", sql.Int, id).query(`
+        SELECT id, student_id FROM Checkup_Participation
+        WHERE id = @id
       `);
 
     if (checkExist.recordset.length === 0) {
@@ -36,8 +33,7 @@ const saveCheckupResult = async (req, res) => {
     // ✅ Thực hiện cập nhật
     await pool
       .request()
-      .input("checkup_id", sql.Int, checkup_id)
-      .input("student_id", sql.Int, student_id)
+      .input("id", sql.Int, id)
       .input("checked_at", sql.DateTime, new Date())
       .input("height_cm", sql.Float, height_cm)
       .input("weight_kg", sql.Float, weight_kg)
@@ -62,9 +58,9 @@ const saveCheckupResult = async (req, res) => {
           notes = @notes,
           abnormal_signs = @abnormal_signs,
           needs_counseling = @needs_counseling
-        WHERE checkup_id = @checkup_id AND student_id = @student_id
+        WHERE id = @id 
       `);
-    const getParent = await pool.request().input("student_id", sql.Int, student_id).query(`
+    const getParent = await pool.request().input("student_id", sql.Int, checkExist.recordset[0].student_id).query(`
     SELECT parent_id FROM Student_Information
     WHERE student_id = @student_id
   `);

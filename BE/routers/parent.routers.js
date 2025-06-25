@@ -3,23 +3,37 @@ const authenticateToken = require("../middlewares/authMiddlewares");
 const validateInput = require("../Utils/validateInput");
 const Schemas = require("../Schemas/Schemas");
 
+// --- Import Controllers ---
+// Thông tin học sinh
 const { getAllStudentByParentId, getStudentInfoById } = require("../Controller/Infomation/getInformation");
 
+// Khám sức khỏe / Đồng ý khám sức khỏe
 const { listPendingConsent, respondConsent } = require("../Controller/CheckUp/consentController");
+const { UpdateStatusCheckupParent } = require("../Controller/CheckUp/UpdateStatusCheckup");
+const {
+  getCheckupListApproved,
+  getCheckupListByIdAndParentId,
+  getCheckupListByParentId,
+} = require("../Controller/CheckUp/getCheckup");
 
+// Khai báo y tế
 const {
   createHealthDeclarationById,
   getHealthDeclarationOfStudentById,
 } = require("../Controller/Health/healthDeclaration");
 
-const { UpdateStatusCheckupParent } = require("../Controller/CheckUp/UpdateStatusCheckup");
-const { getNotifications } = require("../Controller/Notification/getNotification");
-const { getCheckupListApproved } = require("../Controller/CheckUp/getCheckup");
+// Sự cố y tế
 const { getIncidentsByUserId, getIncidentById } = require("../Controller/Medical/medical_Incident");
+
+// Yêu cầu gửi thuốc
 const { medicationSubmissionReq } = require("../Controller/Medical/medicalSubmissionReq");
+
+// Thông báo
+const { getNotifications } = require("../Controller/Notification/getNotification");
 
 const parentRouter = express.Router();
 
+// --- Nhóm các API liên quan đến Học sinh (Students) ---
 /**
  * 🔍 Xem danh sách con cái của phụ huynh
  */
@@ -30,37 +44,37 @@ parentRouter.get("/students", authenticateToken, getAllStudentByParentId); //don
  */
 parentRouter.get("/students/:student_id", authenticateToken, getStudentInfoById); //done
 
-parentRouter.get("/consents/approved", authenticateToken, getCheckupListApproved);
+// --- Nhóm các API liên quan đến Khám sức khỏe (Checkups) và Đồng ý khám sức khỏe (Consents) ---
+
+/** * 📋 Danh sách phiếu đồng ý khám sức khỏe đã duyệt (hoặc danh sách phiếu khám sức khỏe đã duyệt)
+ */
+parentRouter.get("/checkups/approved", authenticateToken, getCheckupListByParentId); // Đổi từ /consents checkups/approved để thống nhất
+parentRouter.get("/consents-checkups/approved", authenticateToken, getCheckupListApproved); // Giữ lại nếu cần cả hai, nếu không thì bỏ cái trùng lặp
+
+/** * 📋 Chi tiết phiếu khám sức khỏe
+ */
+parentRouter.get("/consents-checkups/:id", authenticateToken, getCheckupListByIdAndParentId);
 
 /**
  * 📋 Danh sách phiếu đồng ý khám sức khỏe chưa phản hồi
  */
-parentRouter.get("/consents/pending", authenticateToken, listPendingConsent); //done
+parentRouter.get("/consents-checkups/pending", authenticateToken, listPendingConsent); //done
 
 /**
  * ✅ Phản hồi phiếu đồng ý khám sức khỏe (AGREED / DECLINED)
  */
-parentRouter.post("/consents/:form_id/respond", authenticateToken, respondConsent); //done
+parentRouter.post("/consents-checkups/:form_id/respond", authenticateToken, respondConsent); //done
 
 /**
  * 📝 Phụ huynh cập nhật lại trạng thái đồng ý/từ chối cho 1 lịch khám cụ thể
  */
 parentRouter.patch("/checkups/:checkup_id/consent", authenticateToken, UpdateStatusCheckupParent); //done
 
+// --- Nhóm các API liên quan đến Khai báo y tế (Health Declarations) ---
 /**
  * 📄 Lấy thông tin khai báo y tế của học sinh
  */
 parentRouter.get("/students/:student_id/health-declaration", authenticateToken, getHealthDeclarationOfStudentById);
-
-/**
- * 📮 Gửi yêu cầu gửi thuốc
- */
-parentRouter.post(
-  "/medical-submissions",
-  authenticateToken,
-  validateInput(Schemas, "MedicalSubmissionRequest"),
-  medicationSubmissionReq
-);
 
 /**
  * 📝 Tạo khai báo y tế cho học sinh
@@ -72,12 +86,25 @@ parentRouter.post(
   createHealthDeclarationById
 );
 
+// --- Nhóm các API liên quan đến Sự cố y tế (Medical Incidents) ---
 // Lấy tất cả sự cố y tế liên quan đến một user
 parentRouter.get("/incidents/:user_id", authenticateToken, getIncidentsByUserId);
 
-// Lấy sự cố y tế của học sinh theo ID
-parentRouter.get("/incidents/view incedent", getIncidentById);
+// Lấy sự cố y tế của học sinh theo ID (Lưu ý: "view incedent" có vẻ là lỗi chính tả, nên đổi thành /:incident_id)
+parentRouter.get("/incidents/:incident_id", authenticateToken, getIncidentById); // Thêm authenticateToken nếu cần, và đổi tên parameter cho rõ ràng
 
+// --- Nhóm các API liên quan đến Yêu cầu gửi thuốc (Medical Submissions) ---
+/**
+ * 📮 Gửi yêu cầu gửi thuốc
+ */
+parentRouter.post(
+  "/medical-submissions",
+  authenticateToken,
+  validateInput(Schemas, "MedicalSubmissionRequest"),
+  medicationSubmissionReq
+);
+
+// --- Nhóm các API liên quan đến Thông báo (Notifications) ---
 /**
  * 🔔 Lấy danh sách thông báo của phụ huynh (có phân trang)
  * /notifications?page=1&limit=10
