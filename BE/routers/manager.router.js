@@ -12,6 +12,14 @@ const {
 } = require("../Controller/CheckUp/getCheckup");
 const { getNotifications } = require("../Controller/Notification/getNotification");
 const authenticateToken = require("../middlewares/authMiddlewares");
+const {
+  getVaccinationCampaign,
+  getVaccinationCampaignById,
+  getVaccinationCampaignPending,
+  getVaccinationCampaignApprove,
+} = require("../Controller/Vaccine/getVaccineCampaign");
+const { deleteVaccinationCampaign, responseVaccinationCampaign } = require("../Controller/Vaccine/VaccineController");
+const { UpdateResponseByManager } = require("../Controller/Vaccine/UpdateResponseVaccine");
 
 const managerRouter = express.Router();
 
@@ -38,9 +46,29 @@ managerRouter.get("/checkups-approved/:id", getCheckupApprovedById);
 managerRouter.get("/checkups-declined", getCheckupListDeclined);
 managerRouter.get("/checkups-declined/:id", getCheckupDeclinedById);
 
-
 // 📌 Xóa một lịch khám theo ID
 managerRouter.delete("/checkups/:id", deleteSchedule);
+
+// Lấy danh sách lịch tiêm chủng
+managerRouter.get("/vaccine-campaigns", getVaccinationCampaign);
+
+// Lấy chi tiết một lịch tiêm chủng theo ID
+managerRouter.get("/vaccine-campaigns/:id", getVaccinationCampaignById);
+
+// Lấy danh sách lịch tiêm chủng đã bị từ chối
+managerRouter.get("/vaccine-campaigns-declined", getVaccinationCampaignPending);
+
+// Lấy danh sách lịch tiêm chủng đã chấp thuận
+managerRouter.get("/vaccine-campaigns-approved", getVaccinationCampaignApprove);
+
+// Xóa lịch tiêm chủng theo id
+managerRouter.delete("/vaccine-campaigns/:id", deleteVaccinationCampaign);
+
+// Phản hồi lịch tiêm chủng được gửi
+managerRouter.post("/vaccine-campaigns/:id/respond", responseVaccinationCampaign);
+
+// Cập nhật phản hồi trạng thái tiêm chủng
+managerRouter.patch("/vaccine-campaigns/:id/status", UpdateResponseByManager);
 
 //lấy thông báo
 managerRouter.get("/notifications", authenticateToken, getNotifications);

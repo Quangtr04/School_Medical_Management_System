@@ -67,4 +67,80 @@ const updateResultVaccine = async (req, res, next) => {
   }
 };
 
-module.exports = updateResultVaccine;
+const updateVaccine = async (req, res, next) => {
+  const { id } = req.params;
+  const { reaction, follow_up_required, note } = req.body;
+  try {
+    const pool = await sqlServerPool;
+    const checkExist = await pool
+      .request()
+      .input("id", sql.Int, id)
+      .query("SELECT * FROM Vaccination_Result WHERE id = @id");
+    if (checkExist.recordset.length === 0) {
+      return res.status(404).json({ message: "Vaccine record not found" });
+    }
+    if (!reaction) {
+      reaction = checkExist.recordset[0].reaction;
+    }
+    if (!follow_up_required) {
+      follow_up_required = checkExist.recordset[0].follow_up_required;
+    }
+    if (!note) {
+      note = checkExist.recordset[0].note;
+    }
+    await pool
+      .request()
+      .input("id", sql.Int, id)
+      .input("reaction", sql.NVarChar(255), reaction)
+      .input("follow_up_required", sql.NVarChar(255), follow_up_required)
+      .input("note", sql.NVarChar(255), note).query(`
+        UPDATE Vaccination_Result
+        SET
+          reaction = @reaction,
+          follow_up_required = @follow_up_required,
+          note = @note
+        WHERE id = @id
+      `);
+    return res.status(200).json({
+      status: "success",
+      data: checkExist.recordset[0],
+    });
+  } catch (error) {
+    console.error("Error in updateVaccine:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+const getStudentVaccineList = async (req, res, next) => {
+  try {
+    const pool = await sqlServerPool;
+    const result = await pool.request().query("SELECT * FROM Vaccination_Result");
+    res.status(200).json({
+      status: "success",
+      data: result.recordset,
+    });
+  } catch (error) {
+    console.error("Error in getStudentVaccineList:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+const getStudentVaccineListById = async (req, res, next) => {
+  const { id } = req.params;
+  try {
+    const pool = await sqlServerPool;
+    const result = await pool
+      .request()
+      .input("id", sql.Int, id)
+      .query("SELECT * FROM Vaccination_Result WHERE id = @id");
+    res.status(200).json({
+      status: "success",
+      data: result.recordset,
+    });
+  } catch (error) {
+    console.error("Error in getStudentVaccineList:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+module.exports = { updateResultVaccine, getStudentVaccineListById, getStudentVaccineList, updateVaccine };
