@@ -43,14 +43,14 @@ const HealthDeclaration = {
 };
 
 const StudentInformation = {
-  student_info_id: { type: "int", required: false },
+  student_id: { type: "int", required: false },
   student_code: { type: "string", required: true },
   full_name: { type: "string", required: true },
   gender: { type: "string", required: true },
   day_of_birth: { type: "date", required: true },
   class_name: { type: "string", required: true },
-  parent_id: { type: "int", required: true },
   address: { type: "string", required: true },
+  parent_id: { type: "int", required: true },
 };
 
 const MedicalSubmissionRequest = {
@@ -59,7 +59,7 @@ const MedicalSubmissionRequest = {
   status: { type: "string", required: true, default: "PENDING" },
   nurse_id: { type: "int", required: true },
   note: { type: "string", required: false },
-  image_url: { type: "string", required: false }, 
+  image_url: { type: "string", required: false },
   start_date: { type: "date", required: true },
   end_date: { type: "date", required: true },
 };

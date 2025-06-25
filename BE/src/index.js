@@ -12,7 +12,7 @@ const port = 3000;
 // require("dotenv").config();
 
 const corsOptions = {
-  origin: ["http://localhost:5173", "http://192.168.1.145:3000"],
+  origin: ["http://localhost:5173", "http://192.168.1.145:3000",],
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   optionsSuccessStatus: 204,
   credentials: false,
