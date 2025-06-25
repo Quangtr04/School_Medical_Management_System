@@ -3,13 +3,11 @@ const authenticateToken = require("../middlewares/authMiddlewares");
 const validateInput = require("../Utils/validateInput");
 const Schemas = require("../Schemas/Schemas");
 
-const { getAllStudentByParentId, getStudentInfoById } = require("../Controller/getInfo/getInformation");
+const { getAllStudentByParentId, getStudentInfoById } = require("../Controller/Infomation/getInformation");
 
 const { listPendingConsent, respondConsent } = require("../Controller/CheckUp/consentController");
 
 const {
-  healthDeclarationController,
-  getHealthDeclarationOfStudentByParent,
   createHealthDeclarationById,
   getHealthDeclarationOfStudentById,
 } = require("../Controller/Health/healthDeclaration");
@@ -52,7 +50,6 @@ parentRouter.patch("/checkups/:checkup_id/consent", authenticateToken, UpdateSta
 /**
  * 📄 Lấy thông tin khai báo y tế của học sinh
  */
-parentRouter.get("/students/health-declaration", authenticateToken, getHealthDeclarationOfStudentByParent);
 parentRouter.get("/students/:student_id/health-declaration", authenticateToken, getHealthDeclarationOfStudentById);
 
 /**

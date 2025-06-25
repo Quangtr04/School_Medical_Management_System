@@ -1,5 +1,5 @@
 const express = require("express");
-const { createSchedule, deleteSchedule } = require("../Controller/CheckUp/checkupController");
+const { createSchedule } = require("../Controller/CheckUp/checkupController");
 
 const { saveCheckupResult, updateCheckupNote } = require("../Controller/CheckUp/saveCheckupResult");
 
@@ -34,9 +34,6 @@ nurseRouter.get("/checkups", getCheckupList);
 
 // 📌 Xem chi tiết một lịch khám theo ID
 nurseRouter.get("/checkups/:id", getCheckupById);
-
-// 📌 Xóa một lịch khám theo ID
-nurseRouter.delete("/checkups/:id", deleteSchedule);
 
 // 📌 Lấy danh sách lịch khám đã được duyệt (để thực hiện khám)
 

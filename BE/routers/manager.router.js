@@ -1,5 +1,5 @@
 const express = require("express");
-const { getPending, responseSchedule } = require("../Controller/CheckUp/checkupController");
+const { getPending, responseSchedule, deleteSchedule } = require("../Controller/CheckUp/checkupController");
 
 const { UpdateStatusCheckupByManager } = require("../Controller/CheckUp/UpdateStatusCheckup");
 const {
@@ -37,6 +37,10 @@ managerRouter.get("/checkups-approved/:id", getCheckupApprovedById);
 // Lấy lịch khám bị từ chối
 managerRouter.get("/checkups-declined", getCheckupListDeclined);
 managerRouter.get("/checkups-declined/:id", getCheckupDeclinedById);
+
+
+// 📌 Xóa một lịch khám theo ID
+managerRouter.delete("/checkups/:id", deleteSchedule);
 
 //lấy thông báo
 managerRouter.get("/notifications", authenticateToken, getNotifications);

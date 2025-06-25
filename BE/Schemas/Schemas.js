@@ -10,6 +10,7 @@ const Information = {
   email: { type: "email", required: true },
   phone: { type: "string", required: true },
   password: { type: "string", required: true },
+  is_active: { type: "boolean", required: true },
 };
 
 const Checkup_Result = {
