@@ -13,7 +13,7 @@ const loginController = async (req, res, next) => {
       .request()
       .input("username", sql.NVarChar, username)
       .input("password", sql.NVarChar, password)
-      .query("SELECT * FROM [Users] WHERE email = @username AND password = @password");
+      .query("SELECT * FROM [Users] WHERE email = @username AND password = @password AND is_active = 1");
     if (result.recordset.length > 0) {
       const { role_id, user_id } = result.recordset[0];
       const token = generateToken({ user_id, role: role_id });
@@ -27,7 +27,7 @@ const loginController = async (req, res, next) => {
         .request()
         .input("username", sql.VarChar, username)
         .input("password", sql.NVarChar, password)
-        .query("SELECT * FROM [Users] WHERE phone = @username AND password = @password");
+        .query("SELECT * FROM [Users] WHERE phone = @username AND password = @password AND is_active = 1");
       if (result.recordset.length > 0) {
         const { role_id, user_id } = result.recordset[0];
         const token = generateToken({ user_id, role: role_id });

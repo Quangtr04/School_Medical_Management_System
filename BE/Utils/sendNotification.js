@@ -1,3 +1,5 @@
+const sql = require("mssql");
+
 async function sendNotification(pool, receiver_id, title, message) {
   return await pool
     .request()

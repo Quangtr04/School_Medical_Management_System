@@ -1,7 +1,9 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 // src/pages/AdminPage/ParentManagementPage.jsx
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux"; // Import Redux hooks
 import {
   Table,
   Button,
@@ -24,6 +26,10 @@ import {
   SearchOutlined,
   LoadingOutlined,
   UserAddOutlined,
+  UserOutlined, // Icon cho Header chính
+  HeartOutlined, // Icon mẫu cho thống kê
+  WarningOutlined, // Icon mẫu cho thống kê
+  ContainerOutlined, // Icon mẫu cho thống kê
 } from "@ant-design/icons";
 import {
   FiPlus,
@@ -37,27 +43,131 @@ import {
 } from "react-icons/fi";
 import { format } from "date-fns";
 import debounce from "lodash/debounce";
-import { v4 as uuidv4 } from "uuid";
-import api from "../../configs/config-axios"; // Đã kích hoạt lại
-import { toast } from "react-toastify"; // Đã kích hoạt lại
+import { toast } from "react-toastify"; // Giữ lại toast để hiển thị thông báo trực tiếp
+import { VscAccount } from "react-icons/vsc";
+
+// Import các action từ adminSlice
+import {
+  fetchUsers,
+  createUser,
+  updateUser,
+  deleteUser,
+  clearAdminError,
+} from "../../redux/admin/adminSlice";
 
 const { Title, Paragraph } = Typography;
 const { Search } = Input;
 const { Option } = Select;
 
+// Component con cho icon của Stat Card
+const StatCardIcon = ({ icon: IconComponent, color }) => (
+  <div
+    style={{
+      backgroundColor: color,
+      borderRadius: "8px",
+      padding: "12px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: "24px",
+      color: "white",
+      width: "56px",
+      height: "56px",
+    }}
+  >
+    <IconComponent />
+  </div>
+);
+
+// PageHeader component (được nhúng trực tiếp vào ParentManagementPage)
+const ParentPageHeader = ({ title, description, icon, statistics = [] }) => {
+  return (
+    <header className="mb-5 rounded-lg bg-gradient-to-r from-blue-600/[.10] to-transparent">
+      <div className="flex items-center gap-3">
+        {icon && (
+          <div className="p-5 bg-blue-600/10 rounded-full border border-blue-600">
+            {/* Sử dụng React Element trực tiếp */}
+            {React.cloneElement(icon, { className: "w-10 h-10 text-blue-600" })}
+          </div>
+        )}
+        <div>
+          <h1 className="text-gray-900 font-bold text-3xl mb-2">{title}</h1>
+          {description && (
+            <p className="text-gray-500 flex items-center gap-2 text-sm">
+              <span>👨‍👩‍👧‍👦</span> {description}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Các card thống kê - Chỉ hiển thị nếu có dữ liệu statistics */}
+      {statistics.length > 0 && (
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {statistics.map((stat, index) => (
+            <Card
+              key={index}
+              className="!rounded-lg !shadow-sm !border !border-gray-200/[.50]"
+            >
+              <div className="flex items-center gap-4">
+                {stat.icon && stat.color && (
+                  <StatCardIcon icon={stat.icon} color={stat.color} />
+                )}
+                <div>
+                  <div className="text-gray-500 text-sm">{stat.title}</div>
+                  <div className="text-2xl font-bold mt-1">
+                    {stat.value}
+                    {stat.subValue && (
+                      <span className="text-base text-gray-400">
+                        {" "}
+                        / {stat.subValue}
+                      </span>
+                    )}
+                  </div>
+                  {stat.percentage && (
+                    <Tag color="green" bordered={false} className="mt-1">
+                      {stat.percentage}% so với tháng trước
+                    </Tag>
+                  )}
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </header>
+  );
+};
+
 export default function ParentManagementPage() {
+  const dispatch = useDispatch();
+  const {
+    users: parents,
+    totalUsers,
+    loading,
+    error,
+  } = useSelector((state) => state.admin); // Lấy `users` từ Redux và đổi tên thành `parents`
+
   const [searchText, setSearchText] = useState("");
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingParent, setEditingParent] = useState(null);
-  const [loading, setLoading] = useState(false); // Dùng cho loading bảng
   const [isSubmitting, setIsSubmitting] = useState(false); // Dùng cho loading modal (thêm/sửa/xóa)
   const [form] = Form.useForm();
-  const [parents, setParents] = useState([]);
+
+  // Thông tin vai trò Phụ huynh (để truyền vào adminSlice)
+  const CURRENT_ROLE_INFO = {
+    id: 4, // role_id cho Parent
+    name: "Phụ huynh",
+    path: "parents",
+    tagColor: "purple",
+    endpoint: "/admin/parents", // Endpoint API
+  };
 
   // Sử dụng useCallback với debounce cho tìm kiếm
   const debouncedSearch = useCallback(
     debounce((value) => {
       setSearchText(value);
+      // Gọi fetchParents ngay sau khi searchText được cập nhật nếu muốn filter ngay lập tức
+      // Hoặc giữ nguyên logic hiện tại để filter trên client-side
     }, 300), // Độ trễ 300ms
     []
   );
@@ -66,51 +176,26 @@ export default function ParentManagementPage() {
     debouncedSearch(e.target.value);
   };
 
-  const fetchParents = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await api.get("/admin/parents"); // Gọi API thực tế
-      console.log(response.data.data);
+  const fetchParentsData = useCallback(async () => {
+    dispatch(
+      fetchUsers({
+        endpointPath: CURRENT_ROLE_INFO.endpoint,
+        params: { search: searchText }, // Truyền search text cho API nếu backend hỗ trợ
+      })
+    );
+  }, [dispatch, searchText]); // <- QUAN TRỌNG: searchText là dependency
 
-      if (response.data && Array.isArray(response.data.data)) {
-        const formattedParents = response.data.data.map((parent) => ({
-          ...parent,
-          key: parent.user_id,
-          registrationDate: parent.created_at
-            ? new Date(parent.created_at)
-            : null,
-        }));
-        setParents(formattedParents);
-        toast.success("Tải dữ liệu phụ huynh thành công!"); // Sử dụng toast
-      } else {
-        console.warn(
-          "Backend không trả về dữ liệu phụ huynh dưới dạng mảng trong response.data.data:",
-          response.data
-        );
-        setParents([]);
-        toast.warn(
-          "Không tìm thấy dữ liệu phụ huynh hoặc dữ liệu không đúng định dạng."
-        ); // Sử dụng toast
-      }
-    } catch (error) {
-      console.error("Lỗi khi lấy dữ liệu parents từ backend:", error);
-      if (
-        error.response &&
-        error.response.data &&
-        error.response.data.message
-      ) {
-        toast.error(`Lỗi: ${error.response.data.message}`); // Sử dụng toast
-      } else {
-        toast.error("Không thể tải dữ liệu phụ huynh. Vui lòng thử lại."); // Sử dụng toast
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // useEffect NÀY GỌI fetchParentsData MỖI KHI fetchParentsData THAY ĐỎI (tức là khi searchText thay đổi)
+  useEffect(() => {
+    fetchParentsData();
+  }, [fetchParentsData]); // <- QUAN TRỌNG: fetchParentsData là dependency
 
   useEffect(() => {
-    fetchParents();
-  }, [fetchParents]);
+    if (error) {
+      toast.error(error); // Hiển thị lỗi từ Redux
+      dispatch(clearAdminError()); // Xóa lỗi sau khi hiển thị
+    }
+  }, [error, dispatch]);
 
   const handleAddParent = () => {
     setEditingParent(null);
@@ -129,24 +214,19 @@ export default function ParentManagementPage() {
   };
 
   const handleDeleteParent = async (userId) => {
-    setLoading(true); // Dùng loading của bảng vì đây là thao tác thay đổi dữ liệu bảng
+    setIsSubmitting(true); // Bắt đầu loading cho xóa
     try {
-      await api.delete(`/admin/parents/${userId}`); // Gọi API thực tế
-      toast.success("Đã xóa tài khoản Phụ huynh thành công!"); // Sử dụng toast
-      fetchParents(); // Tải lại dữ liệu bảng
-    } catch (error) {
-      console.error("Lỗi khi xóa parent:", error);
-      if (
-        error.response &&
-        error.response.data &&
-        error.response.data.message
-      ) {
-        toast.error(`Lỗi: ${error.response.data.message}`); // Sử dụng toast
-      } else {
-        toast.error("Không thể xóa tài khoản Phụ huynh. Vui lòng thử lại."); // Sử dụng toast
+      const resultAction = await dispatch(
+        deleteUser({ endpointPath: CURRENT_ROLE_INFO.endpoint, id: userId })
+      );
+      if (deleteUser.fulfilled.match(resultAction)) {
+        toast.success("Đã xóa tài khoản Phụ huynh thành công!");
+        fetchParentsData(); // Tải lại dữ liệu bảng sau khi xóa
+      } else if (deleteUser.rejected.match(resultAction)) {
+        toast.error(resultAction.payload);
       }
     } finally {
-      setLoading(false);
+      setIsSubmitting(false); // Kết thúc loading
     }
   };
 
@@ -157,34 +237,55 @@ export default function ParentManagementPage() {
         ...values,
         is_active: values.status === "Active",
       };
-      delete payload.status;
+      delete payload.status; // Xóa trường status không cần thiết trong payload API
 
       if (editingParent) {
-        await api.put(`/admin/parents/${editingParent.user_id}`, payload); // Gọi API thực tế
-        toast.success("Cập nhật tài khoản Phụ huynh thành công!"); // Sử dụng toast
+        const resultAction = await dispatch(
+          updateUser({
+            endpointPath: CURRENT_ROLE_INFO.endpoint,
+            id: editingParent.user_id, // Sử dụng user_id từ editingParent
+            userData: payload,
+          })
+        );
+        //resultAction sẽ có dang:
+        // {
+        //   type: "admin/createUser/fulfilled", // Đây là type action cho thunk thành công
+        //   payload: /* GIÁ TRỊ TỪ `response.data.data` */,
+        //   // Có thể có các thuộc tính khác tùy thuộc vào Redux Toolkit version và cấu hình
+        // }
+        if (updateUser.fulfilled.match(resultAction)) {
+          toast.success("Cập nhật tài khoản Phụ huynh thành công!");
+          setIsModalVisible(false); // Đóng modal ngay sau khi submit thành công
+          form.resetFields(); // Reset form ngay sau khi submit thành công
+          fetchParentsData(); // Tải lại dữ liệu bảng
+        } else if (updateUser.rejected.match(resultAction)) {
+          toast.error(resultAction.payload);
+        }
       } else {
-        await api.post(`/admin/parents`, payload); // Gọi API thực tế
-        toast.success("Thêm tài khoản Phụ huynh thành công!"); // Sử dụng toast
-      }
-      setIsModalVisible(false); // Đóng modal ngay sau khi submit thành công
-      form.resetFields(); // Reset form ngay sau khi submit thành công
-      fetchParents(); // Tải lại dữ liệu bảng
-    } catch (error) {
-      console.error("Lỗi khi thêm/cập nhật parent:", error);
-      if (
-        error.response &&
-        error.response.data &&
-        error.response.data.message
-      ) {
-        toast.error(`Lỗi: ${error.response.data.message}`); // Sử dụng toast
-      } else {
-        toast.error("Thao tác thất bại. Vui lòng kiểm tra lại thông tin."); // Sử dụng toast
+        const resultAction = await dispatch(
+          createUser({
+            endpointPath: CURRENT_ROLE_INFO.endpoint,
+            userData: { ...payload, role_id: CURRENT_ROLE_INFO.id }, // Thêm role_id khi tạo mới
+          })
+        );
+        if (createUser.fulfilled.match(resultAction)) {
+          toast.success("Thêm tài khoản Phụ huynh thành công!");
+          setIsModalVisible(false); // Đóng modal ngay sau khi submit thành công
+          form.resetFields(); // Reset form ngay sau khi submit thành công
+          fetchParentsData(); // Tải lại dữ liệu bảng
+        } else if (createUser.rejected.match(resultAction)) {
+          toast.error(resultAction.payload);
+        }
       }
     } finally {
       setIsSubmitting(false); // Kết thúc loading cho form submit
     }
   };
 
+  console.log(parents);
+
+  // Filter dữ liệu trên client-side dựa vào searchText từ Redux `users`
+  // Nếu backend của bạn hỗ trợ lọc theo search query, hãy gửi `searchText` trong `fetchUsers`
   const filteredParents = parents.filter((parent) =>
     Object.values(parent).some((value) =>
       String(value).toLowerCase().includes(searchText.toLowerCase())
@@ -249,7 +350,7 @@ export default function ParentManagementPage() {
       dataIndex: "created_at", // Giữ nguyên dataIndex là 'created_at' để lấy dữ liệu từ API
       key: "created_at",
       render: (dateString) =>
-        dateString ? format(new Date(dateString), "MMM dd, yyyy") : "N/A",
+        dateString ? format(new Date(dateString), "MMM dd, yyyy") : "N/A", // Changed to 'yyyy' for year
     },
     {
       title: "Hành động",
@@ -261,7 +362,10 @@ export default function ParentManagementPage() {
             onClick={() => handleEditParent(record)}
             type="text"
             icon={<FiEdit2 />}
-          />
+            disabled={isSubmitting} // Disable khi đang submit
+          >
+            Cập Nhập
+          </Button>
           <Popconfirm
             title="Bạn có chắc chắn muốn xóa tài khoản này?"
             onConfirm={() => handleDeleteParent(record.user_id)}
@@ -274,32 +378,60 @@ export default function ParentManagementPage() {
               danger
               type="text"
               icon={<FiTrash2 />}
-            />
+              disabled={isSubmitting} // Disable khi đang submit
+            >
+              Xóa
+            </Button>
           </Popconfirm>
         </Space>
       ),
     },
   ];
 
+  // Dữ liệu thống kê mẫu cho ParentPageHeader
+  // CẦN THAY THẾ BẰNG DỮ LIỆU THỰC TẾ TỪ API
+  const pageStatistics = [
+    {
+      title: "Tổng số phụ huynh",
+      value: totalUsers, // Lấy từ Redux
+      percentage: "+5", // Giá trị mẫu, cần thay bằng dữ liệu API
+      icon: UserOutlined,
+      color: "#348afe", // Màu xanh dương
+    },
+    {
+      title: "Phụ huynh hoạt động",
+      value: parents.filter((p) => p.is_active).length, // Tính toán từ dữ liệu hiện có
+      percentage: "+2",
+      icon: VscAccount,
+      color: "#52c41a", // Màu xanh lá cây
+    },
+    {
+      title: "Phụ huynh không hoạt động",
+      value: parents.filter((p) => !p.is_active).length, // Tính toán từ dữ liệu hiện có
+      percentage: "-1",
+      icon: WarningOutlined,
+      color: "#ff4d4f", // Màu đỏ
+    },
+    {
+      title: "Phụ huynh mới tháng này",
+      value: "0", // Cần dữ liệu từ API
+      subValue: "0", // Cần dữ liệu từ API
+      percentage: "+0",
+      icon: ContainerOutlined,
+      color: "#9254de", // Màu tím
+    },
+  ];
+
+  // HERE IS THE FIX: The return statement MUST be inside the function body
   return (
     <div className="min-h-screen bg-white p-6 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc0MCcgaGVpZ2h0PSc0MCcgdmlld0JveD0nMCAwIDQwIDQwJz48ZyBmaWxsPSdyZ2JhKDEzLDExMCwyNTMsMC4xKScgZmlsbC1ydWxlPSdldmVub2RkJz48Y2lyY2xlIGN4PScyMCcgY3k9JzIwJyByPScyJy8+PC9nPjwvc3ZnPg==')] bg-fixed">
       <div className="max-w-7xl mx-auto">
-        {/* Header Section */}
-        <header className="mb-5 rounded-lg bg-gradient-to-r from-blue-600/[.10] to-transparent">
-          <div className="flex items-center gap-3">
-            <div className="p-5 bg-blue-600/10 rounded-full border border-blue-600">
-              <FiUser className="w-10 h-10 text-blue-600" />
-            </div>
-            <div>
-              <h1 className="text-gray-900 font-bold text-3xl mb-2">
-                Parent Account Management
-              </h1>
-              <p className="text-gray-500 flex items-center gap-2 text-sm">
-                <span>👨‍👩‍👧‍👦</span> Manage and oversee parent accounts efficiently
-              </p>
-            </div>
-          </div>
-        </header>
+        <ParentPageHeader
+          title="Parent Account Management"
+          description="Manage and oversee parent accounts efficiently"
+          icon={<FiUser />} // Sử dụng FiUser từ react-icons/fi
+          statistics={pageStatistics}
+        />
 
         {/* Search and Add Button Section */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
@@ -307,7 +439,7 @@ export default function ParentManagementPage() {
             <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
             <input
               type="text"
-              placeholder="Tìm kiếm thông tin ph..."
+              placeholder={`Tìm kiếm thông tin ${CURRENT_ROLE_INFO.name}`}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               onChange={handleSearchChange}
             />
@@ -324,7 +456,7 @@ export default function ParentManagementPage() {
 
         {/* Table Section */}
         <Card className="!bg-white !rounded-lg !shadow-sm !p-6 !overflow-hidden !border !border-gray-200/[.50]">
-          {loading ? (
+          {loading ? ( // Sử dụng loading từ Redux
             <div className="text-center py-12 flex flex-col items-center justify-center gap-4">
               <Spin
                 indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />}
@@ -335,7 +467,7 @@ export default function ParentManagementPage() {
             <Table
               columns={columns}
               dataSource={filteredParents}
-              rowKey="key"
+              rowKey="user_id" // Đảm bảo key đúng là user_id từ API của bạn
               pagination={{
                 pageSize: 10,
                 className: `

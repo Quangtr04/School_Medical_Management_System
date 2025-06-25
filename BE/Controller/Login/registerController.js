@@ -16,6 +16,8 @@ const registerController = async (req, res, next) => {
 
     Information.role_id = role_id;
 
+    const status = Information.is_active === "Active" ? 1 : 0;
+
     const pool = await sqlServerPool;
 
     // 1. Insert into [User]
@@ -25,17 +27,16 @@ const registerController = async (req, res, next) => {
       .input("phone", sql.NVarChar, Information.phone)
       .input("password", sql.NVarChar, Information.password)
       .input("role_id", sql.Int, Information.role_id)
-      .input("is_active", sql.Bit, 1)
-      .input("role_id", sql.Int, Information.role_id)
+      .input("is_active", sql.Bit, status)
       .input("fullname", sql.NVarChar, Information.fullname)
       .input("dayofbirth", sql.Date, new Date(Information.dayofbirth))
       .input("major", sql.NVarChar, Information.major)
       .input("gender", sql.NVarChar, Information.gender)
       .input("address", sql.NVarChar, Information.address)
       .query(
-        `INSERT INTO [Users] (email, phone, password, role_id, is_active, role_id, fullname, dayofbirth, major, gender, address) 
+        `INSERT INTO [Users] (email, phone, password, role_id, is_active, fullname, dayofbirth, major, gender, address) 
          OUTPUT INSERTED.user_id 
-         VALUES (@email, @phone, @password, @role_id, @is_active, @role_id, @fullname, @dayofbirth, @major, @gender, @address)`
+         VALUES (@email, @phone, @password, @role_id, @is_active, @fullname, @dayofbirth, @major, @gender, @address)`
       );
 
     if (userInsertResult.rowsAffected[0] > 0) {

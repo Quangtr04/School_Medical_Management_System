@@ -26,35 +26,23 @@ const { Header } = Layout;
 const { Search } = Input;
 const { Text } = Typography;
 
+import { useDispatch, useSelector } from "react-redux";
+import { logout } from "../redux/auth/authSlice";
+
 export default function SchoolNurseHeader() {
   const navigate = useNavigate();
   // State để lưu thông tin người dùng hiện tại
-  const [currentUser, setCurrentUser] = useState(null);
+  const user = useSelector((state) => state.auth.user);
 
+  const dispatch = useDispatch();
   // useEffect để đọc thông tin người dùng từ localStorage khi component mount
-  useEffect(() => {
-    try {
-      const userString = localStorage.getItem("currentUser");
-      if (userString) {
-        setCurrentUser(JSON.parse(userString));
-      }
-    } catch (error) {
-      console.error("Lỗi khi đọc thông tin người dùng từ localStorage:", error);
-      // Xóa dữ liệu không hợp lệ nếu có lỗi
-      localStorage.removeItem("currentUser");
-      localStorage.removeItem("authToken"); // Cũng xóa token nếu có lỗi user
-    }
-  }, []); // [] đảm bảo chỉ chạy một lần khi mount
+  // [] đảm bảo chỉ chạy một lần khi mount
   // const { fullname, role_id } = currentUser;
   // Function to handle logout
   const handleLogout = () => {
     // Xóa thông tin người dùng và token khỏi localStorage
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("currentUser");
-    setCurrentUser(null); // Cập nhật state để UI reflect
-
-    navigate("/login"); // Redirect to login page
-    message.info("Bạn đã đăng xuất thành công!");
+    dispatch(logout(user));
+    navigate("/");
   };
 
   // Menu items for the user dropdown
@@ -121,7 +109,7 @@ export default function SchoolNurseHeader() {
                 <Avatar
                   icon={<UserOutlined />}
                   // Sử dụng Avatar từ currentUser nếu có, hoặc avatar mặc định
-                  src={currentUser?.avatarUrl} // Giả sử user object có avatarUrl
+                  src={user?.avatarUrl} // Giả sử user object có avatarUrl
                 />
                 <div style={{ marginLeft: 8, lineHeight: "1.2" }}>
                   <Text
@@ -132,16 +120,14 @@ export default function SchoolNurseHeader() {
                     }}
                   >
                     {/* Hiển thị tên đầy đủ, nếu không có thì username, nếu không có thì "Admin User" */}
-                    {/* {fullname ? fullname : "Admin User"} */}
-                    School Nurse Name
+                    {user.fullname}
                   </Text>
                   <Text
                     type="secondary"
                     style={{ fontSize: "12px", display: "block" }}
                   >
                     {/* Hiển thị vai trò, nếu không có thì "Quản trị viên" */}
-                    {/* {role_id === 1 ? "Admin" : ""} */}
-                    User Roles
+                    {user.role_id === 3 ? "Nurse" : ""}
                   </Text>
                 </div>
                 <DownOutlined

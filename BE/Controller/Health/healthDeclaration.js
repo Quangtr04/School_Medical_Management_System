@@ -39,49 +39,6 @@ const createHealthDeclarationById = async (req, res, next) => {
   }
 };
 
-const getHealthDeclarationOfStudentByParent = async (req, res, next) => {
-  const parentId = req.user?.user_id;
-  const pool = await sqlServerPool;
-
-  const result = await pool.request().input("parent_id", sql.Int, parentId).query(`
-      SELECT 
-        sh.student_id, 
-        si.student_code, 
-        si.full_name,
-        si.class_name,
-        sh.height_cm,
-        sh.weight_kg, 
-        sh.blood_type,
-        sh.allergy,
-        sh.chronic_disease,
-        sh.vision_left, 
-        sh.vision_right,
-        sh.hearing_left,
-        sh.hearing_right,
-        sh.health_status,
-        sh.created_at,
-        sh.updated_at
-      FROM 
-        Student_Health sh
-      JOIN 
-        Student_Information si ON sh.student_id = si.student_id
-      WHERE 
-        si.parent_id = @parent_id
-    `);
-
-  if (result.recordset.length > 0) {
-    res.status(200).json({
-      status: "success",
-      data: result.recordset,
-    });
-  } else {
-    res.status(400).json({
-      status: "fail",
-      message: "No health records found for this parent",
-    });
-  }
-};
-
 const getHealthDeclarationOfStudentById = async (req, res, next) => {
   const studentId = req.params.studentId;
   const parentId = req.user?.user_id;
@@ -165,7 +122,6 @@ const updateHealthDeclarationByStudentId = async (req, res, next) => {
 
 module.exports = {
   createHealthDeclarationById,
-  getHealthDeclarationOfStudentByParent,
   getHealthDeclarationOfStudentById,
   updateHealthDeclarationByStudentId,
 };

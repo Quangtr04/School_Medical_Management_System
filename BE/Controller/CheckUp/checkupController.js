@@ -1,5 +1,6 @@
 const sqlServerPool = require("../../Utils/connectMySql");
 const sql = require("mssql");
+const sendNotification = require("../../Utils/sendNotification");
 
 // Tạo lịch khám sức khỏe
 const createSchedule = async (req, res, next) => {
@@ -27,10 +28,11 @@ const createSchedule = async (req, res, next) => {
 
     // ✅ Gửi thông báo cho tất cả Manager
     const managers = await pool.request().query(`SELECT user_id FROM Users WHERE role_id = 2`);
+    const managerIds = managers.recordset.map((m) => m.user_id);
 
     await sendNotification(
       pool,
-      manager.user_id,
+      managerIds,
       "Lịch khám sức khỏe mới",
       `Có một lịch khám sức khỏe mới cần phê duyệt: "${title}".`
     );
@@ -47,27 +49,69 @@ const deleteSchedule = async (req, res, next) => {
     const { id } = req.params;
     const pool = await sqlServerPool;
 
-    // Kiểm tra lịch có tồn tại không
-    const check = await pool
-      .request()
-      .input("id", sql.Int, id)
-      .query(`SELECT checkup_id FROM Medical_Checkup_Schedule WHERE checkup_id = @id`);
+    // 1. Kiểm tra lịch khám có tồn tại và lấy trạng thái
+    const check = await pool.request().input("id", sql.Int, id).query(`
+        SELECT checkup_id, approval_status 
+        FROM Medical_Checkup_Schedule 
+        WHERE checkup_id = @id
+      `);
 
     if (check.recordset.length === 0) {
-      return res.status(404).json({ message: "Checkup schedule not found" });
+      return res.status(404).json({ message: "Checkup schedule not found." });
     }
 
-    // Xóa dữ liệu liên quan
+    const approvalStatus = check.recordset[0].approval_status;
+
+    // 2. Lấy danh sách parent trước khi xóa (nếu đã duyệt)
+    let parentIds = [];
+    if (approvalStatus === "APPROVED") {
+      const parentResult = await pool.request().input("checkup_id", sql.Int, id).query(`
+          SELECT DISTINCT parent_id 
+          FROM Checkup_Consent_Form 
+          WHERE checkup_id = @checkup_id
+        `);
+      parentIds = parentResult.recordset.map((row) => row.parent_id);
+    }
+
+    // 3. Xóa dữ liệu liên quan theo thứ tự
     await pool.request().input("id", sql.Int, id).query(`
       DELETE FROM Checkup_Participation WHERE checkup_id = @id;
       DELETE FROM Checkup_Consent_Form WHERE checkup_id = @id;
       DELETE FROM Medical_Checkup_Schedule WHERE checkup_id = @id;
     `);
 
-    res.status(200).json({ message: "Schedule and related data deleted successfully" });
+    // 4. Gửi thông báo đến các Nurse
+    let nursesids = [];
+    for (let nurse of nurses.recordset) {
+      const nurses = await pool.request().query(`
+      SELECT user_id FROM Users WHERE role_id = 3
+    `);
+      nursesids = nurses.recordset.map((n) => n.user_id);
+    }
+
+    for (let nursesids of nurseIds) {
+      await sendNotification(pool, nurseIds, "Lịch khám bị xóa", `Lịch khám sức khỏe (ID: ${id}) đã bị xóa.`);
+    }
+
+    // 5. Gửi thông báo đến các phụ huynh nếu đã duyệt
+    if (approvalStatus === "APPROVED") {
+      for (let parentId of parentIds) {
+        await sendNotification(
+          pool,
+          parentId,
+          "Lịch khám bị hủy",
+          `Lịch khám sức khỏe cho học sinh của bạn đã bị hủy.`
+        );
+      }
+    }
+
+    // 6. Phản hồi thành công
+    return res.status(200).json({
+      message: "Checkup schedule and related data deleted successfully.",
+    });
   } catch (error) {
     console.error("Delete schedule error:", error);
-    res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Internal server error." });
   }
 };
 

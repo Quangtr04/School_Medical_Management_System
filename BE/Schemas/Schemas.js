@@ -1,5 +1,3 @@
-const { type } = require("os");
-
 const Information = {
   role_name: { type: "string", required: true },
   role_id: { type: "int", required: false },
@@ -12,6 +10,7 @@ const Information = {
   email: { type: "email", required: true },
   phone: { type: "string", required: true },
   password: { type: "string", required: true },
+  is_active: { type: "boolean", required: true },
 };
 
 const Checkup_Result = {
@@ -56,7 +55,7 @@ const StudentInformation = {
 const MedicalSubmissionRequest = {
   parent_id: { type: "int", required: true },
   student_id: { type: "int", required: true },
-  status: { type: "string", required: true, default: "PENDING" },
+  status: { type: "string", required: true, enum: ["OPEN", "IN_PROGRESS", "RESOLVED"], default: "PENDING" },
   nurse_id: { type: "int", required: true },
   note: { type: "string", required: false },
   image_url: { type: "string", required: false },
@@ -76,6 +75,22 @@ const MedicalSupply = {
   usage_note: { type: "string", required: false },
 };
 
+const MedicalIncidentSchema = {
+  serverity_name: { type: "string", required: true },
+  student_id: { type: "int", required: true },
+  description: { type: "text", required: false },
+  occurred_at: { type: "datetime", required: true },
+  status: {
+    type: "string",
+    required: true,
+    enum: ["OPEN", "IN_PROGRESS", "RESOLVED"],
+  },
+  resolution_notes: { type: "text", required: false },
+  resolved_at: { type: "datetime", required: false },
+  supply_name: { type: "string", required: true },
+  quantity_used: { type: "int", required: true },
+};
+
 module.exports = {
   Information,
   Checkup_Result,
@@ -83,4 +98,5 @@ module.exports = {
   StudentInformation,
   MedicalSubmissionRequest,
   MedicalSupply,
+  MedicalIncidentSchema,
 };

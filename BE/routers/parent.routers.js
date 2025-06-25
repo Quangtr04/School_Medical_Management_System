@@ -3,21 +3,20 @@ const authenticateToken = require("../middlewares/authMiddlewares");
 const validateInput = require("../Utils/validateInput");
 const Schemas = require("../Schemas/Schemas");
 
-const { getAllStudentByParentId, getStudentInfoById } = require("../Controller/getInfo/getInformation");
+const { getAllStudentByParentId, getStudentInfoById } = require("../Controller/Infomation/getInformation");
 
 const { listPendingConsent, respondConsent } = require("../Controller/CheckUp/consentController");
 
 const {
-  healthDeclarationController,
-  getHealthDeclarationOfStudentByParent,
   createHealthDeclarationById,
   getHealthDeclarationOfStudentById,
 } = require("../Controller/Health/healthDeclaration");
 
-const { medicalSubmissionReq } = require("../Controller/Medical/medicalSubmissionReq");
 const { UpdateStatusCheckupParent } = require("../Controller/CheckUp/UpdateStatusCheckup");
 const { getNotifications } = require("../Controller/Notification/getNotification");
 const { getCheckupListApproved } = require("../Controller/CheckUp/getCheckup");
+const { getIncidentsByUserId, getIncidentById } = require("../Controller/Medical/medical_Incident");
+const { medicationSubmissionReq } = require("../Controller/Medical/medicalSubmissionReq");
 
 const parentRouter = express.Router();
 
@@ -51,7 +50,6 @@ parentRouter.patch("/checkups/:checkup_id/consent", authenticateToken, UpdateSta
 /**
  * 📄 Lấy thông tin khai báo y tế của học sinh
  */
-parentRouter.get("/students/health-declaration", authenticateToken, getHealthDeclarationOfStudentByParent);
 parentRouter.get("/students/:student_id/health-declaration", authenticateToken, getHealthDeclarationOfStudentById);
 
 /**
@@ -61,7 +59,7 @@ parentRouter.post(
   "/medical-submissions",
   authenticateToken,
   validateInput(Schemas, "MedicalSubmissionRequest"),
-  medicalSubmissionReq
+  medicationSubmissionReq
 );
 
 /**
@@ -73,6 +71,12 @@ parentRouter.post(
   validateInput(Schemas, "HealthDeclaration"),
   createHealthDeclarationById
 );
+
+// Lấy tất cả sự cố y tế liên quan đến một user
+parentRouter.get("/incidents/:user_id", authenticateToken, getIncidentsByUserId);
+
+// Lấy sự cố y tế của học sinh theo ID
+parentRouter.get("/incidents/view incedent", getIncidentById);
 
 /**
  * 🔔 Lấy danh sách thông báo của phụ huynh (có phân trang)

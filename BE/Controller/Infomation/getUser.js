@@ -12,7 +12,7 @@ const getUserByRole = async (req, res, next) => {
   } else if (path.includes("managers")) {
     role_name = "Manager";
   } else if (path.includes("nurses")) {
-    role_name = "School_Nurse";
+    role_name = "School Nurse";
   } else {
     return res.status(400).json({ message: "Invalid role route" });
   }
@@ -21,7 +21,7 @@ const getUserByRole = async (req, res, next) => {
   const result = await pool
     .request()
     .input("role_id", sql.Int, role_id)
-    .query("SELECT u.*, i.fullname FROM Users u JOIN Users i ON u.user_id = i.user_id WHERE u.role_id = @role_id");
+    .query("SELECT * FROM Users WHERE role_id = @role_id");
   if (result.recordset.length > 0) {
     res.status(200).json({
       message: "Success",
@@ -44,7 +44,7 @@ const getUserByUserId = async (req, res, next) => {
   } else if (path.includes("managers")) {
     role_name = "Manager";
   } else if (path.includes("nurses")) {
-    role_name = "School_Nurse";
+    role_name = "School Nurse";
   } else {
     return res.status(400).json({ message: "Invalid role route" });
   }

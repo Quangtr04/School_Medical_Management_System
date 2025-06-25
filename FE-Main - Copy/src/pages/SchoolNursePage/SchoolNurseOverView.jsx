@@ -12,7 +12,8 @@ import {
   Spin,
   Empty,
   Button,
-  Avatar, // <--- Add Avatar here as it's used in List.Item.Meta
+  Avatar,
+  Tooltip, // Import Tooltip
 } from "antd";
 import {
   MedicineBoxOutlined,
@@ -27,16 +28,16 @@ import {
 import {
   FiUsers, // Total Students
   FiHeart, // Students with Health Issues
-  FiFeather, // Vaccinations Due
   FiAlertTriangle, // Recent Incidents
   FiCalendar, // Upcoming Appointments
   FiBell, // Health Alerts
   FiActivity, // General Dashboard Icon
   FiRefreshCcw, // Refresh button
+  FiBox, // Icon for Medical Supplies (or similar)
 } from "react-icons/fi";
 import { format, parseISO } from "date-fns";
 import api from "../../configs/config-axios"; // Đảm bảo đường dẫn này đúng
-import { message } from "antd"; // Import message từ antd
+import { message } from "antd";
 import { IoWarningOutline } from "react-icons/io5";
 
 const { Title, Text } = Typography;
@@ -46,10 +47,14 @@ export default function NurseDashboardPage() {
   const [summary, setSummary] = useState({
     totalStudents: 0,
     studentsWithHealthIssues: 0,
-    vaccinationsDue: 0,
-    totalStudentsChange: 0, // Thêm trường này cho phần trăm thay đổi
-    studentsWithHealthIssuesChange: 0, // Thêm trường này cho phần trăm thay đổi
-    vaccinationsDueChange: 0, // Thêm trường này cho phần trăm thay đổi
+    medicalIncidents: 0,
+    totalStudentsChange: 0,
+    studentsWithHealthIssuesChange: 0,
+    medicalIncidentsChange: 0,
+    expiredSupplies: 0,
+    nearlyExpiredSupplies: 0,
+    expiredSuppliesChange: 0,
+    nearlyExpiredSuppliesChange: 0,
   });
   const [upcomingAppointments, setUpcomingAppointments] = useState([]);
   const [recentIncidents, setRecentIncidents] = useState([]);
@@ -59,31 +64,36 @@ export default function NurseDashboardPage() {
     setLoading(false); // Set loading to true at the start of fetch
     try {
       // Fetch Dashboard Summary
-      // Giả lập dữ liệu từ API cho các trường thay đổi phần trăm
       const summaryRes = await api.get("/api/nurse/dashboard-summary");
       setSummary({
         ...summaryRes.data.data,
-        totalStudentsChange: 5, // Giả định +5%
-        studentsWithHealthIssuesChange: -12, // Giả định -12%
-        vaccinationsDueChange: 3, // Giả định +3%
+        totalStudentsChange: 5,
+        studentsWithHealthIssuesChange: -12,
+        medicalIncidents: summaryRes.data.data.medicalIncidents || 0, // Đảm bảo có giá trị hoặc mặc định là 0
+        medicalIncidentsChange: 3,
+        // Dữ liệu giả lập cho vật tư y tế
+        expiredSupplies: 7,
+        nearlyExpiredSupplies: 15,
+        expiredSuppliesChange: 20,
+        nearlyExpiredSuppliesChange: -5,
       });
 
       // Fetch Upcoming Appointments
       const appointmentsRes = await api.get("/api/nurse/upcoming-appointments");
-      setUpcomingAppointments(appointmentsRes.data.data.slice(0, 5)); // Limit to 5
+      setUpcomingAppointments(appointmentsRes.data.data.slice(0, 5));
 
       // Fetch Recent Incidents
       const incidentsRes = await api.get("/api/nurse/recent-incidents");
-      setRecentIncidents(incidentsRes.data.data.slice(0, 5)); // Limit to 5
+      setRecentIncidents(incidentsRes.data.data.slice(0, 5));
 
       // Fetch Student Health Alerts
       const alertsRes = await api.get("/api/nurse/student-health-alerts");
-      setStudentHealthAlerts(alertsRes.data.data.slice(0, 5)); // Limit to 5
+      setStudentHealthAlerts(alertsRes.data.data.slice(0, 5));
 
-      message.success("Dashboard data refreshed!");
+      message.success("Dữ liệu bảng điều khiển đã được làm mới!");
     } catch (error) {
       console.error("Error fetching nurse dashboard data:", error);
-      message.error("Failed to load dashboard data.");
+      message.error("Tải dữ liệu bảng điều khiển thất bại.");
     } finally {
       setLoading(false); // Set loading to false at the end
     }
@@ -96,11 +106,12 @@ export default function NurseDashboardPage() {
   const renderLoadingState = () => (
     <div className="text-center py-8 flex flex-col items-center justify-center gap-4">
       <Spin indicator={<LoadingOutlined style={{ fontSize: 30 }} spin />} />
-      <p className="text-gray-500 text-lg">Loading dashboard data...</p>
+      <p className="text-gray-500 text-lg">
+        Đang tải dữ liệu bảng điều khiển...
+      </p>
     </div>
   );
 
-  // Helper component for the percentage change text
   const PercentageChange = ({ value }) => {
     const isPositive = value >= 0;
     const colorClass = isPositive ? "text-green-500" : "text-red-500";
@@ -108,7 +119,7 @@ export default function NurseDashboardPage() {
     return (
       <p className={`text-sm ${colorClass} mt-1`}>
         {sign}
-        {value}% from last month
+        {value}% so với tháng trước
       </p>
     );
   };
@@ -145,7 +156,7 @@ export default function NurseDashboardPage() {
             loading={loading}
             className="flex items-center gap-1 px-4 py-2 !border !border-gray-300 !rounded-lg hover:!bg-gray-100 !transition-colors !text-gray-900"
           >
-            Refresh Data
+            Làm mới dữ liệu
           </Button>
         </header>
 
@@ -156,18 +167,24 @@ export default function NurseDashboardPage() {
             {/* Overview Statistics */}
             <Row gutter={[16, 16]} className="mb-6">
               {/* Total Students Card */}
-              <Col xs={24} sm={12} lg={8}>
-                <Card className="!rounded-lg !shadow-md !border !border-gray-200">
-                  <div className="flex items-center gap-4">
+              <Col xs={24} sm={12} lg={6}>
+                <Card
+                  className="!rounded-lg !shadow-md !border !p-5 !border-gray-200"
+                  style={{ height: "290px" }}
+                >
+                  {/* Thay đổi tại đây */}
+                  <div className="flex flex-col items-center justify-center h-full gap-4">
+                    {" "}
+                    {/* Thêm flex-col, items-center, justify-center, và h-full */}
                     {/* Icon Section */}
                     <div className="flex-shrink-0 p-3 rounded-lg bg-blue-600 flex items-center justify-center">
                       <FiUsers className="text-white text-3xl" />
                     </div>
                     {/* Statistic Content */}
-                    <div>
+                    <div className="text-center">
+                      {" "}
+                      {/* Thêm text-center */}
                       <div className="text-gray-700 text-lg font-medium mb-1">
-                        {" "}
-                        {/* Changed from text-sm to text-lg */}
                         Tổng học sinh
                       </div>
                       <div className="text-gray-900 text-3xl font-bold leading-none">
@@ -180,19 +197,25 @@ export default function NurseDashboardPage() {
               </Col>
 
               {/* Students with Health Issues Card */}
-              <Col xs={24} sm={12} lg={8}>
-                <Card className="!rounded-lg !shadow-md !border !border-gray-200">
-                  <div className="flex items-center gap-4">
+              <Col xs={24} sm={12} lg={6}>
+                <Card
+                  className="!rounded-lg !shadow-md !border !p-5 !border-gray-200"
+                  style={{ height: "290px" }}
+                >
+                  {/* Thay đổi tại đây */}
+                  <div className="flex flex-col items-center justify-center h-full gap-4">
+                    {" "}
+                    {/* Thêm flex-col, items-center, justify-center, và h-full */}
                     {/* Icon Section */}
                     <div className="flex-shrink-0 p-3 rounded-lg bg-green-600 flex items-center justify-center">
                       <FiHeart className="text-white text-3xl" />
                     </div>
                     {/* Statistic Content */}
-                    <div>
+                    <div className="text-center">
+                      {" "}
+                      {/* Thêm text-center */}
                       <div className="text-gray-700 text-base font-medium mb-1">
-                        {" "}
-                        {/* Changed from text-sm to text-base */}
-                        Học sinh có vấn đề về sức khỏe
+                        Học sinh có vấn đề sức khỏe
                       </div>
                       <div className="text-gray-900 text-3xl font-bold leading-none">
                         {summary.studentsWithHealthIssues}
@@ -205,25 +228,86 @@ export default function NurseDashboardPage() {
                 </Card>
               </Col>
 
-              {/* Incident Due Card */}
-              <Col xs={24} sm={12} lg={8}>
-                <Card className="!rounded-lg !shadow-md !border !border-gray-200">
-                  <div className="flex items-center gap-4">
+              {/* Medical Incidents Card */}
+              <Col xs={24} sm={12} lg={6}>
+                <Card
+                  className="!rounded-lg !shadow-md !border !p-5 !border-gray-200"
+                  style={{ height: "290px" }}
+                >
+                  {/* Thay đổi tại đây */}
+                  <div className="flex flex-col items-center justify-center h-full gap-4">
+                    {" "}
+                    {/* Thêm flex-col, items-center, justify-center, và h-full */}
                     {/* Icon Section */}
                     <div className="flex-shrink-0 p-3 rounded-lg bg-red-600 flex items-center justify-center">
                       <IoWarningOutline className="text-white text-3xl" />
                     </div>
                     {/* Statistic Content */}
-                    <div>
+                    <div className="text-center">
+                      {" "}
+                      {/* Thêm text-center */}
                       <div className="text-gray-700 text-lg font-medium mb-1">
-                        {" "}
-                        {/* Changed from text-sm to text-lg */}
                         Sự cố y tế
                       </div>
                       <div className="text-gray-900 text-3xl font-bold leading-none">
-                        {summary.vaccinationsDue}
+                        {summary.medicalIncidents}
                       </div>
-                      <PercentageChange value={summary.vaccinationsDueChange} />
+                      <PercentageChange
+                        value={summary.medicalIncidentsChange}
+                      />
+                    </div>
+                  </div>
+                </Card>
+              </Col>
+
+              {/* Medical Supplies Card - NEW */}
+              <Col xs={24} sm={12} lg={6}>
+                <Card
+                  className="!rounded-lg !shadow-md !border !p-5 !border-gray-200"
+                  style={{ height: "290px" }}
+                >
+                  {" "}
+                  {/* Đảm bảo chiều cao thống nhất */}
+                  {/* Thay đổi tại đây */}
+                  <div className="flex flex-col items-center justify-center h-full gap-4">
+                    {" "}
+                    {/* Thêm flex-col, items-center, justify-center, và h-full */}
+                    {/* Icon Section */}
+                    <div className="flex-shrink-0 p-3 rounded-lg bg-purple-600 flex items-center justify-center">
+                      <FiBox className="text-white text-3xl" />
+                    </div>
+                    {/* Statistic Content */}
+                    <div className="text-center">
+                      {" "}
+                      {/* Thêm text-center */}
+                      <div className="text-gray-700 text-lg font-medium mb-1">
+                        Vật tư y tế (Hết/Sắp hết hạn)
+                      </div>
+                      <div className="text-gray-900 text-3xl font-bold leading-none flex gap-2 items-center justify-center">
+                        {" "}
+                        {/* Thêm justify-center ở đây nếu muốn căn giữa số lượng */}
+                        <Tooltip title="Vật tư hết hạn">
+                          <span className="text-red-500">
+                            {summary.expiredSupplies}
+                          </span>
+                        </Tooltip>
+                        /
+                        <Tooltip title="Vật tư sắp hết hạn">
+                          <span className="text-orange-500">
+                            {summary.nearlyExpiredSupplies}
+                          </span>
+                        </Tooltip>
+                      </div>
+                      <div className="flex gap-2 mt-1 justify-center">
+                        {" "}
+                        {/* Thêm justify-center cho percentage changes */}
+                        <PercentageChange
+                          value={summary.expiredSuppliesChange}
+                        />
+                        <PercentageChange
+                          value={summary.nearlyExpiredSuppliesChange}
+                        />
+                      </div>
                     </div>
                   </div>
                 </Card>
@@ -270,7 +354,7 @@ export default function NurseDashboardPage() {
                                 <CalendarOutlined />{" "}
                                 {format(
                                   parseISO(item.appointmentTime),
-                                  "MMM dd, yyyy HH:mm"
+                                  "dd MMM, yyyy HH:mm" // Adjusted format to show full year
                                 )}
                                 <Tag color="blue">{item.type}</Tag>
                               </div>
@@ -282,7 +366,7 @@ export default function NurseDashboardPage() {
                     />
                   ) : (
                     <Empty
-                      description="No upcoming appointments"
+                      description="Không có cuộc hẹn nào sắp tới"
                       image={Empty.PRESENTED_IMAGE_SIMPLE}
                     />
                   )}
@@ -294,8 +378,8 @@ export default function NurseDashboardPage() {
                 <Card
                   title={
                     <span className="flex items-center gap-2 text-gray-800 font-semibold">
-                      <FiAlertTriangle className="text-red-600" /> Recent Các sự
-                      cố y khoa gần đây
+                      <FiAlertTriangle className="text-red-600" /> Các sự cố y
+                      khoa gần đây
                     </span>
                   }
                   className="!rounded-lg !shadow-md !border !border-gray-200"
@@ -327,7 +411,7 @@ export default function NurseDashboardPage() {
                                 <CalendarOutlined />{" "}
                                 {format(
                                   parseISO(item.incidentTime),
-                                  "MMM dd, yyyy HH:mm"
+                                  "dd MMM, yyyy HH:mm" // Adjusted format to show full year
                                 )}
                                 <Tag color="red">{item.severity}</Tag>
                               </div>
@@ -341,7 +425,7 @@ export default function NurseDashboardPage() {
                     />
                   ) : (
                     <Empty
-                      description="No recent incidents"
+                      description="Không có sự cố gần đây"
                       image={Empty.PRESENTED_IMAGE_SIMPLE}
                     />
                   )}
@@ -389,7 +473,7 @@ export default function NurseDashboardPage() {
                                   {item.details}
                                 </Text>
                                 <Tag color="orange">
-                                  Priority: {item.priority}
+                                  Mức độ ưu tiên: {item.priority}
                                 </Tag>
                               </div>
                             }
@@ -399,7 +483,7 @@ export default function NurseDashboardPage() {
                     />
                   ) : (
                     <Empty
-                      description="No student health alerts"
+                      description="Không có cảnh báo sức khỏe học sinh"
                       image={Empty.PRESENTED_IMAGE_SIMPLE}
                     />
                   )}
