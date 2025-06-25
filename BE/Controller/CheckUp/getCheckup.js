@@ -149,5 +149,5 @@ module.exports = {
   getCheckupDeclinedById,
   getCheckupById,
   getCheckupListByIdAndParentId,
-  getCheckupListByParentId
+  getCheckupListByParentId,
 };

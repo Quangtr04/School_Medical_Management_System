@@ -30,6 +30,14 @@ const { medicationSubmissionReq } = require("../Controller/Medical/medicalSubmis
 
 // Thông báo
 const { getNotifications } = require("../Controller/Notification/getNotification");
+const {
+  getConsentVaccineByParentId,
+  getConsentVaccineApproveByParentId,
+  getConsentVaccineDeclineByParentId,
+  getConsentVaccineByIdAndParentId,
+  getResponseConsentVaccineParent,
+} = require("../Controller/Vaccine/consentVaccineController");
+const { UpdateResponseByParent } = require("../Controller/Vaccine/UpdateResponseVaccine");
 
 const parentRouter = express.Router();
 
@@ -103,6 +111,24 @@ parentRouter.post(
   validateInput(Schemas, "MedicalSubmissionRequest"),
   medicationSubmissionReq
 );
+
+// Lấy tất cả lịch tiêm chủng về
+parentRouter.get("/vaccine-campaigns", authenticateToken, getConsentVaccineByParentId);
+
+// Lấy lịch tiêm chủng dựa trên id
+parentRouter.get("/vaccine-campaigns/:id", authenticateToken, getConsentVaccineByIdAndParentId);
+
+// Lấy tất cả lịch tiêm chủng đã được chấp thuận
+parentRouter.get("/vaccine-campaigns/approved", authenticateToken, getConsentVaccineApproveByParentId);
+
+// Lấy tất cả lịch tiêm chủng đã bị từ chối
+parentRouter.get("/vaccine-campaigns/declined", authenticateToken, getConsentVaccineDeclineByParentId);
+
+// Phản hồi về trạng thái lịch tiêm chủng
+parentRouter.post("/vaccine-campaigns/:id/respond", authenticateToken, getResponseConsentVaccineParent);
+
+// Cập nhật về trạng thái lịch tiêm chủng
+parentRouter.patch("/vaccine-campaigns/:id/status", authenticateToken, UpdateResponseByParent);
 
 // --- Nhóm các API liên quan đến Thông báo (Notifications) ---
 /**
