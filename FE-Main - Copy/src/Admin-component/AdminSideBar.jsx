@@ -49,21 +49,7 @@ export default function AdminSideBar() {
         },
       ],
     },
-    {
-      key: "/admin/files",
-      icon: <ContainerOutlined />,
-      label: <Link to="/admin/files">Quản lý tệp</Link>,
-    },
-    {
-      key: "/admin/settings",
-      icon: <SettingOutlined />,
-      label: <Link to="/admin/settings">Cài đặt</Link>,
-    },
-    {
-      key: "/admin/monitor",
-      icon: <LineChartOutlined />,
-      label: <Link to="/admin/monitor">Theo dõi hệ thống</Link>,
-    },
+
     {
       key: "/",
       icon: <ArrowLeftOutlined />,

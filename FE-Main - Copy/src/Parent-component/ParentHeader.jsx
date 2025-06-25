@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import {
   BellOutlined,
   SearchOutlined,
@@ -21,6 +21,8 @@ import {
   message,
 } from "antd";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { logout } from "../redux/auth/authSlice";
 
 const { Header } = Layout;
 const { Search } = Input;
@@ -29,14 +31,14 @@ const { Text } = Typography;
 export default function ParentHeader() {
   const navigate = useNavigate();
   // State để lưu thông tin người dùng hiện tại
-  const [currentUser, setCurrentUser] = useState(null);
-
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.auth.user);
   // useEffect để đọc thông tin người dùng từ localStorage khi component mount
   useEffect(() => {
     try {
       const userString = localStorage.getItem("currentUser");
       if (userString) {
-        setCurrentUser(JSON.parse(userString));
+        user(JSON.parse(userString));
       }
     } catch (error) {
       console.error("Lỗi khi đọc thông tin người dùng từ localStorage:", error);
@@ -49,14 +51,7 @@ export default function ParentHeader() {
   const handleLogout = () => {
     try {
       // Clear localStorage
-      localStorage.removeItem("currentUser");
-      localStorage.removeItem("authToken");
-
-      // Show success message
-      message.success("Đăng xuất thành công!");
-
-      // Navigate to login page
-      navigate("/login");
+      dispatch(logout());
     } catch (error) {
       console.error("Lỗi khi đăng xuất:", error);
       message.error("Có lỗi xảy ra khi đăng xuất!");
@@ -88,7 +83,7 @@ export default function ParentHeader() {
           />
           <div>
             <div style={{ fontWeight: 600, fontSize: 14, color: "#262626" }}>
-              {currentUser?.fullname || "Phụ huynh"}
+              {user?.fullname || "Phụ huynh"}
             </div>
             <div style={{ fontSize: 12, color: "#8c8c8c" }}>
               Sức khỏe gia đình
@@ -156,7 +151,7 @@ export default function ParentHeader() {
         style={{ width: "100%", height: "100%" }}
       >
         {/* Left side - Search */}
-        <Col flex="1" style={{ maxWidth: "400px" }}>
+        <Col span={12} style={{ maxWidth: "400px" }}>
           <Search
             placeholder="Tìm kiếm thông tin sức khỏe con..."
             allowClear
@@ -166,8 +161,8 @@ export default function ParentHeader() {
           />
         </Col>{" "}
         {/* Right side - Notifications and User */}
-        <Col>
-          <Space size="large" align="center">
+        <Col className="mb-10">
+          <Space size="large" align="center" className="mt-1">
             {/* Notifications */}
             <Badge count={5} size="small">
               <BellOutlined
@@ -236,7 +231,7 @@ export default function ParentHeader() {
                       lineHeight: 1.2,
                     }}
                   >
-                    {currentUser?.fullname || "Phụ huynh"}
+                    {user?.fullname || "Phụ huynh"}
                   </div>
                   <div
                     style={{

@@ -18,6 +18,7 @@ import {
   Tag,
   Spin,
   Select,
+  DatePicker,
 } from "antd";
 import {
   PlusOutlined,
@@ -40,6 +41,9 @@ import {
   FiMail,
   FiPhone,
   FiCalendar,
+  FiBriefcase,
+  FiHome,
+  FiTag,
 } from "react-icons/fi";
 import { format } from "date-fns";
 import debounce from "lodash/debounce";
@@ -530,74 +534,148 @@ export default function ParentManagementPage() {
                 : { status: "Active" }
             }
           >
-            {/* Full Name */}
             <Form.Item
-              name="full_name"
-              label={<span className="text-gray-900">Họ và tên</span>}
+              name="fullname"
+              label={
+                <span className="flex items-center gap-2">
+                  <FiUser className="text-blue-500" /> Họ và tên
+                </span>
+              }
               rules={[
-                { required: true, message: "Vui lòng nhập họ và tên!" },
+                { required: true, message: "Vui lòng nhập họ tên!" },
                 {
                   pattern: /^[\p{L}\s]{3,50}$/u,
-                  message: "Họ và tên chỉ chứa chữ cái và khoảng trắng.",
+                  message: "Chỉ chứa chữ và khoảng trắng.",
                 },
-                { min: 3, message: "Họ và tên phải có ít nhất 3 ký tự." },
-                { max: 50, message: "Họ và tên không quá 50 ký tự." },
+                { min: 3, message: "Ít nhất 3 ký tự." },
+                { max: 50, message: "Không vượt quá 50 ký tự." },
               ]}
             >
+              <Input placeholder="Nhập họ và tên" className="..." />
+            </Form.Item>
+
+            {/* dayofbirth */}
+            <Form.Item
+              name="dayofbirth"
+              label={
+                <span className="flex items-center gap-2">
+                  <FiCalendar className="text-blue-500" /> Ngày sinh
+                </span>
+              }
+              rules={[
+                {
+                  required: true,
+                  message: "Vui lòng chọn Ngày tháng năm sinh!",
+                },
+              ]}
+            >
+              <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
+            </Form.Item>
+
+            {/* Major */}
+            <Form.Item
+              name="major"
+              label={
+                <span className="flex items-center gap-2">
+                  <FiBriefcase className="text-blue-500" /> Nghề nghiệp
+                </span>
+              }
+              rules={[
+                { required: true, message: "Vui lòng nhập nghề nghiệp!" },
+              ]}
+            >
+              {/* Sử dụng Input và đặt nó ReadOnly nếu không muốn người dùng chỉnh sửa */}
               <Input
-                placeholder="Họ và tên đầy đủ"
-                className="!border !border-gray-300 !rounded-lg focus:!ring-2 focus:!ring-blue-500 focus:!outline-none hover:!border-blue-600/50 !transition-colors !bg-white !text-gray-900"
+                placeholder="Nhập nghề nghiệp"
+                // <--- Đặt readOnly để người dùng không sửa được
+                className="..."
               />
+            </Form.Item>
+
+            {/* gender */}
+            <Form.Item
+              name="gender"
+              label={
+                <span className="flex items-center gap-2">
+                  <FiUser className="text-blue-500" /> Giới tính
+                </span>
+              }
+              rules={[{ required: true, message: "Vui lòng chọn giới tính!" }]}
+              // initialValue có thể để trống hoặc đặt giá trị mặc định "Nam" hoặc "Nữ"
+              // initialValue={editingNurse ? (editingNurse.gender === 'male' ? 'Nam' : 'Nữ') : undefined}
+              // Hoặc nếu backend lưu 'Nam'/'Nữ' thì giữ nguyên:
+              initialValue={editingParent ? editingParent.gender : undefined} // Dựa vào dữ liệu từ backend
+            >
+              <Select placeholder="Chọn giới tính" className="...">
+                <Option value="Male">Nam</Option>
+                <Option value="Female">Nữ</Option>
+                {/* Nếu bạn có thêm giới tính khác, có thể thêm Option ở đây */}
+              </Select>
+            </Form.Item>
+
+            {/* Address */}
+            <Form.Item
+              name="address"
+              label={
+                <span className="flex items-center gap-2">
+                  <FiHome className="text-blue-500" /> Địa chỉ
+                </span>
+              }
+              rules={[{ required: true, message: "Vui lòng nhập địa chỉ!" }]}
+            >
+              <Input placeholder="Địa chỉ thường chú" className="..." />
             </Form.Item>
 
             {/* Email */}
             <Form.Item
               name="email"
-              label={<span className="text-gray-900">Email</span>}
+              label={
+                <span className="flex items-center gap-2">
+                  <FiMail className="text-blue-500" /> Email
+                </span>
+              }
               rules={[
                 { required: true, message: "Vui lòng nhập email!" },
                 { type: "email", message: "Email không hợp lệ!" },
-                { max: 100, message: "Email không quá 100 ký tự." },
+                { max: 100, message: "Không vượt quá 100 ký tự." },
               ]}
             >
-              <Input
-                placeholder="Địa chỉ email"
-                className="!border !border-gray-300 !rounded-lg focus:!ring-2 focus:!ring-blue-500 focus:!outline-none hover:!border-blue-600/50 !transition-colors !bg-white !text-gray-900"
-              />
+              <Input placeholder="Địa chỉ email" className="..." />
             </Form.Item>
 
-            {/* Phone Number */}
+            {/* Số điện thoại */}
             <Form.Item
               name="phone"
-              label={<span className="text-gray-900">Số điện thoại</span>}
+              label={
+                <span className="flex items-center gap-2">
+                  <FiPhone className="text-blue-500" /> Số điện thoại
+                </span>
+              }
               rules={[
                 { required: true, message: "Vui lòng nhập số điện thoại!" },
                 {
                   pattern: /^(0|\+84)[3|5|7|8|9][0-9]{8}$/,
                   message:
-                    "Số điện thoại không hợp lệ (VD: 0912345678 hoặc +84912345678).",
+                    "SĐT không hợp lệ (VD: 0912345678 hoặc +84912345678)",
                 },
               ]}
             >
-              <Input
-                placeholder="Số điện thoại liên hệ"
-                className="!border !border-gray-300 !rounded-lg focus:!ring-2 focus:!ring-blue-500 focus:!outline-none hover:!border-blue-600/50 !transition-colors !bg-white !text-gray-900"
-              />
+              <Input placeholder="Số điện thoại liên hệ" className="..." />
             </Form.Item>
 
-            {/* Status */}
+            {/* Trạng thái */}
             <Form.Item
               name="status"
-              label={<span className="text-gray-900">Trạng thái</span>}
+              label={
+                <span className="flex items-center gap-2">
+                  <FiTag className="text-blue-500" /> Trạng thái
+                </span>
+              }
               rules={[{ required: true, message: "Vui lòng chọn trạng thái!" }]}
             >
-              <Select
-                placeholder="Chọn trạng thái"
-                className="!border !border-gray-300 !rounded-lg focus:!ring-2 focus:!ring-blue-500 focus:!outline-none hover:!border-blue-600/50 !transition-colors
-                  [&_.ant-select-selector]:!bg-white [&_.ant-select-selector]:!text-gray-900"
-              >
-                <Option value="Active">Hoạt động</Option>
-                <Option value="Inactive">Không hoạt động</Option>
+              <Select placeholder="Chọn trạng thái" className="...">
+                <Option value="Hoạt động">Hoạt động</Option>
+                <Option value="Ngưng hoạt động">Ngưng hoạt động</Option>
               </Select>
             </Form.Item>
 

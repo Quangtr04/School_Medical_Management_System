@@ -126,26 +126,6 @@ function DocumentDetail() {
             {document.name}
           </h1>
 
-          {/* Action Buttons */}
-          <div className="flex flex-wrap items-center space-x-2 sm:space-x-4 mb-8">
-            <a
-              href={document.filePath || "#"}
-              download
-              className="inline-flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-md text-sm sm:text-base mb-2 sm:mb-0"
-            >
-              <DownloadIcon className="h-5 w-5 mr-2" />
-              Tải xuống PDF
-            </a>
-            <button className="inline-flex items-center text-gray-700 bg-gray-100 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm sm:text-base mb-2 sm:mb-0">
-              <Share2Icon className="h-5 w-5 mr-2" />
-              Chia sẻ
-            </button>
-            <button className="inline-flex items-center text-gray-700 bg-gray-100 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm sm:text-base mb-2 sm:mb-0">
-              <BookmarkIcon className="h-5 w-5 mr-2" />
-              Lưu tài liệu
-            </button>
-          </div>
-
           {/* Main Document Content */}
           {document.content ? (
             <div

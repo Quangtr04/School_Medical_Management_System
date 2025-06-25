@@ -8,7 +8,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 
 import { useDispatch, useSelector } from "react-redux"; // Import hooks từ react-redux
 import { LoadingOutlined } from "@ant-design/icons"; // Import icon loading
-import { clearAuthError, loginUser } from "../redux/auth/authSlice";
+import { clearError, loginUser } from "../redux/auth/authSlice";
 
 function LoginForm() {
   const navigate = useNavigate();
@@ -18,7 +18,7 @@ function LoginForm() {
   const dispatch = useDispatch();
 
   // Lấy trạng thái từ Redux store
-  const { loading, error, isAuthenticated } = useSelector(
+  const { user, loading, error, isAuthenticated } = useSelector(
     (state) => state.auth
   );
 
@@ -31,8 +31,7 @@ function LoginForm() {
     if (isAuthenticated) {
       toast.success("Đăng nhập thành công! Đang chuyển hướng...");
       // Lấy role_id từ localStorage (nơi authSlice đã lưu)
-      const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-      const role_id = currentUser?.role_id; // Đảm bảo currentUser không null
+      const role_id = user?.role_id; // Đảm bảo currentUser không null
 
       switch (role_id) {
         case 1: // Admin
@@ -59,7 +58,7 @@ function LoginForm() {
   useEffect(() => {
     if (error) {
       toast.error(error);
-      dispatch(clearAuthError()); // Xóa lỗi sau khi hiển thị để không hiển thị lại
+      dispatch(clearError()); // Xóa lỗi sau khi hiển thị để không hiển thị lại
     }
   }, [error, dispatch]); // Thêm dispatch vào dependency array
 

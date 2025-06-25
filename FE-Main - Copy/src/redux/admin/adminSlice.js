@@ -11,9 +11,9 @@ export const fetchUsers = createAsyncThunk(
     try {
       // endpointPath sẽ là '/admin/parents', '/admin/nurses', v.v.
       const response = await api.get(endpointPath, { params });
-      console.log(response.data.data);
-
       const data = response.data.data;
+      console.log(data);
+
       return data;
     } catch (error) {
       let errorMessage = `Không thể tải danh sách người dùng từ ${endpointPath}.`;
@@ -50,7 +50,7 @@ export const updateUser = createAsyncThunk(
       const response = await api.put(`${endpointPath}/${id}`, userData); // Endpoint + id
       return response.data.data;
     } catch (error) {
-      let errorMessage = `Không thể cập nhật người dùng tại ${endpointPath}/${id}.`;
+      let errorMessage = `Cập nhập tài khoản thất bại`;
       if (error.response && error.response.data && error.response.data.message) {
         errorMessage = error.response.data.message;
       }
@@ -65,7 +65,7 @@ export const deleteUser = createAsyncThunk("admin/deleteUser", async ({ endpoint
     await api.delete(`${endpointPath}/${id}`); // Endpoint + id
     return id; // Trả về ID của người dùng đã xóa
   } catch (error) {
-    let errorMessage = `Không thể xóa người dùng tại ${endpointPath}/${id}.`;
+    let errorMessage = `Xóa tài khoản thất bại`;
     if (error.response && error.response.data && error.response.data.message) {
       errorMessage = error.response.data.message;
     }
@@ -97,7 +97,7 @@ const adminSlice = createSlice({
       })
       .addCase(fetchUsers.fulfilled, (state, action) => {
         state.loading = false;
-        state.users = action.payload.users; // Giả sử API trả về { users: [], total: N }
+        state.users = action.payload;
         state.totalUser = action.payload.length;
       })
       .addCase(fetchUsers.rejected, (state, action) => {

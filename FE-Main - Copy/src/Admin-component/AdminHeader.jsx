@@ -32,8 +32,6 @@ export default function AdminHeader() {
 
   const user = useSelector((state) => state.auth.user);
 
-  console.log(user);
-
   const dispatch = useDispatch();
   // useEffect để đọc thông tin người dùng từ localStorage khi component mount
   // [] đảm bảo chỉ chạy một lần khi mount
