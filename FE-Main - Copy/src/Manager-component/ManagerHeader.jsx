@@ -37,9 +37,10 @@ export default function ManagerHeader() {
   // useEffect để đọc thông tin người dùng từ localStorage khi component mount
 
   const handleLogout = () => {
-    // Xóa thông tin người dùng và token khỏi localStorage
-    dispatcher(logout(user));
-    navigate("/");
+    // Clear localStorage and state
+    dispatcher(logout());
+    // Redirect to login page after logout
+    navigate("/login");
   };
 
   // Menu items for the user dropdown

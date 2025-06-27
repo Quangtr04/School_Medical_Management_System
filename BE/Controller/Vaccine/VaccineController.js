@@ -14,21 +14,25 @@ const createVaccinationCampaign = async (req, res) => {
       .input("title", sql.NVarChar, title)
       .input("description", sql.NVarChar, description)
       .input("scheduled_date", sql.Date, scheduled_date)
-      .input("create_by", sql.Int, create_by)
+      .input("created_by", sql.Int, create_by)
       .input("sponsor", sql.NVarChar, sponsor)
       .input("class", sql.Int, className).query(`
         INSERT INTO Vaccination_Campaign
-          (title, description, scheduled_date, create_by, approval_status, sponsor, class, approved_by)
+          (title, description, scheduled_date, created_by, approval_status, sponsor, class, approved_by)
           OUTPUT INSERTED.campaign_id
         VALUES
-          (@title, @description, @scheduled_date, @create_by, 'PENDING', @sponsor, @class, NULL);
+          (@title, @description, @scheduled_date, @created_by, 'PENDING', @sponsor, @class, NULL);
       `);
     if (result.rowsAffected[0] === 0) {
-      return res.status(400).json({ message: "Failed to create vaccination campaign" });
+      return res
+        .status(400)
+        .json({ message: "Failed to create vaccination campaign" });
     }
     const campaignId = result.recordset[0].campaign_id;
     // Notify all managers about the new vaccination campaign
-    const managers = await pool.request().query(`SELECT user_id FROM Users WHERE role_id = 2`);
+    const managers = await pool
+      .request()
+      .query(`SELECT user_id FROM Users WHERE role_id = 2`);
     const managerIds = managers.recordset.map((m) => m.user_id);
 
     // Respond with the created campaign ID
@@ -39,7 +43,9 @@ const createVaccinationCampaign = async (req, res) => {
       `A new vaccination campaign has been created: "${title}".`
     );
 
-    res.status(201).json({ message: "Vaccination campaign created", id: campaignId });
+    res
+      .status(201)
+      .json({ message: "Vaccination campaign created", id: campaignId });
   } catch (error) {
     console.error("Error creating vaccination campaign:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -57,7 +63,9 @@ const deleteVaccinationCampaign = async (req, res) => {
 
     // If the campaign does not exist, return 404
     if (check.recordset.length === 0) {
-      return res.status(404).json({ message: "Vaccination campaign not found" });
+      return res
+        .status(404)
+        .json({ message: "Vaccination campaign not found" });
     }
 
     // If the campaign is already approved
@@ -65,7 +73,8 @@ const deleteVaccinationCampaign = async (req, res) => {
     let parentIds = [];
     if (approvalStatus === "APPROVED") {
       // Get the list of parents who have consented to the campaign
-      const consentedParents = await pool.request().input("id", sql.Int, id).query(`
+      const consentedParents = await pool.request().input("id", sql.Int, id)
+        .query(`
           SELECT DISTINCT parent_id FROM Vaccination_Consent_Form WHERE campaign_id = @id
         `);
       parentIds = consentedParents.recordset.map((p) => p.parent_id);
@@ -104,7 +113,9 @@ const deleteVaccinationCampaign = async (req, res) => {
       }
     }
 
-    res.status(200).json({ message: "Vaccination campaign deleted successfully" });
+    res
+      .status(200)
+      .json({ message: "Vaccination campaign deleted successfully" });
   } catch (error) {
     console.error("Error deleting vaccination campaign:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -116,17 +127,24 @@ const responseVaccinationCampaign = async (req, res) => {
   const { status } = req.body;
 
   if (!["APPROVED", "DECLINED"].includes(status)) {
-    return res.status(400).json({ message: "Invalid status value. 'APPROVED' or 'DECLINED'." });
+    return res
+      .status(400)
+      .json({ message: "Invalid status value. 'APPROVED' or 'DECLINED'." });
   }
   try {
     const pool = await sqlServerPool;
-    const result = await pool.request().input("status", sql.NVarChar, status).input("id", sql.Int, id).query(`
+    const result = await pool
+      .request()
+      .input("status", sql.NVarChar, status)
+      .input("id", sql.Int, id).query(`
         UPDATE Vaccination_Campaign
         SET approval_status = @status, approved_by = 'principal'
         WHERE campaign_id = @id;
       `);
     if (result.rowsAffected[0] === 0) {
-      return res.status(404).json({ message: "Vaccination campaign not found" });
+      return res
+        .status(404)
+        .json({ message: "Vaccination campaign not found" });
     }
     // If the campaign is approved, notify the parents
     if (status === "APPROVED") {
@@ -145,7 +163,8 @@ const responseVaccinationCampaign = async (req, res) => {
       );
 
       // Get the list of student for the class
-      const students = await pool.request().input("class", sql.Int, className).query(`
+      const students = await pool.request().input("class", sql.Int, className)
+        .query(`
               SELECT student_id, parent_id FROM Student_Information
               WHERE class_name LIKE CAST(@class AS NVARCHAR) + '%'
             `);

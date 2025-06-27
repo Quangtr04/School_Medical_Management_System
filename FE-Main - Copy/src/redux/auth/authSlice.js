@@ -14,65 +14,122 @@ const initialState = {
   success: false,
 };
 
-export const loginUser = createAsyncThunk("loginUser", async (values, { rejectWithValue }) => {
-  try {
-    const response = await api.post("/login", values);
-    console.log("Response data:", response.data);
-    const { token, user } = response.data;
+export const loginUser = createAsyncThunk(
+  "loginUser",
+  async (values, { rejectWithValue }) => {
+    try {
+      const response = await api.post("/login", values);
+      console.log("Response data:", response.data);
 
-    localStorage.setItem("accessToken", token);
-    localStorage.setItem("currentUser", JSON.stringify(user));
+      // Flexible handling for different response structures
+      let token, user;
 
-    return { user, accessToken: token };
-  } catch (error) {
-    console.log("Error status:", error.response?.status);
-    console.log("Error response:", error.response?.data);
+      // Try different possible response structures
+      if (response.data.token && response.data.user) {
+        // Standard structure: { token, user }
+        token = response.data.token;
+        user = response.data.user;
+      } else if (response.data.accessToken && response.data.user) {
+        // Alternative structure: { accessToken, user }
+        token = response.data.accessToken;
+        user = response.data.user;
+      } else if (response.data.token && response.data.parent) {
+        // Parent specific structure: { token, parent }
+        token = response.data.token;
+        user = response.data.parent;
+      } else if (response.data.accessToken && response.data.parent) {
+        // Parent specific structure: { accessToken, parent }
+        token = response.data.accessToken;
+        user = response.data.parent;
+      } else if (response.data.token && response.data.data) {
+        // Generic structure: { token, data }
+        token = response.data.token;
+        user = response.data.data;
+      } else if (response.data.accessToken && response.data.data) {
+        // Generic structure: { accessToken, data }
+        token = response.data.accessToken;
+        user = response.data.data;
+      } else {
+        // Fallback: log the actual structure for debugging
+        console.error("Unexpected response structure:", response.data);
+        throw new Error("Invalid response structure from server");
+      }
 
-    let errorMessage = "Đăng nhập thất bại. Vui lòng thử lại.";
-    if (error.response?.data?.message) {
-      errorMessage = error.response.data.message;
+      console.log("Extracted token:", token);
+      console.log("Extracted user:", user);
+
+      if (!token || !user) {
+        throw new Error("Missing token or user data in response");
+      }
+
+      localStorage.setItem("accessToken", token);
+      localStorage.setItem("currentUser", JSON.stringify(user));
+
+      return { user, accessToken: token };
+    } catch (error) {
+      console.log("Error status:", error.response?.status);
+      console.log("Error response:", error.response?.data);
+
+      let errorMessage = "Đăng nhập thất bại. Vui lòng thử lại.";
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      return rejectWithValue(errorMessage);
     }
-    return rejectWithValue(errorMessage);
   }
-});
+);
 
-export const sendOtp = createAsyncThunk("auth/sendOtp", async (credentials, { rejectWithValue }) => {
-  try {
-    const response = await api.post("/auth/forgot-password", credentials);
-    return response.data;
-  } catch (error) {
-    let errorMessage = "Failed to send OTP. Please try again.";
-    if (error.response && error.response.data && error.response.data.message) {
-      errorMessage = error.response.data.message;
+export const sendOtp = createAsyncThunk(
+  "auth/sendOtp",
+  async (credentials, { rejectWithValue }) => {
+    try {
+      const response = await api.post("/auth/forgot-password", credentials);
+      return response.data;
+    } catch (error) {
+      let errorMessage = "Failed to send OTP. Please try again.";
+      if (
+        error.response &&
+        error.response.data &&
+        error.response.data.message
+      ) {
+        errorMessage = error.response.data.message;
+      }
+      return rejectWithValue(errorMessage);
     }
-    return rejectWithValue(errorMessage);
   }
-});
+);
 
 // initializeAuth thunk của bạn
-export const initializeAuth = createAsyncThunk("auth/initializeAuth", async (_, { dispatch, rejectWithValue }) => {
-  // Added rejectWithValue here
-  try {
-    const accessToken = localStorage.getItem("accessToken");
-    const currentUser = localStorage.getItem("currentUser");
+export const initializeAuth = createAsyncThunk(
+  "auth/initializeAuth",
+  async (_, { dispatch, rejectWithValue }) => {
+    // Added rejectWithValue here
+    try {
+      const accessToken = localStorage.getItem("accessToken");
+      const currentUser = localStorage.getItem("currentUser");
 
-    if (accessToken && currentUser) {
-      const user = JSON.parse(currentUser);
-      dispatch(authSlice.actions.setAuth({ user, accessToken }));
+      if (accessToken && currentUser) {
+        const user = JSON.parse(currentUser);
+        dispatch(authSlice.actions.setAuth({ user, accessToken }));
+      }
+      dispatch(authSlice.actions.finishAuthInitialization());
+      return true; // Mark as fulfilled
+    } catch (error) {
+      console.error("Failed to initialize auth from localStorage", error);
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("currentUser");
+      dispatch(
+        authSlice.actions.setAuthInitializationError(
+          "Không thể tải thông tin đăng nhập. Vui lòng đăng nhập lại."
+        )
+      );
+      dispatch(authSlice.actions.finishAuthInitialization());
+      return rejectWithValue(
+        "Không thể tải thông tin đăng nhập. Vui lòng đăng nhập lại."
+      );
     }
-    dispatch(authSlice.actions.finishAuthInitialization());
-    return true; // Mark as fulfilled
-  } catch (error) {
-    console.error("Failed to initialize auth from localStorage", error);
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("currentUser");
-    dispatch(
-      authSlice.actions.setAuthInitializationError("Không thể tải thông tin đăng nhập. Vui lòng đăng nhập lại.")
-    );
-    dispatch(authSlice.actions.finishAuthInitialization());
-    return rejectWithValue("Không thể tải thông tin đăng nhập. Vui lòng đăng nhập lại.");
   }
-});
+);
 
 const authSlice = createSlice({
   name: "auth",
@@ -114,10 +171,6 @@ const authSlice = createSlice({
     clearAuthError: (state) => {
       state.error = null;
     },
-    // REMOVED duplicate clearError reducer
-    // clearError: (state) => {
-    //   state.error = null;
-    // },
     clearAuthSuccess: (state) => {
       state.success = false;
     },
@@ -154,7 +207,8 @@ const authSlice = createSlice({
       })
       .addCase(initializeAuth.rejected, (state, action) => {
         state.isAuthInitialized = true; // Mark as initialized even on rejection to prevent hanging UI
-        state.authInitializationError = action.payload || "Lỗi khởi tạo xác thực không xác định.";
+        state.authInitializationError =
+          action.payload || "Lỗi khởi tạo xác thực không xác định.";
       })
 
       .addCase(sendOtp.pending, (state) => {
@@ -180,7 +234,6 @@ export const {
   setNotification,
   clearNotification,
   logout,
-  clearError, // Keep if you still use it elsewhere, but clearAuthError is more specific
   clearAuthError, // This one is used by ForgotPasswordPage
   setAuth,
   clearAuthSuccess,

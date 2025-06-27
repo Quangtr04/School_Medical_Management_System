@@ -38,9 +38,10 @@ export default function SchoolNurseHeader() {
   // const { fullname, role_id } = currentUser;
   // Function to handle logout
   const handleLogout = () => {
-    // Xóa thông tin người dùng và token khỏi localStorage
-    dispatch(logout(user));
-    navigate("/");
+    // Clear localStorage and state
+    dispatch(logout());
+    // Redirect to login page after logout
+    navigate("/login");
   };
 
   // Menu items for the user dropdown

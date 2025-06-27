@@ -5,7 +5,14 @@ const sendNotification = require("../../Utils/sendNotification");
 const updateResultVaccine = async (req, res, next) => {
   try {
     const id = req.params.id;
-    const { vaccinated_at, vaccine_name, dose_number, reaction, follow_up_required, note } = req.body;
+    const {
+      vaccinated_at,
+      vaccine_name,
+      dose_number,
+      reaction,
+      follow_up_required,
+      note,
+    } = req.body;
 
     const pool = await sqlServerPool;
 
@@ -29,7 +36,11 @@ const updateResultVaccine = async (req, res, next) => {
       .input("vaccine_name", sql.VarChar(255), vaccine_name || null)
       .input("dose_number", sql.Int, dose_number || null)
       .input("reaction", sql.NVarChar(255), reaction || null)
-      .input("follow_up_required", sql.NVarChar(255), follow_up_required || null)
+      .input(
+        "follow_up_required",
+        sql.NVarChar(255),
+        follow_up_required || null
+      )
       .input("note", sql.NVarChar(255), note || null).query(`
         UPDATE Vaccination_Result
         SET
@@ -46,7 +57,9 @@ const updateResultVaccine = async (req, res, next) => {
     const getParent = await pool
       .request()
       .input("student_id", sql.Int, student_id)
-      .query("SELECT parent_id FROM Student_Information WHERE student_id = @student_id");
+      .query(
+        "SELECT parent_id FROM Student_Information WHERE student_id = @student_id"
+      );
 
     if (getParent.recordset.length > 0) {
       const parent_id = getParent.recordset[0].parent_id;
@@ -60,7 +73,9 @@ const updateResultVaccine = async (req, res, next) => {
       );
     }
 
-    return res.status(200).json({ message: "Vaccination result updated successfully." });
+    return res
+      .status(200)
+      .json({ message: "Vaccination result updated successfully." });
   } catch (error) {
     console.error("Error in updateResultVaccine:", error);
     return res.status(500).json({ message: "Internal Server Error" });
@@ -114,7 +129,11 @@ const updateVaccine = async (req, res, next) => {
 const getStudentVaccineList = async (req, res, next) => {
   try {
     const pool = await sqlServerPool;
-    const result = await pool.request().query("SELECT * FROM Vaccination_Result");
+    const result = await pool
+      .request()
+      .query(
+        "SELECT VR.*, SI.full_name, SI.address, SI.class_name, SI.student_code, SI.gender, SI.date_of_birth FROM Vaccination_Result VR JOIN Student_Information SI ON VR.student_id = SI.student_id"
+      );
     res.status(200).json({
       status: "success",
       data: result.recordset,
@@ -132,7 +151,9 @@ const getStudentVaccineListById = async (req, res, next) => {
     const result = await pool
       .request()
       .input("id", sql.Int, id)
-      .query("SELECT * FROM Vaccination_Result WHERE id = @id");
+      .query(
+        "SELECT VR.*, SI.full_name, SI.address, SI.class_name, SI.student_code, SI.gender, SI.date_of_birth FROM Vaccination_Result VR JOIN Student_Information SI ON VR.student_id = SI.student_id WHERE VR.id = @id"
+      );
     res.status(200).json({
       status: "success",
       data: result.recordset,
@@ -143,4 +164,9 @@ const getStudentVaccineListById = async (req, res, next) => {
   }
 };
 
-module.exports = { updateResultVaccine, getStudentVaccineListById, getStudentVaccineList, updateVaccine };
+module.exports = {
+  updateResultVaccine,
+  getStudentVaccineListById,
+  getStudentVaccineList,
+  updateVaccine,
+};

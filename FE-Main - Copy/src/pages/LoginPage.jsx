@@ -8,7 +8,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 
 import { useDispatch, useSelector } from "react-redux"; // Import hooks từ react-redux
 import { LoadingOutlined } from "@ant-design/icons"; // Import icon loading
-import { clearError, loginUser } from "../redux/auth/authSlice";
+import { loginUser } from "../redux/auth/authSlice";
 
 function LoginForm() {
   const navigate = useNavigate();
@@ -58,9 +58,9 @@ function LoginForm() {
   useEffect(() => {
     if (error) {
       toast.error(error);
-      dispatch(clearError()); // Xóa lỗi sau khi hiển thị để không hiển thị lại
+      // Error will be cleared automatically on next action
     }
-  }, [error, dispatch]); // Thêm dispatch vào dependency array
+  }, [error]); // Removed dispatch from dependency array
 
   const onFinish = async (values) => {
     console.log("Success:", values);
