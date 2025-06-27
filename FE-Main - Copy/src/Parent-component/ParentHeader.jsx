@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import {
   BellOutlined,
   SearchOutlined,
@@ -30,28 +30,20 @@ const { Text } = Typography;
 
 export default function ParentHeader() {
   const navigate = useNavigate();
-  // State để lưu thông tin người dùng hiện tại
+  // State để lấy thông tin người dùng từ Redux
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
-  // useEffect để đọc thông tin người dùng từ localStorage khi component mount
-  useEffect(() => {
-    try {
-      const userString = localStorage.getItem("currentUser");
-      if (userString) {
-        user(JSON.parse(userString));
-      }
-    } catch (error) {
-      console.error("Lỗi khi đọc thông tin người dùng từ localStorage:", error);
-      localStorage.removeItem("currentUser");
-      localStorage.removeItem("authToken");
-    }
-  }, []);
+
+  // Không cần useEffect để đọc từ localStorage
+  // vì initializeAuth trong App.jsx đã handle việc này rồi
 
   // Function to handle logout
   const handleLogout = () => {
     try {
-      // Clear localStorage
+      // Clear localStorage and state
       dispatch(logout());
+      // Redirect to login page after logout
+      navigate("/login");
     } catch (error) {
       console.error("Lỗi khi đăng xuất:", error);
       message.error("Có lỗi xảy ra khi đăng xuất!");

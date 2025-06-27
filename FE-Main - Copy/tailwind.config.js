@@ -1,6 +1,5 @@
 // tailwind.config.js
 import typography from "@tailwindcss/typography";
-import lineClamp from "@tailwindcss/line-clamp";
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -11,7 +10,12 @@ export default {
       fontFamily: {
         // Your custom font families
         sans: ['"Roboto"', "ui-sans-serif", "system-ui", "sans-serif"],
-        headingSans: ['"Open Sans"', "ui-sans-serif", "system-ui", "sans-serif"],
+        headingSans: [
+          '"Open Sans"',
+          "ui-sans-serif",
+          "system-ui",
+          "sans-serif",
+        ],
         // Add other custom fonts here if needed, e.g., 'headingSerif', 'body', etc.
       },
       typography: ({ theme }) => ({
@@ -48,5 +52,5 @@ export default {
       }),
     },
   },
-  plugins: [typography, lineClamp],
+  plugins: [typography],
 };
