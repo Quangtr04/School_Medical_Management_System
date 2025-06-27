@@ -17,6 +17,7 @@ import {
   Tag,
   Spin,
   Select,
+  DatePicker,
 } from "antd";
 import {
   LoadingOutlined,
@@ -37,6 +38,9 @@ import {
   FiCalendar,
   FiBriefcase, // Icon cho Specialty
   FiAward, // Icon có thể dùng cho Role/Experience
+  FiHome, // For Address
+  FiTag, // For Status
+  FiLock, // For Password
 } from "react-icons/fi";
 import { format } from "date-fns";
 import debounce from "lodash/debounce";
@@ -147,7 +151,7 @@ export default function NurseManagementPage() {
   const pageStatistics = [
     {
       title: "Tổng số y tá",
-      value: totalUsers, // Sử dụng totalUsers từ Redux nếu nó là tổng user chung
+      value: nurses.length, // Sử dụng totalUsers từ Redux nếu nó là tổng user chung
       // Hoặc: value: nurses.length, nếu totalUsers chỉ là tổng số lượng y tá
       percentage: "+3", // Giá trị mẫu, cần thay bằng dữ liệu API
       icon: FaStethoscope,
@@ -189,9 +193,10 @@ export default function NurseManagementPage() {
   const CURRENT_ROLE_INFO = {
     id: 3, // Giả sử role_id cho Nurse là 3
     name: "Y tá",
-    path: "nurses",
+    path: "School Nurse",
     tagColor: "red",
-    endpoint: "/admin/nurses", // Endpoint API cho Nurses
+    endpoint: "/admin/nurses",
+    registerEndpoint: "/admin/register", // Endpoint API cho Nurses
   };
 
   // Sử dụng useCallback với debounce cho tìm kiếm
@@ -223,7 +228,7 @@ export default function NurseManagementPage() {
   const handleAddNurse = () => {
     setEditingNurse(null);
     form.resetFields();
-    form.setFieldsValue({ status: "Active" });
+    form.setFieldsValue({ status: "Active" }); // Set default status for new nurse
     setIsModalVisible(true);
   };
 
@@ -231,7 +236,8 @@ export default function NurseManagementPage() {
     setEditingNurse(record);
     form.setFieldsValue({
       ...record,
-      status: record.is_active ? "Active" : "Inactive",
+      status: record.is_active ? "Hoạt động" : "Ngưng hoạt động", // Map boolean to Vietnamese string
+      dayofbirth: record.dayofbirth ? new Date(record.dayofbirth) : null, // Convert date string to Date object for DatePicker
     });
     setIsModalVisible(true);
   };
@@ -245,8 +251,6 @@ export default function NurseManagementPage() {
       if (deleteUser.fulfilled.match(resultAction)) {
         toast.success("Đã xóa tài khoản y tá thành công!");
         fetchNursesData(); // Tải lại dữ liệu bảng sau khi xóa
-      } else if (deleteUser.rejected.match(resultAction)) {
-        toast.error(resultAction.payload); // Payload chứa thông báo lỗi từ Redux
       }
     } finally {
       setIsSubmitting(false); // Kết thúc loading
@@ -258,7 +262,11 @@ export default function NurseManagementPage() {
     try {
       const payload = {
         ...values,
-        is_active: values.status === "Active",
+        is_active: values.status === "Active", // Map Vietnamese string back to boolean
+        // Format dayofbirth to YYYY-MM-DD string
+        dayofbirth: values.dayofbirth
+          ? format(new Date(values.dayofbirth), "yyyy-MM-dd")
+          : null,
       };
       delete payload.status;
 
@@ -275,14 +283,15 @@ export default function NurseManagementPage() {
           setIsModalVisible(false); // Đóng modal ngay lập tức
           form.resetFields(); // Reset form
           fetchNursesData(); // Cập nhật bảng
-        } else if (updateUser.rejected.match(resultAction)) {
-          toast.error(resultAction.payload);
         }
       } else {
         const resultAction = await dispatch(
           createUser({
-            endpointPath: CURRENT_ROLE_INFO.endpoint,
-            userData: { ...payload, role_id: CURRENT_ROLE_INFO.id }, // Thêm role_id khi tạo mới
+            endpointPath: CURRENT_ROLE_INFO.registerEndpoint,
+            userData: {
+              ...payload,
+              role_name: CURRENT_ROLE_INFO.path,
+            }, // Thêm role_id khi tạo mới
           })
         );
         if (createUser.fulfilled.match(resultAction)) {
@@ -307,6 +316,8 @@ export default function NurseManagementPage() {
       String(value).toLowerCase().includes(searchText.toLowerCase())
     )
   );
+
+  console.log(filteredNurses);
 
   // Logic hiển thị mới - Điều chỉnh lại dựa trên Redux loading và dữ liệu
   const showNoResultsImage =
@@ -531,8 +542,12 @@ export default function NurseManagementPage() {
           >
             {/* Họ tên */}
             <Form.Item
-              name="full_name"
-              label="Họ và tên"
+              name="fullname"
+              label={
+                <span className="flex items-center gap-2">
+                  <FiUser className="text-blue-500" /> Họ và tên
+                </span>
+              }
               rules={[
                 { required: true, message: "Vui lòng nhập họ tên!" },
                 {
@@ -546,10 +561,88 @@ export default function NurseManagementPage() {
               <Input placeholder="Nhập họ và tên" className="..." />
             </Form.Item>
 
+            {/* dayofbirth */}
+            <Form.Item
+              name="dayofbirth"
+              label={
+                <span className="flex items-center gap-2">
+                  <FiCalendar className="text-blue-500" /> Ngày sinh
+                </span>
+              }
+              rules={[
+                {
+                  required: true,
+                  message: "Vui lòng chọn Ngày tháng năm sinh!",
+                },
+              ]}
+            >
+              <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
+            </Form.Item>
+
+            {/* Major */}
+            <Form.Item
+              name="major"
+              label={
+                <span className="flex items-center gap-2">
+                  <FiBriefcase className="text-blue-500" /> Nghề nghiệp
+                </span>
+              }
+              initialValue="Y tá" // <--- Đặt giá trị mặc định là "Y tá"
+              readOnly
+              rules={[
+                { required: true, message: "Vui lòng nhập nghề nghiệp!" },
+              ]}
+            >
+              {/* Sử dụng Input và đặt nó ReadOnly nếu không muốn người dùng chỉnh sửa */}
+              <Input
+                placeholder="Nhập nghề nghiệp"
+                readOnly // <--- Đặt readOnly để người dùng không sửa được
+                className="..."
+              />
+            </Form.Item>
+
+            {/* gender */}
+            <Form.Item
+              name="gender"
+              label={
+                <span className="flex items-center gap-2">
+                  <FiUser className="text-blue-500" /> Giới tính
+                </span>
+              }
+              rules={[{ required: true, message: "Vui lòng chọn giới tính!" }]}
+              // initialValue có thể để trống hoặc đặt giá trị mặc định "Nam" hoặc "Nữ"
+              // initialValue={editingNurse ? (editingNurse.gender === 'male' ? 'Nam' : 'Nữ') : undefined}
+              // Hoặc nếu backend lưu 'Nam'/'Nữ' thì giữ nguyên:
+              initialValue={editingNurse ? editingNurse.gender : undefined} // Dựa vào dữ liệu từ backend
+            >
+              <Select placeholder="Chọn giới tính" className="...">
+                <Option value="Male">Nam</Option>
+                <Option value="Female">Nữ</Option>
+                {/* Nếu bạn có thêm giới tính khác, có thể thêm Option ở đây */}
+              </Select>
+            </Form.Item>
+
+            {/* Address */}
+            <Form.Item
+              name="address"
+              label={
+                <span className="flex items-center gap-2">
+                  <FiHome className="text-blue-500" /> Địa chỉ
+                </span>
+              }
+              rules={[{ required: true, message: "Vui lòng nhập địa chỉ!" }]}
+            >
+              <Input placeholder="Địa chỉ thường chú" className="..." />
+            </Form.Item>
+
             {/* Email */}
             <Form.Item
               name="email"
-              label="Email"
+              label={
+                <span className="flex items-center gap-2">
+                  <FiMail className="text-blue-500" /> Email
+                </span>
+              }
               rules={[
                 { required: true, message: "Vui lòng nhập email!" },
                 { type: "email", message: "Email không hợp lệ!" },
@@ -562,7 +655,11 @@ export default function NurseManagementPage() {
             {/* Số điện thoại */}
             <Form.Item
               name="phone"
-              label="Số điện thoại"
+              label={
+                <span className="flex items-center gap-2">
+                  <FiPhone className="text-blue-500" /> Số điện thoại
+                </span>
+              }
               rules={[
                 { required: true, message: "Vui lòng nhập số điện thoại!" },
                 {
@@ -575,26 +672,14 @@ export default function NurseManagementPage() {
               <Input placeholder="Số điện thoại liên hệ" className="..." />
             </Form.Item>
 
-            {/* Chuyên môn */}
-            <Form.Item
-              name="specialty"
-              label="Chuyên môn"
-              rules={[
-                { required: true, message: "Vui lòng nhập chuyên môn!" },
-                { min: 3, message: "Ít nhất 3 ký tự." },
-                { max: 50, message: "Không vượt quá 50 ký tự." },
-              ]}
-            >
-              <Input
-                placeholder="VD: Y tá nhi, Hồi sức cấp cứu..."
-                className="..."
-              />
-            </Form.Item>
-
             {/* Trạng thái */}
             <Form.Item
               name="status"
-              label="Trạng thái"
+              label={
+                <span className="flex items-center gap-2">
+                  <FiTag className="text-blue-500" /> Trạng thái
+                </span>
+              }
               rules={[{ required: true, message: "Vui lòng chọn trạng thái!" }]}
             >
               <Select placeholder="Chọn trạng thái" className="...">
@@ -607,7 +692,11 @@ export default function NurseManagementPage() {
             {!editingNurse && (
               <Form.Item
                 name="password"
-                label="Mật khẩu"
+                label={
+                  <span className="flex items-center gap-2">
+                    <FiLock className="text-blue-500" /> Mật khẩu
+                  </span>
+                }
                 rules={[
                   { required: true, message: "Vui lòng nhập mật khẩu!" },
                   { min: 6, message: "Ít nhất 6 ký tự." },

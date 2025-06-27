@@ -1,13 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mail, Heart, ArrowLeft } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useDispatch, useSelector } from "react-redux"; // Import Redux hooks
+import {
+  sendOtp,
+  clearAuthSuccess,
+  clearAuthError,
+} from "../redux/auth/authSlice";
 
 const ForgotPasswordPage = () => {
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const dispatch = useDispatch();
+  const { loading, error, success } = useSelector((state) => state.auth); // Assuming 'auth' is the slice name in your store
 
+  const [input, setInput] = useState("");
+  const [localError, setLocalError] = useState(""); // Use a local error for client-side validation
+
+  // Client-side input validation
   const validateInput = (value) => {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     const phoneRegex = /^(0|\+84)(3|5|7|8|9)\d{8}$/;
@@ -24,23 +33,31 @@ const ForgotPasswordPage = () => {
     e.preventDefault();
     const validationError = validateInput(input);
     if (validationError) {
-      setError(validationError);
+      setLocalError(validationError); // Set local validation error
       return;
     }
 
-    setLoading(true);
-    try {
-      // Simulating API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      toast.success("OTP sent successfully!");
-      setError("");
-    } catch (err) {
-      toast.error("Failed to send OTP. Please try again.");
-      console.error("Error:", err);
-    } finally {
-      setLoading(false);
-    }
+    // Clear any previous Redux error before dispatching
+    dispatch(clearAuthError());
+
+    // Dispatch the Redux thunk
+    dispatch(sendOtp({ username: input })); // 'identifier' could be 'email' or 'phone' based on your API
   };
+
+  // Effect to handle Redux errors and success messages
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      dispatch(clearAuthError()); // Clear the error after displaying
+    }
+    if (success) {
+      toast.success("OTP sent successfully!");
+      dispatch(clearAuthSuccess()); // Clear the success state after displaying
+      setLocalError(""); // Clear any local validation errors on success
+      // Optionally clear input here or redirect
+      // setInput('');
+    }
+  }, [error, success, dispatch]);
 
   return (
     <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4">
@@ -54,7 +71,7 @@ const ForgotPasswordPage = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Nhập Email hoặc số diện thoại
+              Nhập Email hoặc số điện thoại
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -65,16 +82,21 @@ const ForgotPasswordPage = () => {
                 value={input}
                 onChange={(e) => {
                   setInput(e.target.value);
-                  setError("");
+                  setLocalError(""); // Clear local error on input change
+                  dispatch(clearAuthError()); // Also clear Redux error on input change
                 }}
                 className={`block w-full pl-10 pr-3 py-3 border ${
-                  error ? "border-red-500" : "border-gray-300"
+                  localError || error ? "border-red-500" : "border-gray-300"
                 } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
-                placeholder="Nhập Email hoặc số diện thoại để tạo mật khẩu mới"
+                placeholder="Nhập Email hoặc số điện thoại để tạo mật khẩu mới"
                 maxLength={50}
               />
             </div>
-            {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+            {localError && (
+              <p className="mt-2 text-sm text-red-600">{localError}</p>
+            )}
+            {/* Redux error will be shown via toast, but if you want it here as well: */}
+            {/* {error && !localError && <p className="mt-2 text-sm text-red-600">{error}</p>} */}
           </div>
 
           <button

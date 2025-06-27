@@ -70,16 +70,6 @@ export function DocumentsSection() {
                           </div>
                         </div>
                       </div>
-                      {/* Nút "Tải về" riêng biệt */}
-                      <a
-                        href={doc.filePath} // Sử dụng filePath từ dữ liệu
-                        download
-                        className="flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium"
-                        onClick={(e) => e.stopPropagation()} // Ngăn chặn sự kiện click lan truyền lên div cha
-                      >
-                        <DownloadIcon className="h-4 w-4 mr-1" />
-                        Tải về
-                      </a>
                     </div>
                   </div>
                 ))}

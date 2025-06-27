@@ -1,46 +1,44 @@
-import React from "react";
-import { Card, Statistic } from "antd";
-
-import {
-  FaGraduationCap,
-  FaUser,
-  FaUsers,
-  FaHeart,
-  FaDollarSign,
-  FaChartLine,
-  FaExclamationTriangle,
-} from "react-icons/fa";
+import React, { useEffect } from "react";
+import { Card, Statistic, Skeleton } from "antd";
+import { FaGraduationCap, FaUser, FaUsers, FaHeart } from "react-icons/fa";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchUserCounts } from "../../redux/dashboard/dashboardSlice";
 
 const DashboardCards = () => {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(fetchUserCounts());
+  }, [dispatch]);
+
+  const { totalManagers, totalNurses, totalParents, loading } = useSelector(
+    (state) => state.dashboard
+  );
+
   const data = [
     {
-      title: "Tổng số sinh viên",
-      value: 1247,
-      percentChange: 5,
-      icon: <FaGraduationCap />,
-      // THAY ĐỔI Ở ĐÂY: Sử dụng 'iconWrapperClassName' để định nghĩa toàn bộ style icon
-      iconWrapperClassName: "bg-blue-500 text-white", // Nền xanh nhạt, icon xanh đậm
-    },
-    {
-      title: "Tổng số giáo viên",
-      value: 89,
-      percentChange: 2,
-      icon: <FaUser />,
-      iconWrapperClassName: "bg-green-500 text-white", // Nền xanh lá nhạt, icon xanh lá đậm
-    },
-    {
       title: "Tổng số phụ huynh",
-      value: 1156,
-      percentChange: 3,
+      value: totalParents,
       icon: <FaUsers />,
-      iconWrapperClassName: "bg-purple-500 text-white", // Nền tím nhạt, icon tím đậm
+      iconWrapperClassName: "bg-purple-500 text-white",
     },
     {
-      title: "Nhân viên y tế",
-      value: 12,
-      percentChange: 0,
+      title: "Tổng số nhân viên y tế",
+      value: totalNurses,
       icon: <FaHeart />,
-      iconWrapperClassName: "bg-red-500 text-white", // Nền đỏ nhạt, icon đỏ đậm
+      iconWrapperClassName: "bg-red-500 text-white",
+    },
+    {
+      title: "Tổng số quản lý trường",
+      value: totalManagers,
+      icon: <FaUser />,
+      iconWrapperClassName: "bg-green-500 text-white",
+    },
+    {
+      title: "Tổng số sinh viên (giả lập)",
+      value: 1247, // Hoặc thay bằng state nếu có
+      icon: <FaGraduationCap />,
+      iconWrapperClassName: "bg-blue-500 text-white",
     },
   ];
 
@@ -57,22 +55,17 @@ const DashboardCards = () => {
               <p className="text-sm font-medium text-gray-500 mb-1">
                 {item.title}
               </p>
-              <Statistic
-                value={item.value}
-                className="text-xl font-semibold text-gray-800"
-              />
-              <p
-                className={`text-xs font-medium mt-1 ${
-                  item.percentChange >= 0 ? "text-green-500" : "text-red-500"
-                }`}
-              >
-                {item.percentChange > 0
-                  ? `+${item.percentChange}%`
-                  : `${item.percentChange}%`}
-              </p>
+              {loading ? (
+                <Skeleton active paragraph={false} title={{ width: 60 }} />
+              ) : (
+                <Statistic
+                  value={item.value}
+                  className="text-xl font-semibold text-gray-800"
+                />
+              )}
             </div>
             <div
-              className={`p-5  my-4 rounded-full flex items-center justify-center text-3xl ${item.iconWrapperClassName}`}
+              className={`p-5 my-4 rounded-full flex items-center justify-center text-3xl ${item.iconWrapperClassName}`}
             >
               {item.icon}
             </div>

@@ -1,7 +1,12 @@
 const express = require("express");
 const { createSchedule } = require("../Controller/CheckUp/checkupController");
 
-const { saveCheckupResult, updateCheckupNote } = require("../Controller/CheckUp/saveCheckupResult");
+const {
+  saveCheckupResult,
+  updateCheckup,
+  getCheckupParticipation,
+  getCheckupParticipationById,
+} = require("../Controller/CheckUp/saveCheckupResult");
 
 const authenticateToken = require("../middlewares/authMiddlewares");
 const validateInput = require("../Utils/validateInput");
@@ -23,6 +28,19 @@ const {
   getIncidentByStudentId,
 } = require("../Controller/Medical/medical_Incident");
 const { getAllMedicalSupplies, getMedicalSupplyByID } = require("../Controller/Medical/medicalSupply");
+const {
+  getVaccinationCampaign,
+  getVaccinationCampaignById,
+  getVaccinationCampaignPending,
+  getVaccinationCampaignApprove,
+} = require("../Controller/Vaccine/getVaccineCampaign");
+const { createVaccinationCampaign } = require("../Controller/Vaccine/VaccineController");
+const {
+  getStudentVaccineList,
+  getStudentVaccineListById,
+  updateResultVaccine,
+  updateVaccine,
+} = require("../Controller/Vaccine/UpdateVaccineResult");
 
 const nurseRouter = express.Router();
 
@@ -35,7 +53,11 @@ nurseRouter.get("/checkups", getCheckupList);
 // 📌 Xem chi tiết một lịch khám theo ID
 nurseRouter.get("/checkups/:id", getCheckupById);
 
-// 📌 Lấy danh sách lịch khám đã được duyệt (để thực hiện khám)
+// 📌 Lấy danh sách học sinh đã được duyệt (để thực hiện khám)
+nurseRouter.get("/checkups-approved", getCheckupParticipation);
+
+// Lấy danh học sinh đã được duyệt
+nurseRouter.get("/checkups-approved/:id", getCheckupParticipationById);
 
 // 📌 Lưu kết quả khám sức khỏe cho học sinh
 nurseRouter.post(
@@ -45,7 +67,7 @@ nurseRouter.post(
 );
 
 // 📌 Cập nhật ghi chú (note) cho học sinh trong lịch khám
-nurseRouter.patch("/checkups/:checkup_id/students/:student_id/note", updateCheckupNote);
+nurseRouter.patch("/checkups/:checkup_id/students/:student_id/note", updateCheckup);
 
 // Lấy lịch khám đã được duyệt (để thực hiện khám)
 nurseRouter.get("/checkups-approved", getCheckupListApproved);
@@ -82,6 +104,33 @@ nurseRouter.get("/medical-supplies", getAllMedicalSupplies);
 
 // Lấy danh sách vật tư y tế theo ID
 nurseRouter.get("/medical-supplies/:supplyId", getMedicalSupplyByID);
+
+// Lấy danh sách lịch tiêm chủng
+nurseRouter.get("/vaccine-campaigns", getVaccinationCampaign);
+
+// Lấy chi tiết một lịch tiêm chủng theo ID
+nurseRouter.get("/vaccine-campaigns/:id", getVaccinationCampaignById);
+
+// Lấy danh sách lịch tiêm chủng đã bị từ chối
+nurseRouter.get("/vaccine-campaigns-declined", getVaccinationCampaignPending);
+
+// Lấy danh sách lịch tiêm chủng đã chấp thuận
+nurseRouter.get("/vaccine-campaigns-approved", getVaccinationCampaignApprove);
+
+// Tạo lịch tiêm chủng
+nurseRouter.post("/vaccine-campaigns/create", authenticateToken, createVaccinationCampaign);
+
+// Lấy danh sách học sinh đã duyệt
+nurseRouter.get("/vaccine-campaigns-students", getStudentVaccineList);
+
+// Lấy  học sinh đã duyệt
+nurseRouter.get("/vaccine-campaigns-students/:id", getStudentVaccineListById);
+
+// Cập nhật trạng thái của học sinh
+nurseRouter.post("/vaccine-campaigns-students/:id", updateResultVaccine);
+
+// Cập nhật note của học sinh
+nurseRouter.patch("/vaccine-campaigns-students/:id", updateVaccine);
 
 //lấy thông báo
 nurseRouter.get("/notifications", authenticateToken, getNotifications);
