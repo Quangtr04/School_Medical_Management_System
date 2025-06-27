@@ -20,4 +20,5 @@ adminRouter.get("/managers/:user_id", getUserByUserId);
 
 adminRouter.get("/nurses/:user_id", getUserByUserId);
 
+
 module.exports = adminRouter;
