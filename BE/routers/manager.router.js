@@ -6,9 +6,7 @@ const {
   getCheckupList,
   getCheckupById,
   getCheckupListApproved,
-  getCheckupApprovedById,
   getCheckupListDeclined,
-  getCheckupDeclinedById,
 } = require("../Controller/CheckUp/getCheckup");
 const { getNotifications } = require("../Controller/Notification/getNotification");
 const authenticateToken = require("../middlewares/authMiddlewares");
@@ -40,11 +38,9 @@ managerRouter.get("/checkups/:id", getCheckupById);
 
 // Lấy lịch khám đã duyệt
 managerRouter.get("/checkups-approved", getCheckupListApproved);
-managerRouter.get("/checkups-approved/:id", getCheckupApprovedById);
 
 // Lấy lịch khám bị từ chối
 managerRouter.get("/checkups-declined", getCheckupListDeclined);
-managerRouter.get("/checkups-declined/:id", getCheckupDeclinedById);
 
 // 📌 Xóa một lịch khám theo ID
 managerRouter.delete("/checkups/:id", deleteSchedule);

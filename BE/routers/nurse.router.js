@@ -13,11 +13,10 @@ const validateInput = require("../Utils/validateInput");
 const Schemas = require("../Schemas/Schemas");
 const {
   getCheckupListApproved,
-  getCheckupApprovedById,
   getCheckupList,
   getCheckupListDeclined,
-  getCheckupDeclinedById,
   getCheckupById,
+  getCheckupListPending,
 } = require("../Controller/CheckUp/getCheckup");
 const { getNotifications } = require("../Controller/Notification/getNotification");
 const {
@@ -54,10 +53,10 @@ nurseRouter.get("/checkups", getCheckupList);
 nurseRouter.get("/checkups/:id", getCheckupById);
 
 // 📌 Lấy danh sách học sinh đã được duyệt (để thực hiện khám)
-nurseRouter.get("/checkups-approved", getCheckupParticipation);
+nurseRouter.get("/checkups-approved/students", getCheckupParticipation);
 
 // Lấy danh học sinh đã được duyệt
-nurseRouter.get("/checkups-approved/:id", getCheckupParticipationById);
+nurseRouter.get("/checkups-approved/:checkup_id/students", getCheckupParticipationById);
 
 // 📌 Lưu kết quả khám sức khỏe cho học sinh
 nurseRouter.post(
@@ -72,12 +71,11 @@ nurseRouter.patch("/checkups/:checkup_id/students/:student_id/note", updateCheck
 // Lấy lịch khám đã được duyệt (để thực hiện khám)
 nurseRouter.get("/checkups-approved", getCheckupListApproved);
 
-// Lấy chi tiết một lịch khám đã được duyệt
-nurseRouter.get("/checkups-approved/:id", getCheckupApprovedById);
-
 // Lấy lịch khám bị từ chối
 nurseRouter.get("/checkups-declined", getCheckupListDeclined);
-nurseRouter.get("/checkups-declined/:id", getCheckupDeclinedById);
+
+// Lấy lịch khám bị đang chờ xét duyệt
+nurseRouter.get("/checkups-pending", getCheckupListPending);
 
 // Ghi nhận y tế
 nurseRouter.post(

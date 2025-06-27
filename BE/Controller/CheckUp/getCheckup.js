@@ -105,34 +105,14 @@ const getCheckupListDeclined = async (req, res, next) => {
   }
 };
 
-const getCheckupApprovedById = async (req, res, next) => {
-  const { id } = req.params;
+const getCheckupListPending = async (req, res, next) => {
   try {
     const pool = await sqlServerPool;
 
     // Lấy danh sách lịch khám sức khỏe
     const checkupList = await pool
       .request()
-      .input("id", sql.Int, id)
-      .query(`SELECT * FROM Medical_Checkup_Schedule WHERE approval_status = 'APPROVED' WHERE checkup_id = @id`);
-
-    res.status(200).json({ checkups: checkupList.recordset });
-  } catch (error) {
-    console.error("Error fetching checkup list:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-const getCheckupDeclinedById = async (req, res, next) => {
-  const { id } = req.params;
-  try {
-    const pool = await sqlServerPool;
-
-    // Lấy danh sách lịch khám sức khỏe
-    const checkupList = await pool
-      .request()
-      .input("id", sql.Int, id)
-      .query(`SELECT * FROM Medical_Checkup_Schedule WHERE approval_status = 'DECLINED' WHERE checkup_id = @id`);
+      .query(`SELECT * FROM Medical_Checkup_Schedule WHERE approval_status = 'PENDING'`);
 
     res.status(200).json({ checkups: checkupList.recordset });
   } catch (error) {
@@ -145,9 +125,8 @@ module.exports = {
   getCheckupList,
   getCheckupListApproved,
   getCheckupListDeclined,
-  getCheckupApprovedById,
-  getCheckupDeclinedById,
   getCheckupById,
   getCheckupListByIdAndParentId,
   getCheckupListByParentId,
+  getCheckupListPending,
 };

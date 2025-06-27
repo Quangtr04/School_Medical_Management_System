@@ -151,13 +151,12 @@ const getCheckupParticipation = async (req, res, next) => {
 };
 
 const getCheckupParticipationById = async (req, res, next) => {
-  const id = req.params;
+  const { checkup_id } = req.params;
   try {
     const pool = await sqlServerPool;
-    const checkupList = await pool
-      .request()
-      .input("id", sql.Int, id)
-      .query(`SELECT * FROM Checkup_Participation WHERE id = @id`);
+    const checkupList = await pool.request().input("id", sql.Int, checkup_id).query(`
+        SELECT CP.*, SI.full_name FROM Checkup_Participation CP JOIN Student_Information SI ON CP.student_id = SI.student_id
+        WHERE CP.id = @id`);
     res.status(200).json({ checkups: checkupList.recordset });
   } catch (error) {
     console.error("Error fetching checkup list:", error);
