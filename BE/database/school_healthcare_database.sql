@@ -205,3 +205,17 @@ CREATE TABLE Notification (
     ON DELETE CASCADE -- (Tùy chọn: khi xóa user thì xóa luôn thông báo)
 );
 
+CREATE TABLE UserRequest (
+  req_id INT IDENTITY(1,1) PRIMARY KEY,
+  fullname NVARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  phone VARCHAR(20) NOT NULL,
+  title NVARCHAR(255) NOT NULL,
+  req_type VARCHAR(20) NOT NULL, 
+  text NVARCHAR(MAX) NOT NULL,
+  created_at DATETIME DEFAULT GETDATE(),
+  status VARCHAR(20) DEFAULT 'PENDING', 
+  target_role_id INT NOT NULL,
+
+  FOREIGN KEY (target_role_id) REFERENCES Role(role_id)
+);

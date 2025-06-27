@@ -9,40 +9,56 @@ function validateInput(schemaDefinitions, schemaName) {
     }
 
     for (const key in schema) {
-      const { type, required } = schema[key];
+      const { type, required, items } = schema[key];
       let value = data[key];
 
-      // Nếu là required nhưng không có giá trị
       if (required && (value === undefined || value === null || value === "")) {
         errors.push(`Missing field: ${key}`);
         continue;
       }
 
-      // Nếu không required và không có giá trị → bỏ qua
       if (!required && (value === undefined || value === null || value === "")) {
         continue;
       }
 
-      // 👉 Xử lý trước khi validate kiểu boolean (chuyển đổi string/int về boolean)
       if (type === "boolean") {
         if (value === "true" || value === 1) value = true;
         else if (value === "false" || value === 0) value = false;
-        // Gán lại vào body để controller dùng đúng kiểu
         data[key] = value;
       }
 
-      // Kiểm tra kiểu dữ liệu
+      // ✅ Kiểm tra array các object
+      if (type === "array") {
+        if (!Array.isArray(value)) {
+          errors.push(`Invalid type for field: ${key}. Expected array.`);
+          continue;
+        }
+
+        if (items && items.type === "object" && items.properties) {
+          value.forEach((item, index) => {
+            for (const prop in items.properties) {
+              const propDef = items.properties[prop];
+              const propValue = item[prop];
+              if (propDef.required && (propValue === undefined || propValue === null || propValue === "")) {
+                errors.push(`Missing field: ${key}[${index}].${prop}`);
+              } else if (!isValidType(propValue, propDef.type)) {
+                errors.push(`Invalid type in ${key}[${index}].${prop}. Expected ${propDef.type}.`);
+              }
+            }
+          });
+        }
+        continue; // ✅ Đã kiểm tra xong array, bỏ qua kiểm tra thường
+      }
+
       if (!isValidType(value, type)) {
         errors.push(`Invalid type for field: ${key}. Expected ${type}.`);
       }
     }
 
-    // Validate email nếu có
     if (data.email && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(data.email)) {
-      errors.push("Invalid email format. Only '@gmail.com' is accepted.");
+      errors.push("Invalid email format.");
     }
 
-    // Validate số điện thoại nếu có
     if (data.phone && !/^0(3|5|7|8|9)\d{8}$/.test(data.phone)) {
       errors.push("Invalid phone number format.");
     }
@@ -58,17 +74,24 @@ function validateInput(schemaDefinitions, schemaName) {
 function isValidType(value, type) {
   switch (type) {
     case "string":
+    case "text":
       return typeof value === "string";
     case "int":
-      return Number.isInteger(value);
+      return !isNaN(value) && Number.isInteger(Number(value)); // chấp nhận cả "1"
     case "float":
-      return typeof value === "number";
+    case "number":
+      return !isNaN(value);
     case "email":
       return typeof value === "string";
     case "date":
+    case "datetime":
       return !isNaN(Date.parse(value));
     case "boolean":
       return typeof value === "boolean";
+    case "array":
+      return Array.isArray(value);
+    case "object":
+      return typeof value === "object" && !Array.isArray(value) && value !== null;
     default:
       return false;
   }

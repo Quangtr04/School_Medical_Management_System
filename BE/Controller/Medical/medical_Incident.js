@@ -2,22 +2,25 @@ const sql = require("mssql");
 const sqlServerPool = require("../../Utils/connectMySql");
 const { getStudentIdByName } = require("../../Utils/getStudentIdByName");
 const { getSupplyByName, getSupplyById } = require("../../Utils/Supply");
-const { getServirityIdByName } = require("../../Utils/serverity");
+const { getServerityIdByName } = require("../../Utils/serverity");
 const sendNotification = require("../../Utils/sendNotification");
-const { get } = require("http");
 
 const createMedicalIncident = async (req, res) => {
   const IncidentData = req.body;
-  const nurse_id = req.user?.user_id;
+  const nurse_id = req.user.user_id;
+  console.log(IncidentData);
 
   try {
     const pool = await sqlServerPool;
 
-    // Get student ID
+    // Lấy student_id từ tên học sinh
     const studentId = await getStudentIdByName(IncidentData.student_name);
-    if (!studentId) return res.status(404).json({ error: "Student not found" });
 
-    // Get parent_id
+    if (!studentId) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+
+    // Lấy parent_id
     const parentQuery = await pool
       .request()
       .input("student_id", sql.Int, studentId)
@@ -27,14 +30,12 @@ const createMedicalIncident = async (req, res) => {
 
     const subject_info_id = parentQuery.recordset[0].parent_id;
 
-    // Get supply_id and serverity_id
-    const supply_id = await getSupplyByName(IncidentData.supply_name);
-    const serverity_id = await getServirityIdByName(IncidentData.serverity_name);
+    // Lấy serverity_id
+    const serverity_id = await getServerityIdByName(IncidentData.severity_level);
 
-    const request = pool.request();
-
-    // Insert into Medical_Incident and get event_id
-    const insertIncident = await request
+    // Insert sự kiện vào bảng Medical_Incident
+    const insertIncident = await pool
+      .request()
       .input("serverity_id", sql.Int, serverity_id)
       .input("subject_info_id", sql.Int, subject_info_id)
       .input("student_id", sql.Int, studentId)
@@ -44,7 +45,7 @@ const createMedicalIncident = async (req, res) => {
       .input("status", sql.VarChar(50), IncidentData.status)
       .input("resolution_notes", sql.NVarChar(sql.MAX), IncidentData.resolution_notes || null)
       .input("resolved_at", sql.DateTime, IncidentData.resolved_at || null).query(`
-        INSERT INTO Medical_incident (
+        INSERT INTO Medical_Incident (
           serverity_id, subject_info_id, student_id, description,
           occurred_at, reported_at, nurse_id, status,
           resolution_notes, resolved_at
@@ -59,37 +60,52 @@ const createMedicalIncident = async (req, res) => {
 
     const event_id = insertIncident.recordset[0].event_id;
 
-    // Insert log vào Incident_Medication_Log
-    await pool
-      .request()
-      .input("event_id", sql.Int, event_id)
-      .input("supply_id", sql.Int, supply_id)
-      .input("quantity_used", sql.Int, IncidentData.quantity_used).query(`
-        INSERT INTO Incident_Medication_Log (event_id, supply_id, quantity_used)
-        VALUES (@event_id, @supply_id, @quantity_used);
-      `);
+    // Duyệt qua từng thuốc được sử dụng
+    for (const med of IncidentData.medication_used) {
+      const { supply_name, quantity_used } = med;
 
-    // Trừ số lượng trong kho
-    const SupplyById = await getSupplyById(supply_id);
-    if (!SupplyById) return res.status(404).json({ error: "Supply not found" });
+      const supply_id = await getSupplyByName(supply_name);
+      const SupplyById = await getSupplyById(supply_id);
 
-    const quantity = parseInt(SupplyById.quantity, 10);
-    const quantityUsed = parseInt(IncidentData.quantity_used, 10);
-    const quantityRemaining = quantity - quantityUsed;
+      if (!SupplyById) {
+        return res.status(404).json({ error: `Supply not found: ${supply_name}` });
+      }
 
-    if (quantityRemaining < 0) return res.status(400).json({ error: "Not enough supply in stock" });
+      //lấy và chuyển giá trị về thập phân
+      const quantity = parseInt(SupplyById.quantity, 10);
+      const used = parseInt(quantity_used, 10);
+      const remaining = quantity - used;
 
-    await pool.request().input("supply_id", sql.Int, supply_id).input("quantity", sql.Int, quantityRemaining).query(`
-        UPDATE Medical_Supply
-        SET quantity = @quantity
-        WHERE supply_id = @supply_id;
-      `);
+      if (remaining < 0) {
+        return res.status(400).json({ error: `Not enough '${supply_name}' in stock` });
+      }
+
+      // Ghi log sử dụng thuốc
+      await pool
+        .request()
+        .input("event_id", sql.Int, event_id)
+        .input("supply_id", sql.Int, supply_id)
+        .input("quantity_used", sql.Int, used).query(`
+          INSERT INTO Incident_Medication_Log (event_id, supply_id, quantity_used)
+          VALUES (@event_id, @supply_id, @quantity_used);
+        `);
+
+      // Cập nhật số lượng còn lại trong kho
+      await pool.request().input("supply_id", sql.Int, supply_id).input("quantity", sql.Int, remaining).query(`
+          UPDATE Medical_Supply
+          SET quantity = @quantity
+          WHERE supply_id = @supply_id;
+        `);
+    }
+
+    // Gửi thông báo cho phụ huynh
     await sendNotification(
       pool,
       subject_info_id,
       "Medical Incident Reported",
       `A medical incident has been reported for your child ${IncidentData.student_name}. Please check the details in the system.`
     );
+
     return res.status(201).json({
       message: "Medical incident and medication log created successfully",
       event_id,

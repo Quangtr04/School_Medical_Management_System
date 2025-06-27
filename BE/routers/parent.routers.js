@@ -38,6 +38,8 @@ const {
   getResponseConsentVaccineParent,
 } = require("../Controller/Vaccine/consentVaccineController");
 const { UpdateResponseByParent } = require("../Controller/Vaccine/UpdateResponseVaccine");
+const { getUserByUserId } = require("../Controller/Infomation/getUser");
+const { parentUpdateUserById } = require("../Controller/Login/account_status");
 
 const parentRouter = express.Router();
 
@@ -46,6 +48,12 @@ const parentRouter = express.Router();
  * 🔍 Xem danh sách con cái của phụ huynh
  */
 parentRouter.get("/students", authenticateToken, getAllStudentByParentId); //done
+
+// Lấy thông tin cá nhân
+parentRouter.get("profile/:user_id", authenticateToken, getUserByUserId);
+
+// Cập nhật thông tin
+parentRouter.patch("/profile/:user_id", authenticateToken, parentUpdateUserById);
 
 /**
  * 🔍 Xem thông tin chi tiết của 1 học sinh

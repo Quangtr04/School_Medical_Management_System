@@ -81,7 +81,7 @@ nurseRouter.get("/checkups-declined/:id", getCheckupDeclinedById);
 
 // Ghi nhận y tế
 nurseRouter.post(
-  "/Create Incident",
+  "/create-incident",
   authenticateToken,
   validateInput(Schemas, "MedicalIncidentSchema"),
   createMedicalIncident

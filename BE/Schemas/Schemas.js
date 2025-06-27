@@ -1,3 +1,5 @@
+const { type } = require("os");
+
 const Information = {
   role_name: { type: "string", required: true },
   role_id: { type: "int", required: false },
@@ -76,19 +78,33 @@ const MedicalSupply = {
 };
 
 const MedicalIncidentSchema = {
-  serverity_name: { type: "string", required: true },
-  student_id: { type: "int", required: true },
-  description: { type: "text", required: false },
-  occurred_at: { type: "datetime", required: true },
+  student_name: { type: "string", required: true },
+  description: { type: "string", required: false },
+  occurred_at: { type: "string", required: true }, // ISO 8601 string
   status: {
     type: "string",
     required: true,
-    enum: ["OPEN", "IN_PROGRESS", "RESOLVED"],
+    enum: ["NEW", "IN_PROGRESS", "RESOLVED", "MONITORING"],
   },
-  resolution_notes: { type: "text", required: false },
-  resolved_at: { type: "datetime", required: false },
-  supply_name: { type: "string", required: true },
-  quantity_used: { type: "int", required: true },
+  description_detail: { type: "string", required: true },
+  resolution_notes: { type: "string", required: false },
+  resolved_at: { type: "string", required: false }, // hoặc null
+  medication_used: {
+    type: "array",
+    required: true,
+    items: {
+      type: "object",
+      properties: {
+        supply_name: { type: "string", required: true },
+        quantity_used: { type: "int", required: true },
+      },
+    },
+  },
+  severity_level: {
+    type: "string",
+    required: true,
+    enum: ["Nặng", "Nguy kịch", "Nhẹ", "Vừa"],
+  },
 };
 
 module.exports = {

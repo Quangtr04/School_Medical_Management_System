@@ -8,7 +8,7 @@ async function getSupplyByName(supply_name) {
     .input("supply_name", sql.NVarChar, supply_name)
     .query("SELECT supply_id FROM Medical_Supply WHERE UPPER(name) = UPPER(@supply_name)");
   if (result.recordset.length > 0) {
-    return result.recordset[0];
+    return result.recordset[0].supply_id;
   } else {
     throw new Error(`Supply '${supply_name}' not found`);
   }
@@ -19,7 +19,7 @@ async function getSupplyById(supply_id) {
 
   const result = await pool
     .request()
-    .input("supply_id", sql.Int, supplyId)
+    .input("supply_id", sql.Int, supply_id)
     .query("SELECT * FROM Medical_Supply WHERE supply_id = @supply_id");
 
   if (result.recordset.length > 0) {
