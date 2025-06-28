@@ -5,6 +5,7 @@ const loginRouter = require("../routers/login.routers");
 const adminRouter = require("../routers/admin.routers");
 const nurseRouter = require("../routers/nurse.router");
 const managerRouter = require("../routers/manager.router");
+const { swaggerUi, swaggerSpec } = require("../Utils/swaggerOptions");
 const app = express();
 const port = 3000;
 
@@ -20,6 +21,8 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 app.use(express.json());
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/api/login", loginRouter);
 
@@ -61,4 +64,5 @@ app.listen(port, "0.0.0.0", () => {
   */
 
   console.log(`FE can connect from : ${corsOptions.origin.join(", ")}`);
+  console.log("Swagger docs at http://localhost:3000/api-docs");
 });

@@ -50,7 +50,7 @@ const parentRouter = express.Router();
 parentRouter.get("/students", authenticateToken, getAllStudentByParentId); //done
 
 // Lấy thông tin cá nhân
-parentRouter.get("profile/:user_id", authenticateToken, getUserByUserId);
+parentRouter.get("/profile/:user_id", authenticateToken, getUserByUserId);
 
 // Cập nhật thông tin
 parentRouter.patch("/profile/:user_id", authenticateToken, parentUpdateUserById);
