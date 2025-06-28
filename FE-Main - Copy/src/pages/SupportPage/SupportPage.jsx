@@ -92,7 +92,6 @@ export default function SupportPage() {
       <HeroSection />
       <EmergencyMessage />
       <div style={{ width: "100%", position: "relative" }}>
-        <ContactSection />
         <AppointmentSection />
       </div>
     </>

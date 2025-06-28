@@ -120,7 +120,7 @@ nurseRouter.post("/vaccine-campaigns/create", authenticateToken, createVaccinati
 // Lấy danh sách học sinh đã duyệt
 nurseRouter.get("/vaccine-campaigns-students", getStudentVaccineList);
 
-// Lấy  học sinh đã duyệt
+// Lấy thông tin chi tiết học sinh được duyệt
 nurseRouter.get("/vaccine-campaigns-students/:id", getStudentVaccineListById);
 
 // Cập nhật note của học sinh

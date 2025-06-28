@@ -303,7 +303,7 @@ export default function ParentManagementPage() {
           <FiUser className="text-blue-600" /> Họ và tên
         </span>
       ),
-      dataIndex: "full_name",
+      dataIndex: "fullname",
       key: "full_name",
     },
     {

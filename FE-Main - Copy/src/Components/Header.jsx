@@ -1,16 +1,18 @@
 import { MenuIcon, XIcon, HeartIcon } from "lucide-react";
 import { useState } from "react";
 import { useSelector } from "react-redux";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   RiAdminFill,
   RiParentFill,
   RiNurseFill,
   RiTeamFill,
+  RiUserStarFill,
 } from "react-icons/ri";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const location = useLocation();
 
   const user = useSelector((state) => state.auth.user);
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
@@ -46,76 +48,83 @@ export function Header() {
     }
   };
 
+  const getNavLinkClass =
+    (path, hash = "") =>
+    ({ isActive }) => {
+      const isHomeActive = isActive && path === "/" && !location.hash;
+      const isHashLinkActive = isActive && hash && location.hash === hash;
+      const isCurrentActive = isHomeActive || isHashLinkActive;
+
+      return `
+      text-lg
+      font-medium
+      transition-colors duration-200 ease-in-out
+      ${
+        isCurrentActive
+          ? "text-blue-600 border-b-2 border-blue-600 pb-1"
+          : "text-gray-700 hover:text-blue-600"
+      }
+    `;
+    };
+
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Giữ justify-between để logo trái, nhóm phải phải */}
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center" onClick={handleLinkClick}>
+          {/* Logo (ở bên trái) */}
+          <Link
+            to="/"
+            className="flex items-center flex-shrink-0"
+            onClick={handleLinkClick}
+          >
             <HeartIcon className="h-8 w-8 text-blue-600" />
             <span className="ml-2 text-xl font-bold text-gray-900">
               SchoolHealth
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex md:gap-x-8">
-            <NavLink
-              to="/"
-              className={({ isActive }) =>
-                `text-lg font-medium ${
-                  isActive &&
-                  window.location.pathname === "/" &&
-                  !window.location.hash
-                    ? "text-blue-600 border-b-2 border-blue-600 pb-1"
-                    : "text-gray-700 hover:text-blue-600"
-                }`
-              }
-            >
-              Trang chủ
-            </NavLink>
-            <NavLink
-              to="/#blog-section"
-              className={({ isActive }) =>
-                `text-lg font-medium ${
-                  isActive && window.location.hash === "#blog-section"
-                    ? "text-blue-600 border-b-2 border-blue-600 pb-1"
-                    : "text-gray-700 hover:text-blue-600"
-                }`
-              }
-            >
-              Blog
-            </NavLink>
-            <NavLink
-              to="/#documents-section"
-              className={({ isActive }) =>
-                `text-lg font-medium ${
-                  isActive && window.location.hash === "#documents-section"
-                    ? "text-blue-600 border-b-2 border-blue-600 pb-1"
-                    : "text-gray-700 hover:text-blue-600"
-                }`
-              }
-            >
-              Tài liệu
-            </NavLink>
-          </nav>
+          {/* Desktop Navigation (được căn giữa độc lập) */}
+          {/* Sử dụng mx-auto để đẩy navigation ra giữa giữa logo và phần bên phải */}
+          <div className="hidden md:flex items-center gap-8">
+            <nav className="flex items-center gap-x-16">
+              <NavLink to="/" className={getNavLinkClass("/")}>
+                Trang chủ
+              </NavLink>
+              <NavLink
+                to="/#blog-section"
+                className={getNavLinkClass("/#blog-section", "#blog-section")}
+              >
+                Blog
+              </NavLink>
+              <NavLink
+                to="/#documents-section"
+                className={getNavLinkClass(
+                  "/#documents-section",
+                  "#documents-section"
+                )}
+              >
+                Tài liệu
+              </NavLink>
+            </nav>
+          </div>
 
-          {/* Desktop Right Side */}
-          <div className="hidden md:flex items-center gap-2">
+          {/* Desktop Right Side (ở bên phải) */}
+          <div className="hidden md:flex items-center gap-2 flex-shrink-0">
             {isAuthenticated ? (
               <NavLink
                 to={`/${roleName}`}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:shadow-sm hover:border-blue-400 transition-all"
+                className="flex items-center gap-2 px-4 py-5 hover:shadow-sm hover:border-blue-400 transition-all"
               >
-                <span className="text-sm text-gray-700">
+                <span className="text-medium text-gray-900">
                   Xin chào,{" "}
                   <span className="font-semibold">{user?.fullname}</span>
                 </span>
                 {userRoleId && (
-                  <span className="flex items-center gap-1 text-sm text-blue-600 font-semibold">
-                    {getRoleInfo(userRoleId).icon}
-                    {getRoleInfo(userRoleId).label}
-                  </span>
+                  <div className="flex items-center gap-1 text-sm text-blue-600 font-bold">
+                    <span> {getRoleInfo(userRoleId).icon}</span>
+                    <span>{getRoleInfo(userRoleId).label}</span>
+                  </div>
                 )}
               </NavLink>
             ) : (
@@ -145,71 +154,8 @@ export function Header() {
           </div>
         </div>
       </div>
-
-      {/* {isMenuOpen && (
-        <div className="md:hidden" id="mobile-menu">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <NavLink
-              to="/"
-              className={({ isActive }) =>
-                `block px-3 py-2 rounded-md text-base font-medium ${
-                  isActive
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-                }`
-              }
-              onClick={handleLinkClick}
-            >
-              Trang chủ
-            </NavLink>
-            <NavLink
-              to="/blog"
-              className={({ isActive }) =>
-                `block px-3 py-2 rounded-md text-base font-medium ${
-                  isActive
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-                }`
-              }
-              onClick={handleLinkClick}
-            >
-              Blog
-            </NavLink>
-            <NavLink
-              to="/documents"
-              className={({ isActive }) =>
-                `block px-3 py-2 rounded-md text-base font-medium ${
-                  isActive
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-                }`
-              }
-              onClick={handleLinkClick}
-            >
-              Tài liệu
-            </NavLink>
-          </div>
-
-          <div className="pt-4 pb-3 border-t border-gray-200">
-            <div className="px-5">
-              {isAuthenticated ? (
-                <div className="text-base text-gray-700 text-center font-medium">
-                  Xin chào,{" "}
-                  <span className="font-semibold">{user?.fullname}</span>
-                </div>
-              ) : (
-                <NavLink
-                  to="/login"
-                  className="block w-full text-center bg-blue-600 text-white px-4 py-2 rounded-md text-base font-medium hover:bg-blue-700"
-                  onClick={handleLinkClick}
-                >
-                  Đăng nhập
-                </NavLink>
-              )}
-            </div>
-          </div>
-        </div>
-      )} */}
+      {/* Mobile menu (uncomment to use) */}
+      {/* ... mobile menu code ... */}
     </header>
   );
 }

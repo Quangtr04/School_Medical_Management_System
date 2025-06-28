@@ -33,9 +33,7 @@ export default function ParentHeader() {
   // State để lấy thông tin người dùng từ Redux
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
-
-  // Không cần useEffect để đọc từ localStorage
-  // vì initializeAuth trong App.jsx đã handle việc này rồi
+  // useEffect để đọc thông tin người dùng từ localStorage khi component mount
 
   // Function to handle logout
   const handleLogout = () => {

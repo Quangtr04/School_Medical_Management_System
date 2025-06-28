@@ -9,17 +9,11 @@ import { useSelector, useDispatch } from "react-redux";
 import { message } from "antd"; // Import Ant Design message for notifications
 
 // Import actions from authSlice for notification and initial auth check
-import { clearNotification, initializeAuth } from "./redux/auth/authSlice";
 
 // Import Role Protected Route
 
 // Import Role Constants (create this file if it doesn't exist)
-import {
-  ROLE_ADMIN,
-  ROLE_MANAGER,
-  ROLE_NURSE,
-  ROLE_PARENT,
-} from "./constants/roles"; // Adjust path as needed
+import { ROLE_ADMIN, ROLE_MANAGER, ROLE_NURSE, ROLE_PARENT } from "./data/role"; // Adjust path as needed
 
 // Public Pages
 import HomePage from "./pages/HomePage";
@@ -62,6 +56,8 @@ import HealthRecordsPage from "./pages/ParentPage/HealthRecordsPage";
 import VaccinationsPage from "./pages/ParentPage/VaccinationsPage";
 import MedicineRequestPage from "./pages/ParentPage/MedicineRequestPage";
 import UnauthorizedPage from "./src/pages/UnauthorizedPage";
+import Examination from "./src/pages/SchoolNursePage/Examinations";
+import { initializeAuth } from "./src/redux/auth/authSlice";
 
 function App() {
   const dispatch = useDispatch();
@@ -177,7 +173,7 @@ function App() {
             },
             { path: "medical-incidents", element: <MedicalIncident /> },
             { path: "vaccinations", element: <Vaccinations /> },
-            { path: "examinations", element: <Examinations /> },
+            { path: "checkups", element: <Examination /> },
             { path: "notifications", element: <Notification /> },
             { path: "report", element: <ReportsPage /> },
           ],

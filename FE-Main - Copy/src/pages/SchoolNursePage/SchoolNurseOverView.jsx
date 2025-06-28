@@ -39,6 +39,7 @@ import { format, parseISO } from "date-fns";
 import api from "../../configs/config-axios"; // Đảm bảo đường dẫn này đúng
 import { message } from "antd";
 import { IoWarningOutline } from "react-icons/io5";
+import { useSelector } from "react-redux";
 
 const { Title, Text } = Typography;
 
@@ -59,6 +60,10 @@ export default function NurseDashboardPage() {
   const [upcomingAppointments, setUpcomingAppointments] = useState([]);
   const [recentIncidents, setRecentIncidents] = useState([]);
   const [studentHealthAlerts, setStudentHealthAlerts] = useState([]);
+
+  const totalMedicalIncidents = useSelector(
+    (state) => state.medicalIncidents.records
+  );
 
   const fetchData = useCallback(async () => {
     setLoading(false); // Set loading to true at the start of fetch
@@ -250,7 +255,7 @@ export default function NurseDashboardPage() {
                         Sự cố y tế
                       </div>
                       <div className="text-gray-900 text-3xl font-bold leading-none">
-                        {summary.medicalIncidents}
+                        {totalMedicalIncidents.length}
                       </div>
                       <PercentageChange
                         value={summary.medicalIncidentsChange}

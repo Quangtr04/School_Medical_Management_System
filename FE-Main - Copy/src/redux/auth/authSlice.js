@@ -6,7 +6,6 @@ const initialState = {
   user: null,
   isAuthenticated: false,
   isAuthInitialized: false,
-  authInitializationError: null, // <-- Make sure this is present
   loading: false,
   error: null,
   notificationMessage: null,
@@ -14,12 +13,25 @@ const initialState = {
   success: false,
 };
 
+<<<<<<< HEAD
 export const loginUser = createAsyncThunk(
   "loginUser",
   async (values, { rejectWithValue }) => {
     try {
       const response = await api.post("/login", values);
       console.log("Response data:", response.data);
+=======
+//*createAsyncThunk sẽ nhận vào hai đối số
+// 1.action.type
+// 2.thunkAPI
+//  */
+
+export const loginUser = createAsyncThunk("loginUser", async (values, { rejectWithValue }) => {
+  try {
+    const response = await api.post("/login", values);
+    console.log("Response data:", response.data);
+    const { token, user } = response.data;
+>>>>>>> 957d4d7 (Cập nhập lại nhiều chức năng của nurse)
 
       // Flexible handling for different response structures
       let token, user;
@@ -108,6 +120,7 @@ export const initializeAuth = createAsyncThunk(
       const accessToken = localStorage.getItem("accessToken");
       const currentUser = localStorage.getItem("currentUser");
 
+<<<<<<< HEAD
       if (accessToken && currentUser) {
         const user = JSON.parse(currentUser);
         dispatch(authSlice.actions.setAuth({ user, accessToken }));
@@ -128,6 +141,22 @@ export const initializeAuth = createAsyncThunk(
         "Không thể tải thông tin đăng nhập. Vui lòng đăng nhập lại."
       );
     }
+=======
+    console.log(currentUser);
+
+    if (accessToken && currentUser) {
+      const user = JSON.parse(currentUser);
+      dispatch(authSlice.actions.setAuth({ user, accessToken }));
+    }
+    dispatch(authSlice.actions.finishAuthInitialization());
+    return true; // Mark as fulfilled
+  } catch (error) {
+    console.error("Failed to initialize auth from localStorage", error);
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("currentUser");
+    dispatch(authSlice.actions.finishAuthInitialization());
+    return rejectWithValue("Không thể tải thông tin đăng nhập. Vui lòng đăng nhập lại.");
+>>>>>>> 957d4d7 (Cập nhập lại nhiều chức năng của nurse)
   }
 );
 
@@ -238,7 +267,6 @@ export const {
   setAuth,
   clearAuthSuccess,
   finishAuthInitialization, // <-- NEWLY EXPORTED
-  setAuthInitializationError, // <-- NEWLY EXPORTED
 } = authSlice.actions;
 
 export default authSlice.reducer;

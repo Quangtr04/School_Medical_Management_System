@@ -41,13 +41,13 @@ export default function ManagerSidebar() {
       ),
     },
     {
-      key: "/manager/checkups",
+      key: "/manager/appoinment-apporve",
       icon: <FaClipboardCheck />,
       label: (
         // Wrap the Link in a Fragment if the icon were part of the label itself,
         // but here Link is the single label element, which is usually fine.
         // The common error is when label is `<span>Icon</span> Text`
-        <Link to="/manager/checkups">Duyệt đơn</Link>
+        <Link to="/manager/appoinment-apporve">Duyệt đơn</Link>
       ),
     },
 

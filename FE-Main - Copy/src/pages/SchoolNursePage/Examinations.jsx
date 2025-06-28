@@ -1,92 +1,119 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Table,
-  Input,
   Button,
+  Input,
   Space,
-  Select,
-  Tag,
+  Card,
   Modal,
   Form,
-  message,
-  Typography,
-  Tooltip,
-  Spin,
-  Empty,
-  Card,
-  Row,
-  Col,
-  InputNumber,
   DatePicker,
+  Select,
+  Tooltip,
+  message,
+  Tag,
+  Empty,
+  Spin,
 } from "antd";
 import {
-  SearchOutlined,
-  FilterOutlined,
   PlusOutlined,
-  EditOutlined, // Sử dụng cho Xem danh sách học sinh
+  EditOutlined,
   DeleteOutlined,
-  LoadingOutlined,
+  SearchOutlined,
+  // FilterOutlined, // Không cần thiết nếu bạn dùng Select thay cho nút lọc tĩnh
   EyeOutlined,
+  LoadingOutlined,
+  // === Các Icon Mới Thêm Vào ===
+  IdcardOutlined, // For ID
+  FileTextOutlined, // For Tiêu đề (Title) and Mô tả (Description)
+  CalendarOutlined, // For Ngày khám (Scheduled Date) and Ngày tạo (Created At)
+  CheckCircleOutlined, // For Trạng thái (Status)
+  DollarCircleOutlined, // For Nhà tài trợ (Sponsor)
+  SettingOutlined, // For Hành động (Actions)
 } from "@ant-design/icons";
-import { FiFilePlus } from "react-icons/fi";
-import { format, parseISO } from "date-fns";
 import moment from "moment";
-import api from "../../configs/config-axios"; // Đảm bảo đường dẫn đúng tới axios instance
+import { format, parseISO } from "date-fns";
+import { FiFilePlus } from "react-icons/fi";
 import { toast } from "react-toastify";
 
-const { Option } = Select;
-const { Title, Text } = Typography;
-const { TextArea } = Input; // Import TextArea cho mô tả
+import { useDispatch, useSelector } from "react-redux";
+import {
+  createHealthExaminationSchedule,
+  fetchAllHealthExaminations,
+  updateHealthExaminationSchedule,
+  deleteHealthExaminationSchedule,
+  clearHealthExaminationsError,
+  clearHealthExaminationsSuccess,
+} from "../../redux/nurse/heathExaminations/heathExamination"; // <-- ĐÃ SỬA LỖI CHÍNH TẢ Ở ĐÂY
 
-export default function HealthExaminationsPage() {
-  const [loading, setLoading] = useState(false);
-  const [examinations, setExaminations] = useState([]); // examinations giờ là các "đơn khám"
+const { TextArea } = Input;
+const { Option } = Select;
+
+export default function Examination() {
+  const dispatch = useDispatch();
+  const examinations = useSelector((state) => state.examination.records);
+  const loading = useSelector((state) => state.examination.loading);
+  const error = useSelector((state) => state.examination.error);
+  const success = useSelector((state) => state.examination.success);
+
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
     total: 0,
   });
   const [searchQuery, setSearchQuery] = useState("");
-  const [classFilter, setClassFilter] = useState(null); // Filter theo lớp nào đó trong đơn khám
+  const [classFilter, setClassFilter] = useState(null);
+  const [statusFilter, setStatusFilter] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [currentExamination, setCurrentExamination] = useState(null); // Lưu thông tin "đơn khám" khi chỉnh sửa
+  const [currentExamination, setCurrentExamination] = useState(null);
   const [form] = Form.useForm();
 
-  // Mảng các lớp từ 1A đến 5A cho Select
+  // Dữ liệu cho Select lớp áp dụng trong form tạo/sửa
   const classOptions = Array.from({ length: 5 }, (_, i) => ({
     label: `Lớp ${i + 1}`,
     value: `${i + 1}`,
   }));
 
   const fetchExaminations = useCallback(async () => {
-    setLoading(true); // Đặt loading là true khi bắt đầu fetch
-    try {
-      const params = {
+    const resultAction = await dispatch(
+      fetchAllHealthExaminations({
         page: pagination.current,
         pageSize: pagination.pageSize,
         search: searchQuery,
-        class: classFilter, // Có thể lọc các đơn khám theo lớp mà chúng áp dụng cho
-      };
-      // Giả định API này trả về danh sách các "đơn khám sức khỏe định kỳ"
-      const res = await api.get("/nurse/checkups");
-      console.log(res.data.checkups);
-      const data = res.data.checkups;
-      // Đổi endpoint cho rõ ràng hơn
-      setExaminations(data);
+        class: classFilter, // Tham số lọc theo lớp
+        status: statusFilter, // Tham số lọc theo trạng thái
+      })
+    );
+    if (fetchAllHealthExaminations.fulfilled.match(resultAction)) {
       setPagination((prev) => ({
         ...prev,
+        total: resultAction.payload.total || prev.total,
       }));
-    } catch (error) {
-      toast.error("Error fetching health checkup campaigns:", error);
-      message.error("Tải danh sách đơn khám sức khỏe thất bại.");
-    } finally {
-      setLoading(false); // Đặt loading là false khi kết thúc
     }
-  }, [pagination.current, pagination.pageSize, searchQuery, classFilter]);
+  }, [
+    dispatch,
+    pagination.current,
+    pagination.pageSize,
+    searchQuery,
+    classFilter, // Dependency cho classFilter
+    statusFilter, // Dependency cho statusFilter
+  ]);
 
   useEffect(() => {
     fetchExaminations();
   }, [fetchExaminations]);
+
+  useEffect(() => {
+    if (error) {
+      message.error(error);
+      dispatch(clearHealthExaminationsError());
+    }
+    if (success) {
+      dispatch(clearHealthExaminationsSuccess());
+      fetchExaminations(); // Re-fetch data after a successful operation
+    }
+  }, [error, success, dispatch, fetchExaminations]); // Added fetchExaminations to dependencies
 
   const handleTableChange = (newPagination) => {
     setPagination((prev) => ({
@@ -98,26 +125,27 @@ export default function HealthExaminationsPage() {
 
   const handleSearch = (value) => {
     setSearchQuery(value);
-    setPagination((prev) => ({ ...prev, current: 1 }));
+    setPagination((prev) => ({ ...prev, current: 1 })); // Reset về trang 1 khi tìm kiếm
   };
 
-  const handleClassFilterChange = (value) => {
-    setClassFilter(value);
-    setPagination((prev) => ({ ...prev, current: 1 }));
+  // Hàm xử lý khi thay đổi filter trạng thái
+  const handleStatusFilterChange = (value) => {
+    setStatusFilter(value);
+    setPagination((prev) => ({ ...prev, current: 1 })); // Reset về trang 1 khi lọc
   };
 
-  // Hàm này giờ sẽ dùng để tạo/chỉnh sửa một "đơn khám sức khỏe định kỳ"
   const showModal = (record = null) => {
     setCurrentExamination(record);
     if (record) {
       form.setFieldsValue({
         title: record.title,
         description: record.description,
+        // Đảm bảo date được chuyển đổi đúng định dạng moment
         scheduled_date: record.scheduled_date
           ? moment(record.scheduled_date)
           : null,
         sponsor: record.sponsor,
-        className: record.class_name, // Giả định trường tên lớp trong dữ liệu là class_name
+        className: record.class_name, // Đảm bảo trường này khớp với API
       });
     } else {
       form.resetFields();
@@ -125,39 +153,35 @@ export default function HealthExaminationsPage() {
     setIsModalVisible(true);
   };
 
-  const handleOk = async () => {
+  const handleFormSubmit = async (values) => {
     try {
-      const values = await form.validateFields();
-      setLoading(true);
-
       const formattedValues = {
         ...values,
+        // Định dạng ngày tháng về YYYY-MM-DD trước khi gửi đi
         scheduled_date: values.scheduled_date
           ? values.scheduled_date.format("YYYY-MM-DD")
           : null,
-        // Thêm trường created_at nếu backend không tự tạo
-        // created_at: moment().format("YYYY-MM-DD HH:mm:ss"), // Hoặc tùy thuộc vào backend
       };
 
       if (currentExamination) {
-        // Chỉnh sửa đơn khám sức khỏe
-        await api.put(
-          `/nurse/checkups/${currentExamination.id}`,
-          formattedValues
-        ); // Đổi endpoint
-        message.success("Cập nhật đơn khám sức khỏe thành công!");
+        await dispatch(
+          updateHealthExaminationSchedule({
+            id: currentExamination.id,
+            scheduleData: formattedValues,
+          })
+        ).unwrap();
+        // message.success("Cập nhật đơn khám sức khỏe thành công!"); // Message handled by useEffect
       } else {
-        // Tạo đơn khám sức khỏe mới
-        await api.post("/nurse/checkups/create", formattedValues); // Đổi endpoint
-        message.success("Tạo đơn khám sức khỏe thành công!");
+        await dispatch(
+          createHealthExaminationSchedule(formattedValues)
+        ).unwrap();
+        // toast.success("Tạo đơn khám sức khỏe thành công!"); // Message handled by useEffect
       }
       setIsModalVisible(false);
-      fetchExaminations(); // Tải lại dữ liệu sau khi thêm/sửa
+      // fetchExaminations(); // Re-fetch is already triggered by success useEffect
     } catch (error) {
       console.error("Failed to save examination campaign:", error);
-      message.error("Lưu đơn khám sức khỏe thất bại.");
-    } finally {
-      setLoading(false);
+      // message.error(error.message || "Đã xảy ra lỗi khi lưu đơn khám."); // Optional: specific error message
     }
   };
 
@@ -165,39 +189,6 @@ export default function HealthExaminationsPage() {
     setIsModalVisible(false);
     setCurrentExamination(null);
     form.resetFields();
-  };
-
-  // **This is the handler for successful form submission**
-  const handleFormSubmit = async (values) => {
-    setLoading(true);
-    try {
-      const formattedValues = {
-        ...values,
-        scheduled_date: values.scheduled_date
-          ? values.scheduled_date.format("YYYY-MM-DD")
-          : null,
-      };
-
-      if (currentExamination) {
-        // Chỉnh sửa đơn khám sức khỏe
-        await api.put(
-          `/nurse/checkups/${currentExamination.id}}`,
-          formattedValues
-        );
-        message.success("Cập nhật đơn khám sức khỏe thành công!");
-      } else {
-        // Tạo đơn khám sức khỏe mới
-        await api.post("/nurse/checkups/create", formattedValues);
-        toast.success("Tạo đơn khám sức khỏe thành công!");
-      }
-      setIsModalVisible(false);
-      fetchExaminations(); // Tải lại dữ liệu sau khi thêm/sửa
-    } catch (error) {
-      console.error("Failed to save examination campaign:", error);
-      message.error("Lưu đơn khám sức khỏe thất bại.");
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleDelete = async (id) => {
@@ -209,45 +200,52 @@ export default function HealthExaminationsPage() {
       okType: "danger",
       onOk: async () => {
         try {
-          setLoading(true);
-          await api.delete(`/nurse/checkups/${id}`); // Đổi endpoint
+          await dispatch(deleteHealthExaminationSchedule(id)).unwrap();
           message.success("Xóa đơn khám sức khỏe thành công!");
-          fetchExaminations(); // Tải lại dữ liệu
+          fetchExaminations(); // Re-fetch after successful deletion
         } catch (error) {
           console.error("Failed to delete examination campaign:", error);
-          message.error("Xóa đơn khám sức khỏe thất bại.");
-        } finally {
-          setLoading(false);
+          message.error(error.message || "Đã xảy ra lỗi khi xóa đơn khám.");
         }
       },
     });
   };
 
-  // Các hàm getBmiTag và getVisionTag không còn cần thiết cho bảng "đơn khám"
-  // vì bảng này không hiển thị BMI hay Thị lực trực tiếp.
-  // Bạn có thể giữ lại nếu chúng được dùng ở nơi khác, hoặc xóa đi.
-
   const columns = [
     {
-      title: "ID",
-      dataIndex: "checkup_id", // ID của đơn khám, ví dụ: "DXSK001"
-      key: "checkup_id", // Đổi key cho đúng dataIndex
-      sorter: (a, b) => (a.checkup_id || "").localeCompare(b.checkup_id || ""), // Xử lý null/undefined
+      title: (
+        <Space>
+          <IdcardOutlined style={{ color: "#1890ff" }} /> {/* Blue */}
+          ID
+        </Space>
+      ),
+      dataIndex: "checkup_id",
+      key: "checkup_id",
+      sorter: (a, b) => (a.checkup_id || "").localeCompare(b.checkup_id || ""),
       className: "!font-semibold !text-gray-700",
     },
     {
-      title: "Tiêu đề",
+      title: (
+        <Space>
+          <FileTextOutlined style={{ color: "#52c41a" }} /> {/* Green */}
+          Tiêu đề
+        </Space>
+      ),
       dataIndex: "title",
       key: "title",
       sorter: (a, b) => (a.title || "").localeCompare(b.title || ""),
       className: "!font-semibold !text-gray-700",
     },
     {
-      title: "Mô tả",
+      title: (
+        <Space>
+          <FileTextOutlined style={{ color: "#faad14" }} /> {/* Orange */}
+          Mô tả
+        </Space>
+      ),
       dataIndex: "description",
       key: "description",
       className: "!font-semibold !text-gray-700",
-      // Có thể render Tooltip nếu mô tả quá dài
       render: (text) => (
         <Tooltip title={text}>
           <div
@@ -264,14 +262,24 @@ export default function HealthExaminationsPage() {
       ),
     },
     {
-      title: "Ngày khám", // Ngày được lên lịch để khám
+      title: (
+        <Space>
+          <CalendarOutlined style={{ color: "#eb2f96" }} /> {/* Magenta */}
+          Ngày khám
+        </Space>
+      ),
       dataIndex: "scheduled_date",
       key: "scheduled_date",
       render: (date) => (date ? format(parseISO(date), "yyyy-MM-dd") : "N/A"),
       className: "!font-semibold !text-gray-700",
     },
     {
-      title: "Ngày tạo", // Ngày tạo đơn trong hệ thống
+      title: (
+        <Space>
+          <CalendarOutlined style={{ color: "#722ed1" }} /> {/* Purple */}
+          Ngày tạo
+        </Space>
+      ),
       dataIndex: "created_at",
       key: "created_at",
       className: "!font-semibold !text-gray-700",
@@ -279,12 +287,17 @@ export default function HealthExaminationsPage() {
         created_at ? format(parseISO(created_at), "yyyy-MM-dd") : "N/A",
     },
     {
-      title: "Trạng thái",
+      title: (
+        <Space>
+          <CheckCircleOutlined style={{ color: "#08979c" }} /> {/* Cyan */}
+          Trạng thái
+        </Space>
+      ),
       dataIndex: "approval_status",
       key: "approval_status",
       className: "!font-semibold !text-gray-700",
       render: (status) => {
-        let color = "blue"; // Màu mặc định
+        let color = "blue";
         if (status === "APPROVED") {
           color = "green";
         } else if (status === "PENDING") {
@@ -296,23 +309,34 @@ export default function HealthExaminationsPage() {
       },
     },
     {
-      title: "Nhà tài trợ",
+      title: (
+        <Space>
+          <DollarCircleOutlined style={{ color: "#d43808" }} />{" "}
+          {/* Red-orange */}
+          Nhà tài trợ
+        </Space>
+      ),
       dataIndex: "sponsor",
       key: "sponsor",
       className: "!font-semibold !text-gray-700",
     },
     {
-      title: "Hành động",
+      title: (
+        <Space>
+          <SettingOutlined style={{ color: "#bfbfbf" }} /> {/* Grey */}
+          Hành động
+        </Space>
+      ),
       key: "actions",
+      align: "center", // Căn giữa nội dung cột
       render: (_, record) => (
         <Space size="middle">
-          {/* Nút này sẽ dẫn đến trang/modal quản lý học sinh của đơn khám này */}
           <Tooltip title="Xem danh sách học sinh">
             <Button
-              icon={<EyeOutlined />} // Thay đổi icon cho phù hợp hơn với "xem"
+              icon={<EyeOutlined />}
               onClick={() => {
-                // TODO: Chuyển hướng hoặc mở modal để xem danh sách học sinh của đơn khám này
                 message.info(`Xem danh sách học sinh cho đơn: ${record.title}`);
+                // TODO: Chuyển hướng hoặc mở modal để xem danh sách học sinh của đơn khám này
                 // Ví dụ: history.push(`/health-examinations/${record.id}/students`);
               }}
             />
@@ -342,22 +366,11 @@ export default function HealthExaminationsPage() {
     </div>
   );
 
-  // Giả định dữ liệu category cho filter
-  // mockClasses giờ có thể đại diện cho các "phạm vi" của đơn khám
-  const mockClassesForFilter = [
-    { id: "class-1", name: "1", value: "1" },
-    { id: "class-2", name: "2", value: "2" },
-    { id: "class-3", name: "3", value: "3" },
-    { id: "class-4", name: "4", value: "4" },
-    { id: "class-5", name: "5", value: "5" },
-  ];
-
   return (
     <div
       className={`min-h-screen bg-white p-6 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc0MCcgaGVpZ2h0PSc0MCcgdmlld0JveD0nMCAwIDQwIDQwJz48ZyBmaWxsPSdyZ2JhKDEzLDExMCwyNTMsMC4xKScgZmlsbC1ydWxlPSdldmVub2RkJz48Y2lyY2xlIGN4PScyMCcgY3k9JzIwJyByPScyJy8+PC9nPg==')] bg-fixed`}
     >
       <div className="max-w-7xl mx-auto">
-        {/* Header Section */}
         <header
           className={`mb-5 p-4 rounded-lg bg-blue-500/[.10] to-transparent flex items-center justify-between`}
         >
@@ -389,11 +402,10 @@ export default function HealthExaminationsPage() {
           </Space>
         </header>
 
-        {loading ? (
+        {loading && examinations.length === 0 ? (
           renderLoadingState()
         ) : (
           <>
-            {/* Filters and Search */}
             <Card className="mb-6 !rounded-lg !shadow-md !border !border-gray-200">
               <div className="flex flex-wrap items-center gap-4">
                 <Input
@@ -403,33 +415,27 @@ export default function HealthExaminationsPage() {
                   onPressEnter={(e) => handleSearch(e.target.value)}
                   onBlur={(e) => handleSearch(e.target.value)}
                 />
-                <Button
-                  icon={<FilterOutlined />}
-                  className="flex items-center gap-1 px-4 py-2 !border !border-gray-300 !rounded-lg hover:!bg-gray-100 !transition-colors !text-gray-900 h-10"
-                >
-                  Lọc
-                </Button>
+                {/* Select cho trạng thái */}
                 <Select
-                  placeholder="Lọc theo lớp áp dụng"
-                  onChange={handleClassFilterChange}
+                  placeholder="Lọc theo trạng thái"
+                  onChange={handleStatusFilterChange}
                   allowClear
                   className="w-40 rounded-lg h-10"
+                  value={statusFilter} // Đảm bảo hiển thị giá trị đã chọn
                 >
-                  {mockClassesForFilter.map((cls) => (
-                    <Option key={cls.id} value={cls.value}>
-                      {cls.label}
-                    </Option>
-                  ))}
+                  <Option value="PENDING">Đang chờ</Option>
+                  <Option value="APPROVED">Đã duyệt</Option>
+                  <Option value="DECLINED">Đã từ chối</Option>
                 </Select>
+                {/* Select cho lớp áp dụng */}
               </div>
             </Card>
 
-            {/* Health Examinations Table */}
             <Card className="!rounded-lg !shadow-md !border !border-gray-200">
               <Table
                 columns={columns}
                 dataSource={examinations}
-                rowKey="id" // Giả định mỗi đơn khám có một ID duy nhất
+                rowKey="id"
                 pagination={{
                   ...pagination,
                   showSizeChanger: true,
@@ -439,6 +445,7 @@ export default function HealthExaminationsPage() {
                 }}
                 onChange={handleTableChange}
                 className="custom-table"
+                loading={loading}
                 locale={{
                   emptyText: (
                     <Empty
@@ -464,7 +471,6 @@ export default function HealthExaminationsPage() {
           </>
         )}
 
-        {/* Modal for Add/Edit Examination Campaign */}
         <Modal
           title={
             currentExamination
@@ -472,11 +478,11 @@ export default function HealthExaminationsPage() {
               : "Tạo đơn khám sức khỏe định kỳ mới"
           }
           open={isModalVisible}
-          onOk={handleOk}
           onCancel={handleCancel}
           okText={currentExamination ? "Cập nhật" : "Tạo mới"}
           confirmLoading={loading}
-          width={600} // Tăng chiều rộng modal nếu cần
+          width={600}
+          footer={null}
         >
           <Form
             onFinish={handleFormSubmit}
@@ -523,7 +529,7 @@ export default function HealthExaminationsPage() {
             </Form.Item>
 
             <Form.Item
-              name="className" // Đổi tên 'name' trong form item để phù hợp với dữ liệu khi chỉnh sửa nếu bạn muốn lưu là class_name
+              name="className"
               label="Lớp áp dụng"
               rules={[
                 { required: true, message: "Vui lòng chọn Lớp áp dụng!" },
@@ -536,6 +542,20 @@ export default function HealthExaminationsPage() {
                   </Option>
                 ))}
               </Select>
+            </Form.Item>
+
+            <Form.Item>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                className="mt-4"
+              >
+                {currentExamination ? "Cập nhật" : "Tạo mới"}
+              </Button>
+              <Button onClick={handleCancel} className="ml-2">
+                Hủy
+              </Button>
             </Form.Item>
           </Form>
         </Modal>

@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // src/App.jsx
 import React, { useEffect } from "react";
 import {
@@ -186,7 +187,7 @@ function App() {
             },
             { path: "medical-incidents", element: <MedicalIncident /> },
             { path: "vaccinations", element: <Vaccinations /> },
-            { path: "examinations", element: <Examinations /> },
+            { path: "checkups", element: <Examinations /> },
             { path: "notifications", element: <Notification /> },
             { path: "report", element: <ReportsPage /> },
           ],

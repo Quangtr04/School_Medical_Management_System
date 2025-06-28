@@ -10,6 +10,7 @@ import {
   Table, // Import Table component
   Tag,
   message,
+  Space,
 } from "antd";
 import {
   FiFileText, // Icon for requests
@@ -18,10 +19,21 @@ import {
   FiXCircle, // For reject
   FiInfo, // For details
 } from "react-icons/fi";
-import { LoadingOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
+import {
+  LoadingOutlined,
+  ExclamationCircleOutlined, // Các icon từ Ant Design
+  FileTextOutlined, // Tiêu đề, Mô tả
+  UserOutlined, // Người tạo đơn
+  CalendarOutlined, // Ngày tạo đơn
+  DollarCircleOutlined, // Nhà tài trợ
+  TeamOutlined, // Lớp áp dụng
+  QuestionCircleOutlined, // Loại yêu cầu (có thể là hình thức chung cho yêu cầu)
+  SettingOutlined,
+} from "@ant-design/icons";
+import { FaSchool } from "react-icons/fa";
+
 import { format, parseISO } from "date-fns";
 import api from "../../configs/config-axios"; // Đảm bảo đường dẫn này đúng
-import { FaClipboardCheck } from "react-icons/fa";
 import { toast } from "react-toastify";
 
 const { Title, Text } = Typography;
@@ -74,42 +86,78 @@ export default function ManagerDashboardPage() {
 
   const columns = [
     {
-      title: "Tiêu đề",
+      title: (
+        <Space>
+          <FileTextOutlined style={{ color: "#1890ff" }} /> {/* Blue */}
+          Tiêu đề
+        </Space>
+      ),
       dataIndex: "title",
       key: "title",
       render: (text) => <Text strong>{text}</Text>,
     },
     {
-      title: "Người tạo đơn",
+      title: (
+        <Space>
+          <UserOutlined style={{ color: "#52c41a" }} /> {/* Green */}
+          Người tạo đơn
+        </Space>
+      ),
       dataIndex: "nurseName",
       key: "nurseName",
     },
     {
-      title: "Mô tả",
+      title: (
+        <Space>
+          <FileTextOutlined style={{ color: "#faad14" }} /> {/* Orange */}
+          Mô tả
+        </Space>
+      ),
       dataIndex: "description",
       key: "description",
       ellipsis: true, // Auto-truncate long descriptions
     },
     {
-      title: "Ngày tạo đơn",
+      title: (
+        <Space>
+          <CalendarOutlined style={{ color: "#eb2f96" }} /> {/* Magenta */}
+          Ngày tạo đơn
+        </Space>
+      ),
       dataIndex: "created_at",
       key: "created_at",
       render: (date) =>
         date ? format(parseISO(date), "dd/MM/yyyy HH:mm") : "N/A",
     },
     {
-      title: "Nhà tài trợ",
+      title: (
+        <Space>
+          <DollarCircleOutlined style={{ color: "#722ed1" }} /> {/* Purple */}
+          Nhà tài trợ
+        </Space>
+      ),
       dataIndex: "sponsor",
       key: "sponsor",
     },
     {
-      title: "Lớp áp dụng",
+      title: (
+        <Space>
+          <TeamOutlined style={{ color: "#08979c" }} /> {/* Cyan */}
+          Lớp áp dụng
+        </Space>
+      ),
       dataIndex: "class",
       key: "class_name",
       render: (text) => <Tag color="blue">{text}</Tag>,
     },
     {
-      title: "Loại yêu cầu",
+      title: (
+        <Space>
+          <QuestionCircleOutlined style={{ color: "#d43808" }} />{" "}
+          {/* Red-orange */}
+          Loại yêu cầu
+        </Space>
+      ),
       dataIndex: "checkup_id",
       key: "checkup_id",
       render: (checkupIdValue) => {
@@ -124,7 +172,12 @@ export default function ManagerDashboardPage() {
       },
     },
     {
-      title: "Hành động",
+      title: (
+        <Space>
+          <SettingOutlined style={{ color: "#bfbfbf" }} /> {/* Grey */}
+          Hành động
+        </Space>
+      ),
       key: "actions",
       render: (text, record) => (
         <div className="flex flex-col gap-2 items-center">
@@ -148,7 +201,6 @@ export default function ManagerDashboardPage() {
       ),
     },
   ];
-
   return (
     <div className="min-h-screen bg-white p-6 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc0MCcgaGVpZ2h0PSc0MCcgdmlld0JveD0nMCAwIDQwIDQwJz48ZyBmaWxsPSdyZ2JhKDEzLDExMCwyNTMsMC4xKScgZmlsbC1ydWxlPSdldmVub2RkJz48Y2lyY2xlIGN4PScyMCcgY3k9JzIwJyByPScyJy8+PC9nPjwvc3ZnPg==')] bg-fixed">
       <div className="max-w-7xl mx-auto">

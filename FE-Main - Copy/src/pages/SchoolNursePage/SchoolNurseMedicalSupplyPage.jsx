@@ -1,15 +1,19 @@
 // src/pages/NursePage/MedicalSuppliesPage.jsx
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+// Không cần Navigate, Outlet nếu component này chỉ hiển thị danh sách
+// import { Navigate, Outlet } from "react-router-dom";
+
 import {
   Table,
   Input,
   Button,
   Space,
-  Select,
+  Select, // Có thể bỏ nếu không có filter category
   Tag,
-  Modal,
-  Form,
+  Modal, // Chỉ dùng cho Confirm Delete (nếu giữ) hoặc View Details
+  Form, // Có thể bỏ nếu không có form nhập/sửa
   message,
   Typography,
   Tooltip,
@@ -18,379 +22,331 @@ import {
   Card,
   Row,
   Col,
-  Statistic,
-  DatePicker,
+  Statistic, // Có thể bỏ nếu không có summary
+  DatePicker, // Có thể bỏ nếu không có form nhập/sửa
 } from "antd";
 import {
   SearchOutlined,
-  FilterOutlined,
-  PlusOutlined,
-  MinusOutlined,
-  EyeOutlined,
-  EditOutlined,
-  DeleteOutlined,
+  EyeOutlined, // Chỉ giữ icon xem
   LoadingOutlined,
+  // Import các icon bạn muốn sử dụng
+  BarcodeOutlined, // Mã vật tư
+  TagOutlined, // Tên
+  FolderOutlined, // Thể loại
+  MinusSquareOutlined, // Đơn vị (biểu tượng cho sự chia nhỏ)
+  ContainerOutlined, // Số lượng (thùng chứa)
+  FileTextOutlined, // Mô tả
+  CalendarOutlined, // Ngày hết hạn
+  CheckCircleOutlined, // Trạng thái
+  ToolOutlined,
+  EditOutlined, // Hành động
+  CloseCircleOutlined,
+  SyncOutlined,
+  ClockCircleOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import {
-  FiBox, // For Total Items icon
-  FiAlertTriangle, // For Low Stock icon
-  FiClock, // For Expired Soon icon
+  // Chỉ giữ icon cho header và table, bỏ các icon thống kê
   FiClipboard, // Header icon for Medical Supplies
-  FiPlusCircle, // Stock In icon
-  FiMinusCircle, // Stock Out icon
-  // Các icon mới cho overview statistics theo yêu cầu
-  FiUsers, // Total Students
-  FiHeart, // Students with Health Issues
-  FiAlertCircle, // Medical Incidents (thay thế cho WarningOutlined)
+  // Các icon thống kê và thao tác kho sẽ bỏ
+  // FiBox, FiAlertTriangle, FiClock, FiPlusCircle, FiMinusCircle, FiUsers, FiHeart, FiAlertCircle,
 } from "react-icons/fi";
 import { format, parseISO } from "date-fns";
-import api from "../../configs/config-axios";
-import moment from "moment";
 
-const { Option } = Select;
+// Import các thunks và actions từ slice (đã điều chỉnh)
+import {
+  fetchMedicalSupplies,
+  getMedicalSupplyByID, // Giữ lại nếu muốn xem chi tiết
+  setMedicalSuppliesPagination,
+  clearMedicalSuppliesError,
+  // Bỏ clearMedicalSuppliesSuccess vì không còn thao tác CUD
+  // clearMedicalSuppliesSuccess,
+} from "../../redux/nurse/medicalSupplies/medicalSupplies";
+import { IoStorefront } from "react-icons/io5";
+
+const { Option } = Select; // Có thể bỏ nếu không dùng Select cho danh mục
 const { Title, Text } = Typography;
 
-// Component PercentageChange tái sử dụng
-const PercentageChange = ({ value }) => {
-  if (value === undefined || value === null) return null; // Handle cases where value might not be available
-
-  const isPositive = value >= 0;
-  const colorClass = isPositive ? "text-green-500" : "text-red-500";
-  const sign = isPositive ? "+" : "";
-  return (
-    <p className={`text-sm ${colorClass} mt-1`}>
-      {sign}
-      {value}% so với tháng trước
-    </p>
-  );
-};
+// Component PercentageChange tái sử dụng - Sẽ bỏ nếu không hiển thị summary
+// const PercentageChange = ({ value }) => {
+//     // ... (code không thay đổi)
+// };
 
 export default function MedicalSuppliesPage() {
-  const [loading, setLoading] = useState(false);
-  const [supplies, setSupplies] = useState([]);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
+  const dispatch = useDispatch();
+
+  // Lấy state từ Redux store
+  const {
+    supplies,
+    loading,
+    error,
+    pagination, // Giữ lại pagination
+    // Bỏ categories, summary, success vì không còn API
+    // categories, summary, success,
+    selectedSupply, // Thêm để hiển thị chi tiết vật tư
+  } = useSelector((state) => state.medicalSupplies);
+
   const [searchQuery, setSearchQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState(null);
-  const [categories, setCategories] = useState([]);
-  const [summary, setSummary] = useState({
-    totalItems: 0,
-    lowStock: 0,
-    expiredSoon: 0,
-    // Thêm các trường giả định cho % change để khớp với UI mới
-    totalItemsChange: 5, // giả định
-    lowStockChange: -2, // giả định
-    expiredSoonChange: 10, // giả định
-  });
-  const [isStockModalVisible, setIsStockModalVisible] = useState(false);
-  const [stockModalType, setStockModalType] = useState("in"); // 'in' or 'out' or 'edit'
-  const [selectedSupplyForStock, setSelectedSupplyForStock] = useState(null);
-  const [stockForm] = Form.useForm();
+  // const [categoryFilter, setCategoryFilter] = useState(null); // Bỏ filter theo category nếu API không hỗ trợ
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false); // Modal xem chi tiết
 
-  const fetchSummary = useCallback(async () => {
-    try {
-      const res = await api.get("/api/nurse/medical-supplies-summary");
-      setSummary({
-        ...res.data.data,
-        // Giả lập dữ liệu % change nếu API không trả về
-        totalItemsChange: 5,
-        lowStockChange: -2,
-        expiredSoonChange: 10,
-      });
-    } catch (error) {
-      console.error("Error fetching medical supplies summary:", error);
-      message.error("Tải tóm tắt vật tư y tế thất bại.");
+  // Effect để hiển thị thông báo lỗi từ Redux
+  useEffect(() => {
+    if (error) {
+      message.error(error);
+      dispatch(clearMedicalSuppliesError()); // Xóa lỗi sau khi hiển thị
     }
-  }, []);
+  }, [error, dispatch]);
 
-  const fetchSupplies = useCallback(async () => {
-    setLoading(false); // Set loading to true when fetching starts
-    try {
-      const params = {
+  // Effect để fetch dữ liệu ban đầu và khi các bộ lọc/phân trang thay đổi
+  useEffect(() => {
+    // Chỉ fetch supplies. Bỏ fetchSummary và fetchCategories
+    dispatch(
+      fetchMedicalSupplies({
         page: pagination.current,
         pageSize: pagination.pageSize,
         search: searchQuery,
-        category: categoryFilter,
-      };
-      const res = await api.get("/api/nurse/medical-supplies", {
-        params,
-      });
-      setSupplies(res.data.data.records);
-      setPagination((prev) => ({
-        ...prev,
-        total: res.data.data.total,
-      }));
-      message.success("Vật tư y tế đã được tải!");
-    } catch (error) {
-      console.error("Error fetching medical supplies:", error);
-      message.error("Tải vật tư y tế thất bại.");
-    } finally {
-      setLoading(false); // Set loading to false when fetching ends
-    }
-  }, [pagination.current, pagination.pageSize, searchQuery, categoryFilter]);
-
-  const fetchCategories = useCallback(async () => {
-    try {
-      const res = await api.get("/api/nurse/supply-categories");
-      setCategories(res.data.data);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchSummary();
-    fetchSupplies();
-    fetchCategories();
-  }, [fetchSummary, fetchSupplies, fetchCategories]);
+        // category: categoryFilter, // Bỏ nếu API không hỗ trợ
+      })
+    );
+  }, [
+    dispatch,
+    pagination.current,
+    pagination.pageSize,
+    searchQuery /*, categoryFilter */,
+  ]);
 
   const handleTableChange = (newPagination) => {
-    setPagination((prev) => ({
-      ...prev,
-      current: newPagination.current,
-      pageSize: newPagination.pageSize,
-    }));
+    // Cập nhật pagination state trong Redux
+    dispatch(
+      setMedicalSuppliesPagination({
+        current: newPagination.current,
+        pageSize: newPagination.pageSize,
+      })
+    );
   };
 
   const handleSearch = (value) => {
     setSearchQuery(value);
-    setPagination((prev) => ({ ...prev, current: 1 }));
+    dispatch(setMedicalSuppliesPagination({ current: 1 })); // Reset về trang 1 khi tìm kiếm
   };
 
-  const handleCategoryFilterChange = (value) => {
-    setCategoryFilter(value);
-    setPagination((prev) => ({ ...prev, current: 1 }));
-  };
+  // const handleCategoryFilterChange = (value) => { // Bỏ nếu không có filter category
+  //   setCategoryFilter(value);
+  //   dispatch(setMedicalSuppliesPagination({ current: 1 }));
+  // };
 
-  const showStockModal = (type, supply = null) => {
-    setStockModalType(type);
-    setSelectedSupplyForStock(supply);
-    stockForm.resetFields();
-    if (supply) {
-      if (type === "edit") {
-        stockForm.setFieldsValue({
-          itemId: supply.itemId,
-          itemName: supply.name,
-          category: supply.category,
-          quantity: supply.quantity,
-          expiryDate: supply.expiryDate ? moment(supply.expiryDate) : null,
-        });
-      } else {
-        stockForm.setFieldsValue({
-          itemId: supply.itemId,
-          itemName: supply.name,
-        });
-      }
-    }
-    setIsStockModalVisible(true);
-  };
-
-  const handleStockModalOk = async () => {
+  const showDetailModal = async (supplyId) => {
     try {
-      const values = await stockForm.validateFields();
-      setLoading(true);
-
-      let endpoint = "";
-      let payload = {};
-
-      if (stockModalType === "in") {
-        if (selectedSupplyForStock) {
-          endpoint = `/api/nurse/medical-supplies/stock-in`;
-          payload = {
-            id: selectedSupplyForStock.id,
-            quantity: values.quantity,
-            reason: values.reason,
-          };
-        } else {
-          endpoint = "/api/nurse/medical-supplies/stock-in-new";
-          payload = {
-            itemId: values.itemId,
-            name: values.itemName,
-            category: values.category,
-            quantity: values.quantity,
-            expiryDate: values.expiryDate
-              ? values.expiryDate.format("YYYY-MM-DD")
-              : null,
-            reason: values.reason,
-          };
-        }
-      } else if (stockModalType === "out") {
-        endpoint = "/api/nurse/medical-supplies/stock-out";
-        payload = {
-          id: selectedSupplyForStock.id,
-          quantity: values.quantity,
-          reason: values.reason,
-        };
-      } else if (stockModalType === "edit") {
-        endpoint = `/api/nurse/medical-supplies/${selectedSupplyForStock.id}`;
-        payload = {
-          itemId: values.itemId,
-          name: values.itemName,
-          category: values.category,
-          quantity: values.quantity,
-          expiryDate: values.expiryDate
-            ? values.expiryDate.format("YYYY-MM-DD")
-            : null,
-        };
-        await api.put(endpoint, payload);
-        message.success("Vật tư y tế đã được cập nhật thành công!");
-        setIsStockModalVisible(false);
-        fetchSummary();
-        fetchSupplies();
-        return;
-      }
-
-      await api.post(endpoint, payload);
-      message.success(
-        `Thao tác ${
-          stockModalType === "in" ? "nhập kho" : "xuất kho"
-        } thành công!`
-      );
-      setIsStockModalVisible(false);
-      fetchSummary();
-      fetchSupplies();
-    } catch (error) {
-      console.error(`Failed to stock ${stockModalType}:`, error);
-      message.error(`Thao tác ${stockModalType} thất bại.`);
-    } finally {
-      setLoading(false);
+      await dispatch(getMedicalSupplyByID(supplyId)).unwrap();
+      setIsDetailModalVisible(true);
+    } catch (err) {
+      console.error("Failed to fetch supply details:", err);
+      // Lỗi đã được xử lý trong extraReducers và message.error
     }
   };
 
-  const handleStockModalCancel = () => {
-    setIsStockModalVisible(false);
-    setSelectedSupplyForStock(null);
-    stockForm.resetFields();
+  const handleDetailModalCancel = () => {
+    setIsDetailModalVisible(false);
   };
 
   const getStatusTag = (status) => {
+    if (typeof status === "boolean") {
+      return status ? (
+        <Tag
+          icon={<CheckCircleOutlined />}
+          color="green"
+          className="!font-semibold !px-3 !py-1"
+        >
+          Còn nhiều
+        </Tag>
+      ) : (
+        <Tag
+          icon={<CloseCircleOutlined />}
+          color="red"
+          className="!font-semibold !px-3 !py-1"
+        >
+          Hết hàng
+        </Tag>
+      );
+    }
+
     switch (status) {
-      case "OK":
-        return <Tag color="green">OK</Tag>;
-      case "Low Stock":
-        return <Tag color="orange">Thiếu hàng</Tag>;
-      case "Expired":
-      case "Expired Soon":
-        return <Tag color="red">Sắp hết hạn</Tag>;
+      case "Resolved":
+        return (
+          <Tag
+            icon={<CheckCircleOutlined />}
+            color="green"
+            className="!font-semibold !px-3 !py-1"
+          >
+            Đã giải quyết
+          </Tag>
+        );
+      case "In Progress":
+        return (
+          <Tag
+            icon={<SyncOutlined spin />}
+            color="orange"
+            className="!font-semibold !px-3 !py-1"
+          >
+            Đang tiến hành
+          </Tag>
+        );
+      case "New":
+        return (
+          <Tag
+            icon={<ClockCircleOutlined />}
+            color="blue"
+            className="!font-semibold !px-3 !py-1"
+          >
+            Mới
+          </Tag>
+        );
+      case "Warning":
+        return (
+          <Tag
+            icon={<ExclamationCircleOutlined />}
+            color="volcano"
+            className="!font-semibold !px-3 !py-1"
+          >
+            Cảnh báo
+          </Tag>
+        );
       default:
-        return <Tag>{status}</Tag>;
+        return <Tag className="!font-semibold !px-3 !py-1">{status}</Tag>;
     }
   };
 
   const columns = [
     {
-      title: "Mã vật tư",
+      title: (
+        <Space>
+          <BarcodeOutlined style={{ color: "#1890ff" }} /> {/* Blue */}
+          Mã vật tư
+        </Space>
+      ),
       dataIndex: "supply_id",
-      key: "supply_i",
-      sorter: (a, b) => a.itemId.localeCompare(b.itemId),
+      key: "supply_id",
+      sorter: (a, b) => a.supply_id.localeCompare(b.supply_id),
       className: "!font-semibold !text-gray-700",
     },
     {
-      title: "Tên",
+      title: (
+        <Space>
+          <TagOutlined style={{ color: "#52c41a" }} /> {/* Green */}
+          Tên
+        </Space>
+      ),
       dataIndex: "name",
       key: "name",
       sorter: (a, b) => a.name.localeCompare(b.name),
       className: "!font-semibold !text-gray-700",
     },
     {
-      title: "Thể loại",
+      title: (
+        <Space>
+          <FolderOutlined style={{ color: "#faad14" }} /> {/* Yellow/Orange */}
+          Thể loại
+        </Space>
+      ),
       dataIndex: "type",
       key: "type",
       sorter: (a, b) => a.type.localeCompare(b.type),
       className: "!font-semibold !text-gray-700",
     },
     {
-      title: "Đơn vị",
+      title: (
+        <Space>
+          <MinusSquareOutlined style={{ color: "#eb2f96" }} /> {/* Magenta */}
+          Đơn vị
+        </Space>
+      ),
       dataIndex: "unit",
       key: "unit",
       className: "!font-semibold !text-gray-700",
     },
-
     {
-      title: "Số lượng",
+      title: (
+        <Space>
+          <ContainerOutlined style={{ color: "#722ed1" }} /> {/* Purple */}
+          Số lượng
+        </Space>
+      ),
       dataIndex: "quantity",
       key: "quantity",
       className: "!font-semibold !text-gray-700",
     },
-
     {
-      title: "Mô tả",
+      title: (
+        <Space>
+          <FileTextOutlined style={{ color: "#d43808" }} /> {/* Red-orange */}
+          Mô tả
+        </Space>
+      ),
       dataIndex: "description",
       key: "description",
       className: "!font-semibold !text-gray-700",
     },
-
     {
-      title: "Ngày hết hạn",
+      title: (
+        <Space>
+          <CalendarOutlined style={{ color: "#08979c" }} /> {/* Cyan */}
+          Ngày hết hạn
+        </Space>
+      ),
       dataIndex: "expired_date",
       key: "expired_date",
       render: (date) => (date ? format(parseISO(date), "yyyy-MM-dd") : "N/A"),
       className: "!font-semibold !text-gray-700",
     },
     {
-      title: "Trạng thái",
+      title: (
+        <Space>
+          <CheckCircleOutlined style={{ color: "#13c2c2" }} /> {/* Teal */}
+          Trạng thái
+        </Space>
+      ),
       dataIndex: "is_active",
       key: "status",
       render: (status) => getStatusTag(status),
       className: "!font-semibold !text-gray-700",
     },
-
     {
-      title: "Hành động",
+      title: (
+        <Space>
+          <EditOutlined style={{ color: "#bfbfbf" }} /> {/* Màu tím */}
+          Hành động
+        </Space>
+      ),
       key: "actions",
       render: (_, record) => (
         <Space size="middle">
           <Tooltip title="Xem chi tiết">
             <Button
               icon={<EyeOutlined />}
-              onClick={() => console.log("View", record.id)}
+              onClick={() => showDetailModal(record.id)} // Gọi hàm xem chi tiết
             />
           </Tooltip>
-          <Tooltip title="Chỉnh sửa vật tư">
-            <Button
-              icon={<EditOutlined />}
-              onClick={() => showStockModal("edit", record)}
-            />
-          </Tooltip>
-          <Tooltip title="Xóa vật tư">
-            <Button
-              icon={<DeleteOutlined />}
-              danger
-              onClick={() => handleDelete(record.id)}
-            />
-          </Tooltip>
+          {/* Các nút Sửa, Xóa, Xuất kho bị loại bỏ nếu API không hỗ trợ */}
+          {/* Nếu có nút sửa và xóa, bạn có thể thêm lại chúng ở đây */}
+          {/* <Tooltip title="Chỉnh sửa">
+          <Button
+            icon={<EditOutlined />}
+            onClick={() => showEditModal(record)}
+          />
+        </Tooltip>
+        <Tooltip title="Xóa">
+          <Button
+            icon={<DeleteOutlined />}
+            danger
+            onClick={() => handleDelete(record.id)}
+          />
+        </Tooltip> */}
         </Space>
       ),
       className: "!font-semibold !text-gray-700",
     },
   ];
-
-  const handleDelete = async (supplyId) => {
-    Modal.confirm({
-      title: "Xác nhận xóa",
-      content: "Bạn có chắc chắn muốn xóa vật tư y tế này không?",
-      okText: "Xóa",
-      okType: "danger",
-      onOk: async () => {
-        try {
-          setLoading(true);
-          await api.delete(`/api/nurse/medical-supplies/${supplyId}`);
-          message.success("Vật tư y tế đã được xóa thành công!");
-          fetchSummary();
-          fetchSupplies();
-        } catch (error) {
-          console.error("Failed to delete medical supply:", error);
-          message.error("Xóa vật tư y tế thất bại.");
-        } finally {
-          setLoading(false);
-        }
-      },
-    });
-  };
-
   const renderLoadingState = () => (
     <div className="text-center py-8 flex flex-col items-center justify-center gap-4">
       <Spin indicator={<LoadingOutlined style={{ fontSize: 30 }} spin />} />
@@ -411,7 +367,7 @@ export default function MedicalSuppliesPage() {
             <div
               className={`p-3 bg-yellow-500/[.10] rounded-full border border-yellow-500`}
             >
-              <FiClipboard className={`w-10 h-10 text-3xl text-yellow-600`} />
+              <IoStorefront className={`w-10 h-10 text-3xl text-yellow-600`} />
             </div>
             <div>
               <h1 className={`text-gray-900 font-bold text-3xl mb-2`}>
@@ -419,11 +375,12 @@ export default function MedicalSuppliesPage() {
               </h1>
               <p className={`text-gray-500 flex items-center gap-2 text-sm`}>
                 <span>✨</span>
-                Quản lý thuốc và vật tư y tế
+                Xem thông tin thuốc và vật tư y tế
               </p>
             </div>
           </div>
-          <Space>
+          {/* Nút "Nhập kho" và các nút hành động khác sẽ bị loại bỏ nếu API không hỗ trợ */}
+          {/* <Space>
             <Button
               type="primary"
               icon={<FiPlusCircle />}
@@ -432,96 +389,23 @@ export default function MedicalSuppliesPage() {
             >
               Nhập kho
             </Button>
-          </Space>
+          </Space> */}
         </header>
 
-        {loading ? (
+        {loading && supplies.length === 0 ? ( // Chỉ hiển thị loading overlay nếu chưa có dữ liệu nào
           renderLoadingState()
         ) : (
           <>
-            {/* Overview Statistics */}
-            <Row gutter={[16, 16]} className="mb-6">
-              {/* Total Items Card */}
-              <Col xs={24} sm={8}>
-                <Card className="!rounded-lg !shadow-md !border !border-gray-200">
-                  <div className="flex items-center gap-4">
-                    {" "}
-                    {/* Use gap-4 for spacing */}
-                    {/* Icon Section - Màu nền đậm hơn và icon màu trắng */}
-                    <div className="flex-shrink-0 p-3 rounded-lg bg-green-600 flex items-center justify-center">
-                      <FiBox className="text-white text-3xl" />
-                    </div>
-                    {/* Statistic Content */}
-                    <div>
-                      <div className="text-gray-700 text-base font-medium mb-1">
-                        {" "}
-                        {/* Changed to text-base */}
-                        Tổng số vật tư
-                      </div>
-                      <div className="text-gray-900 text-3xl font-bold leading-none">
-                        {summary.totalItems}
-                      </div>
-                      <PercentageChange value={summary.totalItemsChange} />{" "}
-                      {/* Sử dụng PercentageChange component */}
-                    </div>
-                  </div>
-                </Card>
-              </Col>
-
-              {/* Low Stock Card */}
-              <Col xs={24} sm={8}>
-                <Card className="!rounded-lg !shadow-md !border !border-gray-200">
-                  <div className="flex items-center gap-4">
-                    <div className="flex-shrink-0 p-3 rounded-lg bg-orange-500/[.85] flex items-center justify-center">
-                      {" "}
-                      {/* bg-orange-500 for low stock */}
-                      <FiAlertTriangle className="text-white text-3xl" />{" "}
-                      {/* FiAlertTriangle for low stock */}
-                    </div>
-                    <div>
-                      <div className="text-gray-700 text-base font-medium mb-1">
-                        {" "}
-                        {/* Changed to text-base */}
-                        Vật tư thiếu
-                      </div>
-                      <div className="text-gray-900 text-3xl font-bold leading-none">
-                        {summary.lowStock}
-                      </div>
-                      <PercentageChange value={summary.lowStockChange} />
-                    </div>
-                  </div>
-                </Card>
-              </Col>
-
-              {/* Expired Soon Card */}
-              <Col xs={24} sm={8}>
-                <Card className="!rounded-lg !shadow-md !border !border-gray-200">
-                  <div className="flex items-center gap-4">
-                    <div className="flex-shrink-0 p-3 rounded-lg bg-red-600/[.85] flex items-center justify-center">
-                      {" "}
-                      {/* bg-red-600 for expired soon */}
-                      <FiClock className="text-white text-3xl" />{" "}
-                      {/* FiClock for expired soon */}
-                    </div>
-                    <div>
-                      <div className="text-gray-700 text-base font-medium mb-1">
-                        {" "}
-                        {/* Changed to text-base */}
-                        Sắp hết hạn
-                      </div>
-                      <div className="text-gray-900 text-3xl font-bold leading-none">
-                        {summary.expiredSoon}
-                      </div>
-                      <PercentageChange value={summary.expiredSoonChange} />
-                    </div>
-                  </div>
-                </Card>
-              </Col>
-            </Row>
+            {/* Overview Statistics - Bị loại bỏ nếu không có API summary */}
+            {/* <Row gutter={[16, 16]} className="mb-6">
+              ... (Các Card thống kê) ...
+            </Row> */}
 
             {/* Filters and Search */}
-            <Card className="mb-6 !rounded-lg !shadow-md !border !border-gray-200">
-              <div className="flex flex-wrap items-center gap-4">
+
+            {/* Medical Supplies Table */}
+            <Card className="!rounded-lg !shadow-md !border !border-gray-200">
+              <div className="flex flex-wrap items-center gap-4 mb-6">
                 <Input
                   placeholder="Tìm kiếm vật tư..."
                   prefix={<SearchOutlined className="text-gray-400" />}
@@ -529,29 +413,7 @@ export default function MedicalSuppliesPage() {
                   onPressEnter={(e) => handleSearch(e.target.value)}
                   onBlur={(e) => handleSearch(e.target.value)}
                 />
-                <Button
-                  icon={<FilterOutlined />}
-                  className="flex items-center gap-1 px-4 py-2 !border !border-gray-300 !rounded-lg hover:!bg-gray-100 !transition-colors !text-gray-900 h-10"
-                >
-                  Lọc
-                </Button>
-                <Select
-                  placeholder="Tất cả danh mục"
-                  onChange={handleCategoryFilterChange}
-                  allowClear
-                  className="w-40 rounded-lg h-10"
-                >
-                  {categories.map((cat) => (
-                    <Option key={cat.id} value={cat.name}>
-                      {cat.name}
-                    </Option>
-                  ))}
-                </Select>
               </div>
-            </Card>
-
-            {/* Medical Supplies Table */}
-            <Card className="!rounded-lg !shadow-md !border !border-gray-200">
               <Table
                 columns={columns}
                 dataSource={supplies}
@@ -590,133 +452,59 @@ export default function MedicalSuppliesPage() {
           </>
         )}
 
-        {/* Stock In/Out/Edit Modal */}
+        {/* Stock In/Out/Edit Modal - Thay bằng Modal xem chi tiết */}
         <Modal
-          title={
-            stockModalType === "in"
-              ? selectedSupplyForStock
-                ? "Nhập kho vật tư"
-                : "Nhập kho vật tư mới"
-              : stockModalType === "out"
-              ? "Xuất kho vật tư"
-              : "Chỉnh sửa vật tư y tế"
-          }
-          visible={isStockModalVisible}
-          onOk={handleStockModalOk}
-          onCancel={handleStockModalCancel}
-          okText={
-            stockModalType === "in"
-              ? selectedSupplyForStock
-                ? "Xác nhận nhập kho"
-                : "Thêm & Nhập kho"
-              : stockModalType === "out"
-              ? "Xác nhận xuất kho"
-              : "Cập nhật"
-          }
-          confirmLoading={loading}
+          title="Chi tiết vật tư y tế"
+          open={isDetailModalVisible}
+          onCancel={handleDetailModalCancel}
+          footer={[
+            <Button key="back" onClick={handleDetailModalCancel}>
+              Đóng
+            </Button>,
+          ]}
         >
-          <Form form={stockForm} layout="vertical" name="stock_form">
-            {(stockModalType === "in" && !selectedSupplyForStock) ||
-            stockModalType === "edit" ? (
-              <>
-                <Form.Item
-                  name="itemId"
-                  label="Mã vật tư"
-                  rules={[
-                    { required: true, message: "Vui lòng nhập Mã vật tư!" },
-                  ]}
-                >
-                  <Input disabled={stockModalType === "edit"} />
-                </Form.Item>
-                <Form.Item
-                  name="itemName"
-                  label="Tên vật tư"
-                  rules={[
-                    { required: true, message: "Vui lòng nhập Tên vật tư!" },
-                  ]}
-                >
-                  <Input />
-                </Form.Item>
-                <Form.Item
-                  name="category"
-                  label="Danh mục"
-                  rules={[
-                    { required: true, message: "Vui lòng chọn Danh mục!" },
-                  ]}
-                >
-                  <Select placeholder="Chọn một danh mục">
-                    {categories.map((cat) => (
-                      <Option key={cat.id} value={cat.name}>
-                        {cat.name}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-                <Form.Item
-                  name="expiryDate"
-                  label="Ngày hết hạn"
-                  rules={[
-                    { required: true, message: "Vui lòng chọn ngày hết hạn!" },
-                  ]}
-                >
-                  <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
-                </Form.Item>
-                <Form.Item
-                  name="quantity"
-                  label="Số lượng"
-                  rules={[
-                    { required: true, message: "Vui lòng nhập số lượng!" },
-                    {
-                      type: "number",
-                      min: 1,
-                      message: "Số lượng phải lớn hơn hoặc bằng 1!",
-                    },
-                  ]}
-                >
-                  <Input type="number" />
-                </Form.Item>
-                {stockModalType === "in" && !selectedSupplyForStock && (
-                  <Form.Item name="reason" label="Lý do (Tùy chọn)">
-                    <Input.TextArea rows={2} />
-                  </Form.Item>
-                )}
-              </>
-            ) : null}
-
-            {(stockModalType === "in" && selectedSupplyForStock) ||
-            stockModalType === "out" ? (
-              <>
-                <Form.Item label="Mã vật tư">
-                  <Input value={selectedSupplyForStock?.itemId} disabled />
-                </Form.Item>
-                <Form.Item label="Tên vật tư">
-                  <Input value={selectedSupplyForStock?.name} disabled />
-                </Form.Item>
-                <Form.Item label="Số lượng hiện tại">
-                  <Input value={selectedSupplyForStock?.quantity} disabled />
-                </Form.Item>
-                <Form.Item
-                  name="quantity"
-                  label={`Số lượng để ${
-                    stockModalType === "in" ? "Nhập kho" : "Xuất kho"
-                  }`}
-                  rules={[
-                    { required: true, message: "Vui lòng nhập số lượng!" },
-                    {
-                      type: "number",
-                      min: 1,
-                      message: "Số lượng phải lớn hơn hoặc bằng 1!",
-                    },
-                  ]}
-                >
-                  <Input type="number" />
-                </Form.Item>
-                <Form.Item name="reason" label="Lý do (Tùy chọn)">
-                  <Input.TextArea rows={2} />
-                </Form.Item>
-              </>
-            ) : null}
-          </Form>
+          {loading ? (
+            <div className="text-center py-4">
+              <Spin indicator={<LoadingOutlined />} />
+              <p>Đang tải chi tiết...</p>
+            </div>
+          ) : selectedSupply ? (
+            <div className="space-y-4">
+              <p>
+                <strong>Mã vật tư:</strong> {selectedSupply.supply_id}
+              </p>
+              <p>
+                <strong>Tên vật tư:</strong> {selectedSupply.name}
+              </p>
+              <p>
+                <strong>Thể loại:</strong> {selectedSupply.type}
+              </p>
+              <p>
+                <strong>Đơn vị:</strong> {selectedSupply.unit}
+              </p>
+              <p>
+                <strong>Số lượng:</strong> {selectedSupply.quantity}
+              </p>
+              <p>
+                <strong>Mô tả:</strong> {selectedSupply.description || "N/A"}
+              </p>
+              <p>
+                <strong>Ngày hết hạn:</strong>{" "}
+                {selectedSupply.expired_date
+                  ? format(parseISO(selectedSupply.expired_date), "yyyy-MM-dd")
+                  : "N/A"}
+              </p>
+              <p>
+                <strong>Trạng thái:</strong>{" "}
+                {getStatusTag(selectedSupply.is_active)}
+              </p>
+            </div>
+          ) : (
+            <Empty
+              description="Không tìm thấy chi tiết vật tư."
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+          )}
         </Modal>
       </div>
     </div>

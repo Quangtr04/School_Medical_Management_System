@@ -21,6 +21,7 @@ import {
 import { useNavigate } from "react-router-dom"; // For navigation after logout
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../redux/auth/authSlice";
+import { MdAdminPanelSettings } from "react-icons/md";
 
 const { Header } = Layout;
 const { Search } = Input;
@@ -83,12 +84,31 @@ export default function AdminHeader() {
       </Col>
 
       {/* Right side: Notifications, User Info, Sync Icon */}
-      <Col>
-        <Space size={24}>
-          <Badge count={1} offset={[-4, 4]}>
-            <BellOutlined style={{ fontSize: "22px", cursor: "pointer" }} />
-          </Badge>
-
+      <Col
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "center",
+        }}
+      >
+        {/* Space bao ngoài để căn chỉnh các item chính (Chuông và Dropdown User) */}
+        <Space size={10} align="center">
+          {" "}
+          {/* Giữ nguyên size 24 hoặc điều chỉnh */}
+          {/* Badge cho thông báo */}
+          <Badge count={1} offset={[-1, 35]} size="medium">
+            {" "}
+            {/* Điều chỉnh offset để số nằm gọn gàng hơn, dùng size="small" cho chấm tròn nhỏ hơn */}
+            <FaBell
+              style={{
+                fontSize: "35px", // Kích thước icon chuông
+                cursor: "pointer",
+                color: "#666",
+                marginTop: "30px", // Màu xám cho icon
+                // Bỏ margin top/left ở đây, để Space xử lý khoảng cách
+              }}
+            />
+          </Badge>{" "}
           {/* User Info and Avatar with Dropdown */}
           <Dropdown
             menu={{ items: userMenuItems }}
@@ -105,36 +125,42 @@ export default function AdminHeader() {
                 userSelect: "none",
               }}
             >
-              <>
+              {/* Space riêng cho Avatar, text và DownOutlined */}
+              <Space size={8} align="center">
+                {/* Avatar */}
                 <Avatar
-                  icon={<UserOutlined />}
-                  // Sử dụng Avatar từ currentUser nếu có, hoặc avatar mặc định
-                  src={user?.avatarUrl} // Giả sử user object có avatarUrl
+                  size={40}
+                  style={{ backgroundColor: "#1890ff" }}
+                  icon={
+                    <MdAdminPanelSettings
+                      style={{ fontSize: "20px", color: "white" }}
+                    />
+                  }
                 />
-                <div style={{ marginLeft: 8, lineHeight: "1.2" }}>
+
+                {/* Container cho tên và vai trò */}
+                <div style={{ lineHeight: "1.2" }}>
                   <Text
                     style={{
                       fontWeight: "500",
                       color: "#333",
                       display: "block",
+                      fontSize: "14px",
                     }}
                   >
-                    {/* Hiển thị tên đầy đủ, nếu không có thì username, nếu không có thì "Admin User" */}
-                    {/* {fullname ? fullname : "Admin User"} */}
-                    {user.fullname}
+                    {user.fullname || user.email || "Admin User"}
                   </Text>
                   <Text
                     type="secondary"
                     style={{ fontSize: "12px", display: "block" }}
                   >
-                    {/* Hiển thị vai trò, nếu không có thì "Quản trị viên" */}
-                    {user.role_id === 1 ? "Admin" : ""}
+                    {user.role_id === 3 ? "Y tá" : "Quản trị viên"}
                   </Text>
                 </div>
-                <DownOutlined
-                  style={{ fontSize: "12px", color: "#888", marginLeft: 8 }}
-                />
-              </>
+
+                {/* Icon mũi tên xuống */}
+                <DownOutlined style={{ fontSize: "10px", color: "#888" }} />
+              </Space>
             </a>
           </Dropdown>
         </Space>

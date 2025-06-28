@@ -20,7 +20,7 @@ import { Link } from "react-router-dom";
 import HomePage from "../pages/HomePage";
 import { PiStudent } from "react-icons/pi";
 import { MdVaccines } from "react-icons/md";
-import { FaUserNurse } from "react-icons/fa";
+import { FaSchool, FaUserNurse } from "react-icons/fa";
 import { TbReportSearch } from "react-icons/tb";
 
 const { Sider } = Layout;
@@ -108,7 +108,7 @@ export default function SchoolNurseSideBar() {
           alignItems: "center",
         }}
       >
-        <FaUserNurse
+        <FaSchool
           style={{ fontSize: "28px", color: "#1890ff", marginRight: "12px" }}
         />
         <div>

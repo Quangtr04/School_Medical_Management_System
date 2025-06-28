@@ -42,7 +42,6 @@ import {
 } from "chart.js";
 import { Pie, Line, Bar } from "react-chartjs-2";
 import api from "../../configs/config-axios";
-import { format } from "date-fns";
 
 // Register Chart.js components
 ChartJS.register(
@@ -320,36 +319,6 @@ export default function ReportsPage() {
     // Thực hiện logic tạo báo cáo (ví dụ: mở modal với các tùy chọn)
   };
 
-  const handleExportData = () => {
-    message.info("Đã nhấp 'Xuất dữ liệu'!");
-    // Implement data export logic (e.g., select format, date range)
-    // Thực hiện logic xuất dữ liệu (ví dụ: chọn định dạng, khoảng ngày)
-  };
-
-  const handleDownloadReport = async (reportId) => {
-    try {
-      // Simulate PDF download
-      // Giả lập tải xuống PDF
-      message.loading("Đang tải báo cáo...", 0);
-      const res = await api.get(`/api/nurse/reports/download/${reportId}`, {
-        responseType: "blob", // Important for file downloads - Quan trọng cho việc tải file
-      });
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `report-${reportId}.pdf`); // Hoặc lấy tên file từ headers
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
-      message.success("Tải báo cáo thành công!");
-    } catch (error) {
-      console.error("Lỗi khi tải báo cáo:", error);
-      message.error("Tải báo cáo thất bại.");
-    } finally {
-      message.destroy(); // Hide loading message - Ẩn thông báo đang tải
-    }
-  };
-
   const renderLoadingState = () => (
     <div className="text-center py-8 flex flex-col items-center justify-center gap-4">
       <Spin indicator={<LoadingOutlined style={{ fontSize: 30 }} spin />} />
@@ -391,14 +360,6 @@ export default function ReportsPage() {
               className="flex items-center gap-1 px-4 py-2 !rounded-lg !border !border-gray-300 hover:!bg-gray-100 !transition-colors !text-gray-900"
             >
               Tạo báo cáo
-            </Button>
-            <Button
-              type="primary"
-              icon={<FiDownload />}
-              onClick={handleExportData}
-              className="flex items-center gap-1 px-4 py-2 !rounded-lg !bg-blue-600 hover:!bg-blue-700 !transition-colors"
-            >
-              Xuất dữ liệu
             </Button>
           </Space>
         </header>

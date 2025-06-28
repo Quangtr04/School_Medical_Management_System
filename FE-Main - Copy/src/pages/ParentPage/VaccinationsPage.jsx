@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState } from "react";
 import {
   Card,
@@ -72,42 +73,87 @@ export default function VaccinationsPage() {
       render: (date) =>
         date ? new Date(date).toLocaleDateString("vi-VN") : "-",
     },
+
     {
-      title: "Trạng thái",
+      title: "🩺 Trạng thái",
       dataIndex: "status",
       key: "status",
       render: (status) => {
-        let color = "default";
-        let icon = null;
-        let text = status;
+        let config = {
+          color: "default",
+          icon: null,
+          text: status,
+          style: {
+            borderRadius: "16px",
+            padding: "4px 10px",
+            fontWeight: "600",
+            fontSize: "12px",
+            textTransform: "uppercase",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+          },
+        };
 
         switch (status) {
           case "completed":
-            color = "green";
-            icon = <CheckCircleOutlined />;
-            text = "Đã tiêm";
+            config = {
+              ...config,
+              color: "green",
+              icon: <CheckCircleOutlined />,
+              text: "Đã tiêm",
+              style: {
+                ...config.style,
+                backgroundColor: "#f6ffed",
+                borderColor: "#b7eb8f",
+                color: "#389e0d",
+              },
+            };
             break;
+
           case "upcoming":
-            color = "orange";
-            icon = <ClockCircleOutlined />;
-            text = "Sắp tới";
+            config = {
+              ...config,
+              color: "orange",
+              icon: <ClockCircleOutlined />,
+              text: "Sắp tới",
+              style: {
+                ...config.style,
+                backgroundColor: "#fff7e6",
+                borderColor: "#ffd591",
+                color: "#d46b08",
+              },
+            };
             break;
+
           case "overdue":
-            color = "red";
-            icon = <ExclamationCircleOutlined />;
-            text = "Quá hạn";
+            config = {
+              ...config,
+              color: "red",
+              icon: <ExclamationCircleOutlined />,
+              text: "Quá hạn",
+              style: {
+                ...config.style,
+                backgroundColor: "#fff1f0",
+                borderColor: "#ffa39e",
+                color: "#cf1322",
+              },
+            };
             break;
+
           default:
+            config.text = "Không xác định";
             break;
         }
 
         return (
-          <Tag color={color} icon={icon}>
-            {text}
+          <Tag icon={config.icon} style={config.style} color={config.color}>
+            {config.text}
           </Tag>
         );
       },
     },
+
     {
       title: "Địa điểm",
       dataIndex: "location",

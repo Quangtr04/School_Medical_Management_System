@@ -27,9 +27,17 @@ import {
   EyeOutlined,
   LoadingOutlined,
   UserOutlined,
+  // Thêm các icon mới cho tiêu đề cột
+  IdcardOutlined, // For Student ID
+  TeamOutlined, // For Class
+  CalendarOutlined, // For Age (có thể dùng thay thế cho Birthday, hoặc riêng cho tuổi)
+  SolutionOutlined, // For Medical Conditions (giải pháp, y tế)
+  HistoryOutlined, // For Last Visit
+  // Actions icon đã có sẵn trong render
 } from "@ant-design/icons";
 import { FiUsers, FiClipboard, FiPlus } from "react-icons/fi"; // Thêm FiClipboard cho header icon
 import api from "../../configs/config-axios";
+import { format, parseISO } from "date-fns";
 
 const { Option } = Select;
 const { Title, Text } = Typography;
@@ -171,13 +179,23 @@ export default function StudentRecordPage() {
 
   const columns = [
     {
-      title: "Student ID",
+      title: (
+        <Space>
+          <IdcardOutlined style={{ color: "#1890ff" }} /> {/* Blue */}
+          Student ID
+        </Space>
+      ),
       dataIndex: "studentId",
       key: "studentId",
       sorter: (a, b) => a.studentId.localeCompare(b.studentId),
     },
     {
-      title: "Họ và tên",
+      title: (
+        <Space>
+          <UserOutlined style={{ color: "#52c41a" }} /> {/* Green */}
+          Họ và tên
+        </Space>
+      ),
       dataIndex: "name",
       key: "name",
       render: (text) => (
@@ -186,47 +204,77 @@ export default function StudentRecordPage() {
           {text}
         </Space>
       ),
-      sorter: (a, b) => a.name.localeCompare(b.name),
     },
     {
-      title: "Lớp",
+      title: (
+        <Space>
+          <TeamOutlined style={{ color: "#faad14" }} /> {/* Orange/Yellow */}
+          Lớp
+        </Space>
+      ),
       dataIndex: "class",
       key: "class",
       sorter: (a, b) => a.class.localeCompare(b.class),
     },
     {
-      title: "Tuổi",
+      title: (
+        <Space>
+          <CalendarOutlined style={{ color: "#eb2f96" }} /> {/* Magenta */}
+          Tuổi
+        </Space>
+      ),
       dataIndex: "age",
       key: "age",
       sorter: (a, b) => a.age - b.age,
     },
     {
-      title: "Điều kiện y tế",
+      title: (
+        <Space>
+          <SolutionOutlined style={{ color: "#722ed1" }} /> {/* Purple */}
+          Điều kiện y tế
+        </Space>
+      ),
       dataIndex: "medicalConditions",
       key: "medicalConditions",
       render: (conditions) => (
         <Space wrap>
-          {conditions.map((condition, index) => (
-            <Tag
-              key={index}
-              color={condition.type === "Allergies" ? "orange" : "blue"}
-            >
-              {condition.name}
-            </Tag>
-          ))}
+          {conditions &&
+            conditions.map(
+              (
+                condition,
+                index // Thêm kiểm tra 'conditions' để tránh lỗi nếu là null/undefined
+              ) => (
+                <Tag
+                  key={index}
+                  color={condition.type === "Allergies" ? "orange" : "blue"}
+                >
+                  {condition.name}
+                </Tag>
+              )
+            )}
         </Space>
       ),
     },
     {
-      title: "Lần khám gần nhất",
+      title: (
+        <Space>
+          <HistoryOutlined style={{ color: "#08979c" }} /> {/* Cyan */}
+          Lần khám gần nhất
+        </Space>
+      ),
       dataIndex: "lastVisit",
       key: "lastVisit",
       render: (date) => (date ? format(parseISO(date), "MMM dd, yyyy") : "N/A"),
-      sorter: (a, b) => new Date(a.lastVisit) - new Date(b.lastVisit),
     },
     {
-      title: "Hành động",
+      title: (
+        <Space>
+          <EditOutlined style={{ color: "#bfbfbf" }} /> {/* Màu tím */}
+          Hành động
+        </Space>
+      ),
       key: "actions",
+      align: "center",
       render: (_, record) => (
         <Space size="middle">
           <Tooltip title="View Details">
@@ -295,43 +343,39 @@ export default function StudentRecordPage() {
           </Button>
         </header>
 
-        {/* Filters and Search */}
-        <Card className="mb-6 !rounded-lg !shadow-md !border !border-gray-200">
-          <div className="flex flex-wrap items-center gap-4">
-            <Input
-              placeholder="Search students..."
-              prefix={<SearchOutlined className="text-gray-400" />}
-              className="flex-grow max-w-sm rounded-lg h-10"
-              onPressEnter={(e) => handleSearch(e.target.value)}
-              onBlur={(e) => handleSearch(e.target.value)}
-            />
-            <Button
-              icon={<FilterOutlined />}
-              className="flex items-center gap-1 px-4 py-2 !border !border-gray-300 !rounded-lg hover:!bg-gray-100 !transition-colors !text-gray-900"
-            >
-              Lọc
-            </Button>
-            <Select
-              placeholder="All Classes"
-              onChange={handleClassFilterChange}
-              allowClear
-              className="w-40 rounded-lg h-10"
-            >
-              {classes.map((cls) => (
-                <Option key={cls.id} value={cls.name}>
-                  {cls.name}
-                </Option>
-              ))}
-            </Select>
-          </div>
-        </Card>
-
         {/* Student Records Table */}
-        <Card className="!rounded-lg !shadow-md !border !border-gray-200">
+        <Card className="!rounded-lg !shadow-md">
           {loading ? (
             renderLoadingState()
           ) : (
             <>
+              <div className="flex flex-wrap items-center gap-4 mb-6">
+                <Input
+                  placeholder="Tìm kiếm thông tin học sinh"
+                  prefix={<SearchOutlined className="text-gray-400" />}
+                  className="flex-grow max-w-sm rounded-lg h-10"
+                  onPressEnter={(e) => handleSearch(e.target.value)}
+                  onBlur={(e) => handleSearch(e.target.value)}
+                />
+                <Button
+                  icon={<FilterOutlined />}
+                  className="flex items-center gap-1 px-4 py-2 !border !border-gray-300 !rounded-lg hover:!bg-gray-100 !transition-colors !text-gray-900"
+                >
+                  Lọc
+                </Button>
+                <Select
+                  placeholder="All Classes"
+                  onChange={handleClassFilterChange}
+                  allowClear
+                  className="w-40 rounded-lg h-10"
+                >
+                  {classes.map((cls) => (
+                    <Option key={cls.id} value={cls.name}>
+                      {cls.name}
+                    </Option>
+                  ))}
+                </Select>
+              </div>
               <Table
                 columns={columns}
                 dataSource={students}
