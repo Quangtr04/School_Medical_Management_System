@@ -117,7 +117,7 @@ const getConsentVaccineByIdAndParentId = async (req, res, next) => {
 const getResponseConsentVaccineParent = async (req, res, next) => {
   try {
     const parentId = req.user?.user_id;
-    const status = req.query.status; // Assuming status is passed as a query parameter
+    const { status } = req.body; // Assuming status is passed as a query parameter
     const { id } = req.params; // Assuming id is the consent ID
     if (!parentId) {
       return res.status(400).json({ message: "Parent ID is required" });
@@ -127,8 +127,10 @@ const getResponseConsentVaccineParent = async (req, res, next) => {
     }
     if (!status) {
       return res.status(400).json({ message: "Status is required" });
-    } else if (!["AGREED", "DECLINED"].includes(status)) {
-      return res.status(400).json({ message: "Invalid status. Must be APPROVED or DECLINED." });
+    }
+
+    if (!["AGREED", "DECLINED"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status. Must be AGREED or DECLINED." });
     }
 
     const pool = await sqlServerPool;
@@ -136,7 +138,7 @@ const getResponseConsentVaccineParent = async (req, res, next) => {
     const formResult = await pool
       .request()
       .input("id", sql.Int, id)
-      .query(`SELECT student_id, campaign_id FROM Vaccination_Consent_Form WHERE consent_id = @id`);
+      .query(`SELECT student_id, campaign_id FROM Vaccination_Consent_Form WHERE form_id = @id`);
 
     if (formResult.recordset.length === 0) {
       return res.status(404).json({ message: "Student not found for this consent" });
@@ -150,7 +152,7 @@ const getResponseConsentVaccineParent = async (req, res, next) => {
       .input("id", sql.Int, id)
       .input("status", sql.VarChar, status).query(`UPDATE Vaccination_Consent_Form 
                 SET status = @status 
-                WHERE parent_id = @parentId AND consent_id = @id`);
+                WHERE parent_id = @parentId AND form_id = @id`);
 
     if (consentVaccine.rowsAffected[0] === 0) {
       return res.status(404).json({ message: "Consent form not found for this parent" });
@@ -158,8 +160,8 @@ const getResponseConsentVaccineParent = async (req, res, next) => {
 
     const nurseId = await pool
       .request()
-      .input("id", sql.Int, id)
-      .query(`SELECT nurse_id FROM Vaccination_Consent_Form WHERE consent_id = @id`);
+      .input("id", sql.Int, campaign_id)
+      .query(`SELECT created_by FROM Vaccination_Campaign WHERE campaign_id = @id`);
 
     if (nurseId.recordset.length === 0) {
       return res.status(404).json({ message: "Nurse not found for this consent" });
@@ -172,11 +174,11 @@ const getResponseConsentVaccineParent = async (req, res, next) => {
         .input("student_id", sql.Int, student_id)
         .input("consent_form_id", sql.Int, id).query(`
                 IF NOT EXISTS (
-                  SELECT 1 FROM Checkup_Participation
+                  SELECT 1 FROM Vaccination_Result
                   WHERE campaign_id = @campaign_id AND student_id = @student_id
                 )
                 BEGIN
-                  INSERT INTO Checkup_Participation (campaign_id, student_id, consent_form_id)
+                  INSERT INTO Vaccination_Result (campaign_id, student_id, consent_form_id)
                   VALUES (@campaign_id, @student_id, @consent_form_id)
                 END
               `);
@@ -184,7 +186,7 @@ const getResponseConsentVaccineParent = async (req, res, next) => {
       // Notify the parent about the approval
       sendNotification(
         pool,
-        nurseId.recordset[0].nurse_id,
+        nurseId.recordset[0].created_by,
         "Phụ huynh đã duyệt phiếu đồng ý tiêm chủng",
         `Đơn tiêm chủng ${id} của bạn đã được phê duyệt bởi phụ huynh`
       );
@@ -197,7 +199,7 @@ const getResponseConsentVaccineParent = async (req, res, next) => {
       // Notify the parent about the decline
       sendNotification(
         pool,
-        nurseId.recordset[0].nurse_id,
+        nurseId.recordset[0].created_by,
         "Phụ huynh đã từ chối phiếu đồng ý tiêm chủng",
         `Đơn tiêm chủng ${id} của bạn đã bị từ chối bởi phụ huynh`
       );

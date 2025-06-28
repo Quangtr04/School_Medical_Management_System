@@ -3,7 +3,6 @@ const cors = require("cors");
 const parentRouter = require("../routers/parent.routers");
 const loginRouter = require("../routers/login.routers");
 const adminRouter = require("../routers/admin.routers");
-const authorize = require("../middlewares/user_middlewares");
 const nurseRouter = require("../routers/nurse.router");
 const managerRouter = require("../routers/manager.router");
 const app = express();

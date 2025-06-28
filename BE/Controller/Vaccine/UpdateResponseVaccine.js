@@ -1,3 +1,7 @@
+const sql = require("mssql");
+const sqlServerPool = require("../../Utils/connectMySql");
+const sendNotification = require("../../Utils/sendNotification");
+
 const UpdateResponseByManager = async (req, res, next) => {
   try {
     const { campaign_id } = req.params;

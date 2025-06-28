@@ -24,15 +24,11 @@ const createVaccinationCampaign = async (req, res) => {
           (@title, @description, @scheduled_date, @created_by, 'PENDING', @sponsor, @class, NULL);
       `);
     if (result.rowsAffected[0] === 0) {
-      return res
-        .status(400)
-        .json({ message: "Failed to create vaccination campaign" });
+      return res.status(400).json({ message: "Failed to create vaccination campaign" });
     }
     const campaignId = result.recordset[0].campaign_id;
     // Notify all managers about the new vaccination campaign
-    const managers = await pool
-      .request()
-      .query(`SELECT user_id FROM Users WHERE role_id = 2`);
+    const managers = await pool.request().query(`SELECT user_id FROM Users WHERE role_id = 2`);
     const managerIds = managers.recordset.map((m) => m.user_id);
 
     // Respond with the created campaign ID
@@ -43,9 +39,7 @@ const createVaccinationCampaign = async (req, res) => {
       `A new vaccination campaign has been created: "${title}".`
     );
 
-    res
-      .status(201)
-      .json({ message: "Vaccination campaign created", id: campaignId });
+    res.status(201).json({ message: "Vaccination campaign created", id: campaignId });
   } catch (error) {
     console.error("Error creating vaccination campaign:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -63,9 +57,7 @@ const deleteVaccinationCampaign = async (req, res) => {
 
     // If the campaign does not exist, return 404
     if (check.recordset.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "Vaccination campaign not found" });
+      return res.status(404).json({ message: "Vaccination campaign not found" });
     }
 
     // If the campaign is already approved
@@ -73,8 +65,7 @@ const deleteVaccinationCampaign = async (req, res) => {
     let parentIds = [];
     if (approvalStatus === "APPROVED") {
       // Get the list of parents who have consented to the campaign
-      const consentedParents = await pool.request().input("id", sql.Int, id)
-        .query(`
+      const consentedParents = await pool.request().input("id", sql.Int, id).query(`
           SELECT DISTINCT parent_id FROM Vaccination_Consent_Form WHERE campaign_id = @id
         `);
       parentIds = consentedParents.recordset.map((p) => p.parent_id);
@@ -113,9 +104,7 @@ const deleteVaccinationCampaign = async (req, res) => {
       }
     }
 
-    res
-      .status(200)
-      .json({ message: "Vaccination campaign deleted successfully" });
+    res.status(200).json({ message: "Vaccination campaign deleted successfully" });
   } catch (error) {
     console.error("Error deleting vaccination campaign:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -127,24 +116,17 @@ const responseVaccinationCampaign = async (req, res) => {
   const { status } = req.body;
 
   if (!["APPROVED", "DECLINED"].includes(status)) {
-    return res
-      .status(400)
-      .json({ message: "Invalid status value. 'APPROVED' or 'DECLINED'." });
+    return res.status(400).json({ message: "Invalid status value. 'APPROVED' or 'DECLINED'." });
   }
   try {
     const pool = await sqlServerPool;
-    const result = await pool
-      .request()
-      .input("status", sql.NVarChar, status)
-      .input("id", sql.Int, id).query(`
+    const result = await pool.request().input("status", sql.NVarChar, status).input("id", sql.Int, id).query(`
         UPDATE Vaccination_Campaign
         SET approval_status = @status, approved_by = 'principal'
         WHERE campaign_id = @id;
       `);
     if (result.rowsAffected[0] === 0) {
-      return res
-        .status(404)
-        .json({ message: "Vaccination campaign not found" });
+      return res.status(404).json({ message: "Vaccination campaign not found" });
     }
     // If the campaign is approved, notify the parents
     if (status === "APPROVED") {
@@ -163,18 +145,18 @@ const responseVaccinationCampaign = async (req, res) => {
       );
 
       // Get the list of student for the class
-      const students = await pool.request().input("class", sql.Int, className)
+      const students = await pool.request().input("class", sql.NVarChar, String(className)) // ép kiểu số thành chuỗi
         .query(`
-              SELECT student_id, parent_id FROM Student_Information
-              WHERE class_name LIKE CAST(@class AS NVARCHAR) + '%'
-            `);
+    SELECT student_id, parent_id FROM Student_Information
+    WHERE class_name LIKE @class + '%'
+  `);
 
       for (let stu of students.recordset) {
         await pool
           .request()
           .input("student_id", sql.Int, stu.student_id)
           .input("parent_id", sql.Int, stu.parent_id)
-          .input("checkup_id", sql.Int, id).query(`
+          .input("campaign_id", sql.Int, id).query(`
                   INSERT INTO Vaccination_Consent_Form (student_id, parent_id, campaign_id, status, submitted_at)
                   VALUES (@student_id, @parent_id, @campaign_id, 'PENDING', NULL)
                 `);

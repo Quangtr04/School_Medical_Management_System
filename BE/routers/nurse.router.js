@@ -38,7 +38,6 @@ const {
   getStudentVaccineList,
   getStudentVaccineListById,
   updateResultVaccine,
-  updateVaccine,
 } = require("../Controller/Vaccine/UpdateVaccineResult");
 
 const nurseRouter = express.Router();
@@ -124,11 +123,8 @@ nurseRouter.get("/vaccine-campaigns-students", getStudentVaccineList);
 // Lấy  học sinh đã duyệt
 nurseRouter.get("/vaccine-campaigns-students/:id", getStudentVaccineListById);
 
-// Cập nhật trạng thái của học sinh
-nurseRouter.post("/vaccine-campaigns-students/:id", updateResultVaccine);
-
 // Cập nhật note của học sinh
-nurseRouter.patch("/vaccine-campaigns-students/:id", updateVaccine);
+nurseRouter.patch("/vaccine-campaigns-students/:id", updateResultVaccine);
 
 //lấy thông báo
 nurseRouter.get("/notifications", authenticateToken, getNotifications);

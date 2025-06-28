@@ -64,7 +64,7 @@ managerRouter.delete("/vaccine-campaigns/:id", deleteVaccinationCampaign);
 managerRouter.post("/vaccine-campaigns/:id/respond", responseVaccinationCampaign);
 
 // Cập nhật phản hồi trạng thái tiêm chủng
-managerRouter.patch("/vaccine-campaigns/:id/status", UpdateResponseByManager);
+managerRouter.patch("/vaccine-campaigns/:campaign_id/status", UpdateResponseByManager);
 
 //lấy thông báo
 managerRouter.get("/notifications", authenticateToken, getNotifications);
