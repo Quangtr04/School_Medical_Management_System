@@ -1,11 +1,12 @@
 import React, { useEffect } from "react";
-import { Header } from "../components/Header";
-import { AboutSection } from "../components/AboutSection";
-import { DocumentsSection } from "../components/DocumentSection";
-import { BlogSection } from "../components/BlogSection";
-import { Footer } from "../components/Footer";
+import { Header } from "../Components/Header";
+import { AboutSection } from "../Components/AboutSection";
+import { DocumentsSection } from "../Components/DocumentSection";
+import { BlogSection } from "../Components/BlogSection";
+import { Footer } from "../Components/Footer";
 import { useLocation } from "react-router-dom";
-import { BackToTopButton } from "../components/BackToTop";
+import { BackToTopButton } from "../Components/BackToTop";
+import SupportSection from "../Components/SupportSection";
 
 export default function HomePage() {
   const location = useLocation(); // Khởi tạo useLocation
@@ -31,6 +32,7 @@ export default function HomePage() {
       <Header></Header>
       <AboutSection></AboutSection>
       <DocumentsSection />
+      <SupportSection />
       <BlogSection />
       <Footer />
       <BackToTopButton />

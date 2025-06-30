@@ -9,7 +9,7 @@ import {
 } from "@ant-design/icons";
 import { Col, Row, Button, Card } from "antd";
 import { AiOutlinePhone } from "react-icons/ai";
-import { Header } from "../../components/Header";
+import { Header } from "../../Components/Header";
 import ContactSection from "./ContactSection";
 import AppointmentSection from "./AppointmentSection";
 
