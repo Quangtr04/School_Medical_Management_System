@@ -56,73 +56,88 @@ export default function ParentHeader() {
         boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
         border: "1px solid #f0f0f0",
       }}
-    >
-      <div
-        style={{
-          padding: "12px 16px",
-          background: "#fafafa",
-          borderBottom: "1px solid #f0f0f0",
-          borderRadius: "8px 8px 0 0",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Avatar
-            size={40}
-            icon={<UserOutlined />}
-            style={{ backgroundColor: "#52c41a" }}
-          />
-          <div>
-            <div style={{ fontWeight: 600, fontSize: 14, color: "#262626" }}>
-              {user?.fullname || "Phụ huynh"}
+      items={[
+        {
+          key: "header",
+          label: (
+            <div
+              style={{
+                padding: "12px 16px",
+                background: "#fafafa",
+                borderBottom: "1px solid #f0f0f0",
+                borderRadius: "8px 8px 0 0",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <Avatar
+                  size={40}
+                  icon={<UserOutlined />}
+                  style={{ backgroundColor: "#52c41a" }}
+                />
+                <div>
+                  <div
+                    style={{ fontWeight: 600, fontSize: 14, color: "#262626" }}
+                  >
+                    {user?.fullname || "Phụ huynh"}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#8c8c8c" }}>
+                    Sức khỏe gia đình
+                  </div>
+                </div>
+              </div>
             </div>
-            <div style={{ fontSize: 12, color: "#8c8c8c" }}>
-              Sức khỏe gia đình
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <Menu.Item
-        key="profile"
-        icon={<UserOutlined style={{ color: "#1890ff" }} />}
-        style={{
-          margin: "8px 8px 4px 8px",
-          borderRadius: 6,
-          transition: "all 0.2s",
-        }}
-      >
-        <span style={{ color: "#262626", fontWeight: 500 }}>
-          Thông tin cá nhân
-        </span>
-      </Menu.Item>
-
-      <Menu.Item
-        key="settings"
-        icon={<SyncOutlined style={{ color: "#722ed1" }} />}
-        style={{
-          margin: "4px 8px",
-          borderRadius: 6,
-          transition: "all 0.2s",
-        }}
-      >
-        <span style={{ color: "#262626", fontWeight: 500 }}>Cài đặt</span>
-      </Menu.Item>
-
-      <Menu.Divider style={{ margin: "8px 0" }} />
-
-      <Menu.Item
-        key="logout"
-        icon={<LogoutOutlined style={{ color: "#ff4d4f" }} />}
-        onClick={handleLogout}
-        style={{
-          margin: "4px 8px 8px 8px",
-          borderRadius: 6,
-          transition: "all 0.2s",
-        }}
-      >
-        <span style={{ color: "#ff4d4f", fontWeight: 500 }}>Đăng xuất</span>
-      </Menu.Item>
-    </Menu>
+          ),
+          style: {
+            height: "auto",
+            padding: 0,
+            margin: 0,
+          },
+        },
+        {
+          key: "profile",
+          icon: <UserOutlined style={{ color: "#1890ff" }} />,
+          label: (
+            <span style={{ color: "#262626", fontWeight: 500 }}>
+              Thông tin cá nhân
+            </span>
+          ),
+          style: {
+            margin: "8px 8px 4px 8px",
+            borderRadius: 6,
+            transition: "all 0.2s",
+          },
+        },
+        {
+          key: "settings",
+          icon: <SyncOutlined style={{ color: "#722ed1" }} />,
+          label: (
+            <span style={{ color: "#262626", fontWeight: 500 }}>Cài đặt</span>
+          ),
+          style: {
+            margin: "4px 8px",
+            borderRadius: 6,
+            transition: "all 0.2s",
+          },
+        },
+        {
+          type: "divider",
+          style: { margin: "8px 0" },
+        },
+        {
+          key: "logout",
+          icon: <LogoutOutlined style={{ color: "#ff4d4f" }} />,
+          label: (
+            <span style={{ color: "#ff4d4f", fontWeight: 500 }}>Đăng xuất</span>
+          ),
+          onClick: handleLogout,
+          style: {
+            margin: "4px 8px 8px 8px",
+            borderRadius: 6,
+            transition: "all 0.2s",
+          },
+        },
+      ]}
+    />
   );
   return (
     <Header
@@ -177,7 +192,7 @@ export default function ParentHeader() {
 
             {/* User Info */}
             <Dropdown
-              overlay={userMenu}
+              menu={{ items: userMenu.props.items }}
               trigger={["click"]}
               placement="bottomRight"
             >

@@ -1,47 +1,74 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
-  Card,
-  Row,
-  Col,
+  Box,
   Typography,
-  Form,
-  Input,
-  Select,
-  Button,
-  Upload,
+  Paper,
+  Tabs,
+  Tab,
   Table,
-  Tag,
-  Space,
-  Modal,
-  DatePicker,
-  TimePicker,
-  message,
-  Alert,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  CircularProgress,
+  Grid,
+  Card,
+  CardContent,
+  CardHeader,
   Divider,
-  Avatar,
-} from "antd";
+  IconButton,
+  Chip,
+  Stack,
+} from "@mui/material";
 import {
-  MedicineBoxOutlined,
-  PlusOutlined,
-  UploadOutlined,
-  EyeOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  ClockCircleOutlined,
-  CheckCircleOutlined,
-  UserOutlined,
-} from "@ant-design/icons";
-import { parentData } from "../../data/parentData";
+  MedicalServices,
+  CalendarToday,
+  AccessTime,
+  LocationOn,
+  Person,
+  Description,
+  LocalHospital,
+  Warning,
+  Visibility as VisibilityIcon,
+  Add as AddIcon,
+} from "@mui/icons-material";
+import {
+  getParentChildren,
+  submitMedicationRequest,
+  getIncidentsByUser,
+  setSelectedIncident,
+} from "../../redux/parent/parentSlice";
 import moment from "moment";
 
-const { Title, Text } = Typography;
-const { Option } = Select;
-const { TextArea } = Input;
+function MedicineRequestPage() {
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
+  const {
+    children,
+    selectedChild,
+    incidents,
+    selectedIncident,
+    loading,
+    error,
+  } = useSelector((state) => state.parent);
 
-export default function MedicineRequestPage() {
   const [form] = Form.useForm();
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedChild, setSelectedChild] = useState(null);
+  const [tabValue, setTabValue] = useState(0);
+  const [openIncidentDialog, setOpenIncidentDialog] = useState(false);
+
   const [medicineRequests, setMedicineRequests] = useState([
     {
       id: 1,
@@ -73,11 +100,44 @@ export default function MedicineRequestPage() {
     },
   ]);
 
+  useEffect(() => {
+    dispatch(getParentChildren());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (selectedChild) {
+      dispatch(getIncidentsByUser(selectedChild.id));
+    }
+  }, [dispatch, selectedChild]);
+
+  useEffect(() => {
+    if (success) {
+      message.success("Gửi yêu cầu thuốc thành công!");
+      setIsModalVisible(false);
+      form.resetFields();
+      setSelectedChild(null);
+    }
+  }, [success, form]);
+
   const handleSubmit = (values) => {
+    if (!selectedChild) {
+      message.error("Vui lòng chọn con em");
+      return;
+    }
+
+    const requestData = {
+      childId: selectedChild.id,
+      ...values,
+    };
+
+    // In a real app, we would dispatch the action to submit the request
+    // dispatch(submitMedicationRequest(requestData));
+
+    // For now, we'll just mock the behavior
     const newRequest = {
       id: medicineRequests.length + 1,
-      childId: selectedChild?.id,
-      childName: selectedChild?.name,
+      childId: selectedChild.id,
+      childName: selectedChild.name,
       ...values,
       status: "pending",
       requestDate: moment().format("YYYY-MM-DD"),
@@ -89,10 +149,10 @@ export default function MedicineRequestPage() {
     form.resetFields();
     setSelectedChild(null);
   };
+
   const handleEdit = (record) => {
-    setSelectedChild(
-      parentData.children.find((child) => child.id === record.childId)
-    );
+    const childToEdit = children.find((child) => child.id === record.childId);
+    setSelectedChild(childToEdit || null);
     form.setFieldsValue({
       ...record,
       time: record.time,
@@ -111,308 +171,339 @@ export default function MedicineRequestPage() {
     });
   };
 
-  const columns = [
-    {
-      title: "Con em",
-      dataIndex: "childName",
-      key: "childName",
-      render: (name) => (
-        <Space>
-          <Avatar size="small" icon={<UserOutlined />} />
-          <Text strong>{name}</Text>
-        </Space>
-      ),
-    },
-    {
-      title: "Tên thuốc",
-      dataIndex: "medicineName",
-      key: "medicineName",
-      render: (name) => (
-        <Text strong style={{ color: "#1890ff" }}>
-          {name}
-        </Text>
-      ),
-    },
-    {
-      title: "Liều dùng",
-      dataIndex: "dosage",
-      key: "dosage",
-    },
-    {
-      title: "Tần suất",
-      dataIndex: "frequency",
-      key: "frequency",
-    },
-    {
-      title: "Thời gian uống",
-      dataIndex: "time",
-      key: "time",
-      render: (time) => (
-        <div>
-          {time.split(", ").map((t, index) => (
-            <Tag key={index} color="blue" style={{ margin: "2px" }}>
-              {t}
-            </Tag>
-          ))}
-        </div>
-      ),
-    },
-    {
-      title: "Trạng thái",
-      dataIndex: "status",
-      key: "status",
-      render: (status) => {
-        let color = "default";
-        let icon = null;
-        let text = status;
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
+  };
 
-        switch (status) {
-          case "pending":
-            color = "orange";
-            icon = <ClockCircleOutlined />;
-            text = "Chờ duyệt";
-            break;
-          case "approved":
-            color = "green";
-            icon = <CheckCircleOutlined />;
-            text = "Đã duyệt";
-            break;
-          case "rejected":
-            color = "red";
-            text = "Từ chối";
-            break;
-          default:
-            break;
-        }
+  const handleOpenIncidentDialog = (incident) => {
+    dispatch(setSelectedIncident(incident));
+    setOpenIncidentDialog(true);
+  };
 
-        return (
-          <Tag color={color} icon={icon}>
-            {text}
-          </Tag>
-        );
-      },
-    },
-    {
-      title: "Ngày gửi",
-      dataIndex: "requestDate",
-      key: "requestDate",
-      render: (date) => moment(date).format("DD/MM/YYYY"),
-    },
-    {
-      title: "Hành động",
-      key: "action",
-      render: (_, record) => (
-        <Space size="middle">
-          <Button type="link" icon={<EyeOutlined />} size="small">
-            Xem
-          </Button>
-          {record.status === "pending" && (
-            <>
-              <Button
-                type="link"
-                icon={<EditOutlined />}
-                size="small"
-                onClick={() => handleEdit(record)}
-              >
-                Sửa
-              </Button>
-              <Button
-                type="link"
-                danger
-                icon={<DeleteOutlined />}
-                size="small"
-                onClick={() => handleDelete(record.id)}
-              >
-                Xóa
-              </Button>
-            </>
+  const handleCloseIncidentDialog = () => {
+    setOpenIncidentDialog(false);
+  };
+
+  const getSeverityColor = (severity) => {
+    switch (severity.toLowerCase()) {
+      case "nhẹ":
+        return "success";
+      case "trung bình":
+        return "warning";
+      case "nặng":
+        return "error";
+      default:
+        return "default";
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "resolved":
+        return "success";
+      case "ongoing":
+        return "warning";
+      case "pending":
+        return "info";
+      default:
+        return "default";
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case "resolved":
+        return "Đã giải quyết";
+      case "ongoing":
+        return "Đang xử lý";
+      case "pending":
+        return "Chờ xử lý";
+      default:
+        return "Không xác định";
+    }
+  };
+
+  const renderActiveIncidents = () => {
+    const activeIncidents = incidents.filter(
+      (inc) => inc.status !== "resolved"
+    );
+
+    if (loading) {
+      return (
+        <Box display="flex" justifyContent="center" mt={3}>
+          <CircularProgress />
+        </Box>
+      );
+    }
+
+    if (!selectedChild) {
+      return (
+        <Typography variant="body1" align="center" mt={3}>
+          Vui lòng chọn học sinh để xem sự cố y tế
+        </Typography>
+      );
+    }
+
+    if (activeIncidents.length === 0) {
+      return (
+        <Typography variant="body1" align="center" mt={3}>
+          Không có sự cố y tế đang xử lý
+        </Typography>
+      );
+    }
+
+    return (
+      <Grid container spacing={2} mt={1}>
+        {activeIncidents.map((incident) => (
+          <Grid item xs={12} md={6} key={incident.id}>
+            <Card>
+              <CardHeader
+                title={incident.type}
+                subheader={
+                  <Stack direction="row" spacing={1} mt={0.5}>
+                    <Chip
+                      label={getStatusText(incident.status)}
+                      color={getStatusColor(incident.status)}
+                      size="small"
+                    />
+                    <Chip
+                      label={incident.severity}
+                      color={getSeverityColor(incident.severity)}
+                      size="small"
+                    />
+                  </Stack>
+                }
+                action={
+                  <IconButton
+                    color="primary"
+                    onClick={() => handleOpenIncidentDialog(incident)}
+                  >
+                    <VisibilityIcon />
+                  </IconButton>
+                }
+              />
+              <Divider />
+              <CardContent>
+                <Box display="flex" alignItems="center" mb={1}>
+                  <CalendarToday fontSize="small" sx={{ mr: 1 }} />
+                  <Typography variant="body2">Ngày: {incident.date}</Typography>
+                </Box>
+                <Box display="flex" alignItems="center" mb={1}>
+                  <AccessTime fontSize="small" sx={{ mr: 1 }} />
+                  <Typography variant="body2">Giờ: {incident.time}</Typography>
+                </Box>
+                <Box display="flex" alignItems="center" mb={1}>
+                  <LocationOn fontSize="small" sx={{ mr: 1 }} />
+                  <Typography variant="body2">
+                    Địa điểm: {incident.location}
+                  </Typography>
+                </Box>
+                <Box display="flex" alignItems="flex-start" mb={1}>
+                  <Description fontSize="small" sx={{ mr: 1, mt: 0.5 }} />
+                  <Typography variant="body2">
+                    Mô tả: {incident.description}
+                  </Typography>
+                </Box>
+                <Box display="flex" alignItems="center" mb={1}>
+                  <LocalHospital fontSize="small" sx={{ mr: 1 }} />
+                  <Typography variant="body2">
+                    Xử lý: {incident.treatment}
+                  </Typography>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+    );
+  };
+
+  const renderIncidentHistory = () => {
+    const resolvedIncidents = incidents.filter(
+      (inc) => inc.status === "resolved"
+    );
+
+    if (loading) {
+      return (
+        <Box display="flex" justifyContent="center" mt={3}>
+          <CircularProgress />
+        </Box>
+      );
+    }
+
+    if (!selectedChild) {
+      return (
+        <Typography variant="body1" align="center" mt={3}>
+          Vui lòng chọn học sinh để xem lịch sử sự cố y tế
+        </Typography>
+      );
+    }
+
+    if (resolvedIncidents.length === 0) {
+      return (
+        <Typography variant="body1" align="center" mt={3}>
+          Không có lịch sử sự cố y tế
+        </Typography>
+      );
+    }
+
+    return (
+      <TableContainer component={Paper} sx={{ mt: 2 }}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Ngày</TableCell>
+              <TableCell>Loại sự cố</TableCell>
+              <TableCell>Mức độ</TableCell>
+              <TableCell>Xử lý</TableCell>
+              <TableCell>Chi tiết</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {resolvedIncidents.map((incident) => (
+              <TableRow key={incident.id}>
+                <TableCell>{incident.date}</TableCell>
+                <TableCell>{incident.type}</TableCell>
+                <TableCell>
+                  <Chip
+                    label={incident.severity}
+                    color={getSeverityColor(incident.severity)}
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>{incident.treatment}</TableCell>
+                <TableCell>
+                  <IconButton
+                    color="primary"
+                    onClick={() => handleOpenIncidentDialog(incident)}
+                  >
+                    <VisibilityIcon />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    );
+  };
+
+  const renderIncidentDetails = () => {
+    const incident = selectedIncident;
+
+    if (!incident) return null;
+
+    return (
+      <Box>
+        <Box display="flex" alignItems="center" mb={1}>
+          <Typography variant="h6" component="span" mr={1}>
+            {incident.type}
+          </Typography>
+          <Chip
+            label={incident.severity}
+            color={getSeverityColor(incident.severity)}
+            size="small"
+          />
+          <Chip
+            label={getStatusText(incident.status)}
+            color={getStatusColor(incident.status)}
+            size="small"
+            sx={{ ml: 1 }}
+          />
+        </Box>
+        <Divider sx={{ mb: 2 }} />
+
+        <Grid container spacing={2}>
+          <Grid item xs={6}>
+            <Typography variant="subtitle2">Ngày:</Typography>
+            <Typography variant="body2">{incident.date}</Typography>
+          </Grid>
+          <Grid item xs={6}>
+            <Typography variant="subtitle2">Giờ:</Typography>
+            <Typography variant="body2">{incident.time}</Typography>
+          </Grid>
+          <Grid item xs={12}>
+            <Typography variant="subtitle2">Địa điểm:</Typography>
+            <Typography variant="body2">{incident.location}</Typography>
+          </Grid>
+          <Grid item xs={12}>
+            <Typography variant="subtitle2">Mô tả sự cố:</Typography>
+            <Typography variant="body2">{incident.description}</Typography>
+          </Grid>
+          <Grid item xs={12}>
+            <Typography variant="subtitle2">Xử lý:</Typography>
+            <Typography variant="body2">{incident.treatment}</Typography>
+          </Grid>
+          <Grid item xs={12}>
+            <Typography variant="subtitle2">Người báo cáo:</Typography>
+            <Typography variant="body2">{incident.reportedBy}</Typography>
+          </Grid>
+          {incident.nurseNotes && (
+            <Grid item xs={12}>
+              <Typography variant="subtitle2">Ghi chú của y tá:</Typography>
+              <Typography variant="body2">{incident.nurseNotes}</Typography>
+            </Grid>
           )}
-        </Space>
-      ),
-    },
-  ];
+          {incident.followUpRequired && (
+            <Grid item xs={12}>
+              <Typography variant="subtitle2">Theo dõi thêm:</Typography>
+              <Typography variant="body2">
+                Cần theo dõi thêm{" "}
+                {incident.followUpDate
+                  ? `đến ngày ${incident.followUpDate}`
+                  : ""}
+              </Typography>
+            </Grid>
+          )}
+        </Grid>
+      </Box>
+    );
+  };
 
   return (
-    <div style={{ padding: "0" }}>
-      {/* Header */}
-      <Card style={{ marginBottom: 24 }}>
-        <Row justify="space-between" align="middle">
-          <Col>
-            <Title level={2} style={{ margin: 0, color: "#1890ff" }}>
-              <MedicineBoxOutlined style={{ marginRight: 8 }} />
-              Gửi thuốc cho con
-            </Title>
-            <Text type="secondary">
-              Gửi yêu cầu cho y tá trường để hỗ trợ uống thuốc cho con
-            </Text>
-          </Col>
-          <Col>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              size="large"
-              onClick={() => setIsModalVisible(true)}
-            >
-              Gửi yêu cầu mới
-            </Button>
-          </Col>
-        </Row>
-      </Card>
+    <Box p={3}>
+      <Typography variant="h5" gutterBottom>
+        Sự cố y tế
+      </Typography>
 
-      {/* Instructions */}
-      <Alert
-        message="Hướng dẫn gửi thuốc"
-        description={
-          <div>
-            <p>
-              • Chỉ gửi thuốc có đơn thuốc từ bác sĩ hoặc thuốc không cần đơn
-            </p>
-            <p>• Ghi rõ liều dùng, thời gian uống và ghi chú đặc biệt</p>
-            <p>• Đính kèm đơn thuốc hoặc hướng dẫn sử dụng (nếu có)</p>
-            <p>• Y tá trường sẽ xem xét và phản hồi trong vòng 24h</p>
-          </div>
-        }
-        type="info"
-        showIcon
-        style={{ marginBottom: 24 }}
-      />
-
-      {/* Medicine Requests Table */}
-      <Card title="Danh sách yêu cầu gửi thuốc">
-        <Table
-          columns={columns}
-          dataSource={medicineRequests}
-          rowKey="id"
-          pagination={{ pageSize: 10 }}
-          size="middle"
-        />
-      </Card>
-
-      {/* Add/Edit Modal */}
-      <Modal
-        title={
-          selectedChild ? "Chỉnh sửa yêu cầu thuốc" : "Gửi yêu cầu thuốc mới"
-        }
-        open={isModalVisible}
-        onCancel={() => {
-          setIsModalVisible(false);
-          form.resetFields();
-          setSelectedChild(null);
-        }}
-        footer={null}
-        width={800}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSubmit}
-          style={{ marginTop: 20 }}
+      <Paper sx={{ mt: 2 }}>
+        <Tabs
+          value={tabValue}
+          onChange={handleTabChange}
+          indicatorColor="primary"
+          textColor="primary"
+          variant="fullWidth"
         >
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="childId"
-                label="Chọn con"
-                rules={[{ required: true, message: "Vui lòng chọn con" }]}
-              >
-                <Select
-                  placeholder="Chọn con của bạn"
-                  onChange={(value) => {
-                    const child = parentData.children.find(
-                      (c) => c.id === value
-                    );
-                    setSelectedChild(child);
-                  }}
-                >
-                  {parentData.children.map((child) => (
-                    <Option key={child.id} value={child.id}>
-                      <Space>
-                        <Avatar size="small" icon={<UserOutlined />} />
-                        {child.name} - {child.class}
-                      </Space>
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="medicineName"
-                label="Tên thuốc"
-                rules={[{ required: true, message: "Vui lòng nhập tên thuốc" }]}
-              >
-                <Input placeholder="VD: Paracetamol, Vitamin C..." />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item
-                name="dosage"
-                label="Liều dùng"
-                rules={[{ required: true, message: "Vui lòng nhập liều dùng" }]}
-              >
-                <Input placeholder="VD: 5ml, 1 viên..." />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                name="frequency"
-                label="Tần suất"
-                rules={[{ required: true, message: "Vui lòng nhập tần suất" }]}
-              >
-                <Input placeholder="VD: 3 lần/ngày" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                name="duration"
-                label="Thời gian điều trị"
-                rules={[{ required: true, message: "Vui lòng nhập thời gian" }]}
-              >
-                <Input placeholder="VD: 3 ngày, 1 tuần..." />
-              </Form.Item>
-            </Col>
-          </Row>{" "}
-          <Form.Item
-            name="time"
-            label="Giờ uống thuốc"
-            rules={[
-              { required: true, message: "Vui lòng nhập giờ uống thuốc" },
-            ]}
-          >
-            <Input placeholder="VD: 8:00, 12:00, 18:00 (phân cách bằng dấu phẩy)" />
-          </Form.Item>
-          <Form.Item name="notes" label="Ghi chú đặc biệt">
-            <TextArea
-              rows={3}
-              placeholder="VD: Uống sau ăn, tránh uống cùng sữa..."
-            />
-          </Form.Item>
-          <Form.Item name="prescription" label="Đơn thuốc / Hướng dẫn (nếu có)">
-            <Upload beforeUpload={() => false} accept=".pdf,.jpg,.jpeg,.png">
-              <Button icon={<UploadOutlined />}>Tải lên file đơn thuốc</Button>
-            </Upload>
-          </Form.Item>
-          <Divider />
-          <Form.Item style={{ textAlign: "right", marginBottom: 0 }}>
-            <Space>
-              <Button
-                onClick={() => {
-                  setIsModalVisible(false);
-                  form.resetFields();
-                  setSelectedChild(null);
-                }}
-              >
-                Hủy
-              </Button>
-              <Button type="primary" htmlType="submit">
-                Gửi yêu cầu
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Modal>
-    </div>
+          <Tab label="Sự cố đang xử lý" />
+          <Tab label="Lịch sử sự cố" />
+        </Tabs>
+
+        <Box p={2}>
+          {tabValue === 0 && renderActiveIncidents()}
+          {tabValue === 1 && renderIncidentHistory()}
+        </Box>
+      </Paper>
+
+      {/* Dialog chi tiết sự cố */}
+      <Dialog
+        open={openIncidentDialog}
+        onClose={handleCloseIncidentDialog}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" alignItems="center">
+            <Warning sx={{ mr: 1, color: "warning.main" }} />
+            Chi tiết sự cố y tế
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers>{renderIncidentDetails()}</DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseIncidentDialog}>Đóng</Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 }
+
+export default MedicineRequestPage;

@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
   Card,
   Row,
@@ -15,6 +16,16 @@ import {
   Alert,
   Avatar,
   Progress,
+  Spin,
+  Empty,
+  Tabs,
+  Form,
+  Input,
+  Radio,
+  Descriptions,
+  Divider,
+  message,
+  Tooltip,
 } from "antd";
 import {
   CalendarOutlined,
@@ -23,30 +34,179 @@ import {
   ClockCircleOutlined,
   ExclamationCircleOutlined,
   UserOutlined,
+  InfoCircleOutlined,
+  FileTextOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
-import { parentData, vaccinations } from "../../data/parentData";
+import moment from "moment";
+import {
+  getParentChildren,
+  getChildDetails,
+  getVaccineCampaigns,
+  getApprovedCampaigns,
+  getDeclinedCampaigns,
+  respondToVaccinationConsent,
+  getIncidentsByUser,
+} from "../../redux/parent/parentSlice";
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
+const { TabPane } = Tabs;
+const { TextArea } = Input;
+const { confirm } = Modal;
 
 export default function VaccinationsPage() {
-  const [selectedChild, setSelectedChild] = useState(parentData.children[0]);
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
+  const { children, selectedChild, vaccinations, loading, error, success } =
+    useSelector((state) => state.parent);
+
   const [selectedDate, setSelectedDate] = useState(null);
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [campaignModalVisible, setCampaignModalVisible] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState(null);
+  const [responseForm] = Form.useForm();
+  const [activeTab, setActiveTab] = useState("upcoming");
+  const [studentVaccinations, setStudentVaccinations] = useState([]);
 
-  const childVaccinations = vaccinations.filter(
-    (vaccination) => vaccination.childId === selectedChild.id
-  );
+  // Fetch data on component mount
+  useEffect(() => {
+    dispatch(getParentChildren());
+    dispatch(getVaccineCampaigns());
+    dispatch(getApprovedCampaigns());
+    dispatch(getDeclinedCampaigns());
+  }, [dispatch]);
 
-  const completedVaccinations = childVaccinations.filter(
+  // When children data is loaded, select the first child
+  useEffect(() => {
+    if (children && children.length > 0 && !selectedChild) {
+      dispatch(getChildDetails(children[0].id));
+    }
+  }, [dispatch, children, selectedChild]);
+
+  // When a child is selected, fetch their incidents (which include vaccination reactions)
+  useEffect(() => {
+    if (selectedChild?.id) {
+      dispatch(getIncidentsByUser(selectedChild.id));
+    }
+  }, [dispatch, selectedChild]);
+
+  // Filter vaccinations for the selected child
+  useEffect(() => {
+    if (selectedChild && vaccinations) {
+      // In a real app, this would be an API call to get student-specific vaccinations
+      // For now, we'll filter from the mock data
+      const childVaccines = [];
+
+      // Add upcoming vaccinations from campaigns
+      if (vaccinations.campaigns) {
+        vaccinations.campaigns.forEach((campaign) => {
+          if (campaign.status === "upcoming") {
+            childVaccines.push({
+              id: `campaign-${campaign.id}`,
+              campaignId: campaign.id,
+              vaccineName: campaign.vaccineType || campaign.name,
+              type: "Chiến dịch",
+              scheduledDate: campaign.startDate,
+              actualDate: null,
+              status: "upcoming",
+              location: campaign.location || "Trạm y tế trường học",
+              description: campaign.description,
+              notes: campaign.notes || "Cần có sự đồng ý của phụ huynh",
+              responseStatus: getStudentResponseStatus(
+                campaign,
+                selectedChild.id
+              ),
+              responseDeadline: campaign.responseDeadline,
+            });
+          }
+        });
+      }
+
+      // Add approved vaccinations
+      if (vaccinations.approved) {
+        vaccinations.approved.forEach((campaign) => {
+          if (campaign.studentId === selectedChild.id) {
+            childVaccines.push({
+              id: `approved-${campaign.id}`,
+              campaignId: campaign.id,
+              vaccineName: campaign.vaccineType || campaign.name,
+              type: "Đã đồng ý",
+              scheduledDate: campaign.startDate,
+              actualDate: campaign.actualVaccinationDate || null,
+              status: campaign.status,
+              location: campaign.location || "Trạm y tế trường học",
+              description: campaign.description,
+              notes: campaign.notes,
+              responseStatus: "approved",
+            });
+          }
+        });
+      }
+
+      // Add declined vaccinations
+      if (vaccinations.declined) {
+        vaccinations.declined.forEach((campaign) => {
+          if (campaign.studentId === selectedChild.id) {
+            childVaccines.push({
+              id: `declined-${campaign.id}`,
+              campaignId: campaign.id,
+              vaccineName: campaign.vaccineType || campaign.name,
+              type: "Đã từ chối",
+              scheduledDate: campaign.startDate,
+              actualDate: null,
+              status: "declined",
+              location: campaign.location || "Trạm y tế trường học",
+              description: campaign.description,
+              notes: campaign.parentNotes || "Đã từ chối tiêm chủng",
+              responseStatus: "declined",
+            });
+          }
+        });
+      }
+
+      setStudentVaccinations(childVaccines);
+    }
+  }, [selectedChild, vaccinations]);
+
+  // Helper function to get student response status for a campaign
+  const getStudentResponseStatus = (campaign, studentId) => {
+    if (!campaign.studentResponses) return null;
+
+    const studentResponse = campaign.studentResponses[studentId];
+    return studentResponse ? studentResponse.status : null;
+  };
+
+  // Calculate vaccination statistics
+  const completedVaccinations = studentVaccinations.filter(
     (v) => v.status === "completed"
   ).length;
-  const upcomingVaccinations = childVaccinations.filter(
+  const upcomingVaccinations = studentVaccinations.filter(
     (v) => v.status === "upcoming"
   ).length;
-  const progressPercentage = Math.round(
-    (completedVaccinations / childVaccinations.length) * 100
-  );
+  const declinedVaccinations = studentVaccinations.filter(
+    (v) => v.status === "declined"
+  ).length;
+  const totalVaccinations = studentVaccinations.length;
 
+  const progressPercentage =
+    totalVaccinations > 0
+      ? Math.round((completedVaccinations / totalVaccinations) * 100)
+      : 0;
+
+  // Filter vaccinations based on active tab
+  const getFilteredVaccinations = () => {
+    switch (activeTab) {
+      case "upcoming":
+        return studentVaccinations.filter((v) => v.status === "upcoming");
+      case "completed":
+        return studentVaccinations.filter((v) => v.status === "completed");
+      case "declined":
+        return studentVaccinations.filter((v) => v.status === "declined");
+      default:
+        return studentVaccinations;
+    }
+  };
+
+  // Table columns definition
   const columns = [
     {
       title: "Tên vaccine",
@@ -64,21 +224,19 @@ export default function VaccinationsPage() {
       title: "Ngày tiêm dự kiến",
       dataIndex: "scheduledDate",
       key: "scheduledDate",
-      render: (date) => new Date(date).toLocaleDateString("vi-VN"),
+      render: (date) => moment(date).format("DD/MM/YYYY"),
     },
     {
       title: "Ngày tiêm thực tế",
       dataIndex: "actualDate",
       key: "actualDate",
-      render: (date) =>
-        date ? new Date(date).toLocaleDateString("vi-VN") : "-",
+      render: (date) => (date ? moment(date).format("DD/MM/YYYY") : "-"),
     },
-
     {
-      title: "🩺 Trạng thái",
+      title: "Trạng thái",
       dataIndex: "status",
       key: "status",
-      render: (status) => {
+      render: (status, record) => {
         let config = {
           color: "default",
           icon: null,
@@ -126,12 +284,12 @@ export default function VaccinationsPage() {
             };
             break;
 
-          case "overdue":
+          case "declined":
             config = {
               ...config,
               color: "red",
               icon: <ExclamationCircleOutlined />,
-              text: "Quá hạn",
+              text: "Đã từ chối",
               style: {
                 ...config.style,
                 backgroundColor: "#fff1f0",
@@ -153,17 +311,44 @@ export default function VaccinationsPage() {
         );
       },
     },
-
     {
       title: "Địa điểm",
       dataIndex: "location",
       key: "location",
     },
+    {
+      title: "Hành động",
+      key: "action",
+      render: (_, record) => {
+        if (record.status === "upcoming" && !record.responseStatus) {
+          return (
+            <Space>
+              <Button
+                type="primary"
+                size="small"
+                onClick={() => handleViewCampaign(record)}
+              >
+                Xem chi tiết
+              </Button>
+            </Space>
+          );
+        } else if (
+          record.responseStatus === "approved" &&
+          record.status !== "completed"
+        ) {
+          return <Tag color="green">Đã đồng ý</Tag>;
+        } else if (record.responseStatus === "declined") {
+          return <Tag color="red">Đã từ chối</Tag>;
+        }
+        return null;
+      },
+    },
   ];
 
+  // Calendar data helpers
   const getListData = (value) => {
     const dateStr = value.format("YYYY-MM-DD");
-    const dayVaccinations = childVaccinations.filter(
+    const dayVaccinations = studentVaccinations.filter(
       (v) => v.scheduledDate === dateStr || v.actualDate === dateStr
     );
 
@@ -191,6 +376,77 @@ export default function VaccinationsPage() {
     );
   };
 
+  // Handle selecting a child
+  const handleSelectChild = (child) => {
+    dispatch(getChildDetails(child.id));
+  };
+
+  // Handle viewing campaign details
+  const handleViewCampaign = (vaccination) => {
+    // Find the full campaign details
+    const campaign = vaccinations.campaigns.find(
+      (c) => c.id === vaccination.campaignId
+    );
+    setSelectedCampaign(campaign);
+    setCampaignModalVisible(true);
+
+    // Reset form
+    responseForm.resetFields();
+  };
+
+  // Handle responding to vaccination consent
+  const handleRespondToVaccine = (values) => {
+    if (!selectedChild || !selectedCampaign) return;
+
+    const responseData = {
+      id: selectedCampaign.id,
+      responseData: {
+        status: values.response,
+        studentId: selectedChild.id,
+        notes: values.notes,
+      },
+    };
+
+    dispatch(respondToVaccinationConsent(responseData));
+
+    // Close modal
+    setCampaignModalVisible(false);
+
+    // Show success message
+    message.success(
+      values.response === "approved"
+        ? "Đã đồng ý cho con tham gia tiêm chủng"
+        : "Đã từ chối cho con tham gia tiêm chủng"
+    );
+  };
+
+  // Loading state
+  if (loading && !children.length) {
+    return (
+      <div style={{ textAlign: "center", padding: "50px" }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div style={{ textAlign: "center", padding: "50px" }}>
+        <Text type="danger">{error}</Text>
+      </div>
+    );
+  }
+
+  // Empty state
+  if (!children || children.length === 0) {
+    return (
+      <Card>
+        <Empty description="Không có thông tin con em" />
+      </Card>
+    );
+  }
+
   return (
     <div style={{ padding: "0" }}>
       {/* Header */}
@@ -207,27 +463,31 @@ export default function VaccinationsPage() {
 
       {/* Child Selection */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        {parentData.children.map((child) => (
+        {children.map((child) => (
           <Col xs={24} sm={12} md={8} key={child.id}>
             <Card
               hoverable
               style={{
                 border:
-                  selectedChild.id === child.id
+                  selectedChild?.id === child.id
                     ? "2px solid #1890ff"
                     : "1px solid #d9d9d9",
                 backgroundColor:
-                  selectedChild.id === child.id ? "#f0f9ff" : "#fff",
+                  selectedChild?.id === child.id ? "#f0f9ff" : "#fff",
               }}
-              onClick={() => setSelectedChild(child)}
+              onClick={() => handleSelectChild(child)}
             >
               <Space>
-                <Avatar size={48} icon={<UserOutlined />} />
+                <Avatar
+                  size={48}
+                  src={child.avatar}
+                  icon={!child.avatar && <UserOutlined />}
+                />
                 <div>
                   <Title level={4} style={{ margin: 0 }}>
                     {child.name}
                   </Title>
-                  <Text type="secondary">{child.class}</Text>
+                  <Text type="secondary">{child.class || "N/A"}</Text>
                   <br />
                   <Progress
                     percent={progressPercentage}
@@ -242,84 +502,227 @@ export default function VaccinationsPage() {
       </Row>
 
       {/* Vaccination Overview */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} md={8}>
-          <Card>
-            <div style={{ textAlign: "center" }}>
-              <CheckCircleOutlined
-                style={{ fontSize: 32, color: "#52c41a", marginBottom: 8 }}
-              />
-              <Title level={3} style={{ margin: 0, color: "#52c41a" }}>
-                {completedVaccinations}
-              </Title>
-              <Text type="secondary">Đã tiêm</Text>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} md={8}>
-          <Card>
-            <div style={{ textAlign: "center" }}>
-              <ClockCircleOutlined
-                style={{ fontSize: 32, color: "#faad14", marginBottom: 8 }}
-              />
-              <Title level={3} style={{ margin: 0, color: "#faad14" }}>
-                {upcomingVaccinations}
-              </Title>
-              <Text type="secondary">Sắp tới</Text>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} md={8}>
-          <Card>
-            <div style={{ textAlign: "center" }}>
-              <Progress
-                type="circle"
-                percent={progressPercentage}
-                format={(percent) => `${percent}%`}
-              />
-              <br />
-              <Text type="secondary">Hoàn thành</Text>
-            </div>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Upcoming Vaccinations Alert */}
-      {upcomingVaccinations > 0 && (
-        <Alert
-          message="Có lịch tiêm chủng sắp tới"
-          description={`${selectedChild.name} có ${upcomingVaccinations} mũi vaccine cần tiêm trong thời gian tới. Vui lòng sắp xếp thời gian phù hợp.`}
-          type="warning"
-          showIcon
-          style={{ marginBottom: 24 }}
-        />
+      {selectedChild && (
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          <Col xs={24} md={8}>
+            <Card>
+              <div style={{ textAlign: "center" }}>
+                <CheckCircleOutlined
+                  style={{ fontSize: 32, color: "#52c41a", marginBottom: 8 }}
+                />
+                <Title level={3}>{completedVaccinations}</Title>
+                <Text>Đã tiêm chủng</Text>
+              </div>
+            </Card>
+          </Col>
+          <Col xs={24} md={8}>
+            <Card>
+              <div style={{ textAlign: "center" }}>
+                <ClockCircleOutlined
+                  style={{ fontSize: 32, color: "#faad14", marginBottom: 8 }}
+                />
+                <Title level={3}>{upcomingVaccinations}</Title>
+                <Text>Sắp đến hạn</Text>
+              </div>
+            </Card>
+          </Col>
+          <Col xs={24} md={8}>
+            <Card>
+              <div style={{ textAlign: "center" }}>
+                <ExclamationCircleOutlined
+                  style={{ fontSize: 32, color: "#ff4d4f", marginBottom: 8 }}
+                />
+                <Title level={3}>{declinedVaccinations}</Title>
+                <Text>Đã từ chối</Text>
+              </div>
+            </Card>
+          </Col>
+        </Row>
       )}
 
-      <Row gutter={[16, 16]}>
-        {/* Vaccination Table */}
-        <Col xs={24} lg={14}>
-          <Card title="Danh sách vaccine" extra={<MedicineBoxOutlined />}>
-            <Table
-              columns={columns}
-              dataSource={childVaccinations}
-              rowKey="id"
-              pagination={{ pageSize: 10 }}
-              size="middle"
-            />
-          </Card>
-        </Col>
+      {/* Vaccination Calendar and Table */}
+      {selectedChild && (
+        <Row gutter={[16, 16]}>
+          <Col xs={24} lg={12}>
+            <Card
+              title="Lịch tiêm chủng"
+              extra={<CalendarOutlined />}
+              style={{ marginBottom: 16 }}
+            >
+              <Calendar
+                fullscreen={false}
+                dateCellRender={dateCellRender}
+                onSelect={(date) => setSelectedDate(date)}
+              />
+              {selectedDate && (
+                <Alert
+                  message={`Lịch tiêm chủng cho ngày ${selectedDate.format(
+                    "DD/MM/YYYY"
+                  )}`}
+                  description={
+                    getListData(selectedDate).length > 0 ? (
+                      <ul>
+                        {getListData(selectedDate).map((item, index) => (
+                          <li key={index}>
+                            <Badge status={item.type} text={item.content} />
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      "Không có lịch tiêm chủng cho ngày này"
+                    )
+                  }
+                  type="info"
+                  showIcon
+                  style={{ marginTop: 16 }}
+                />
+              )}
+            </Card>
+          </Col>
+          <Col xs={24} lg={12}>
+            <Card
+              title="Danh sách tiêm chủng"
+              style={{ marginBottom: 16 }}
+              tabList={[
+                { key: "upcoming", tab: "Sắp tới" },
+                { key: "completed", tab: "Đã hoàn thành" },
+                { key: "declined", tab: "Đã từ chối" },
+                { key: "all", tab: "Tất cả" },
+              ]}
+              activeTabKey={activeTab}
+              onTabChange={(key) => setActiveTab(key)}
+            >
+              {getFilteredVaccinations().length > 0 ? (
+                <Table
+                  columns={columns}
+                  dataSource={getFilteredVaccinations()}
+                  rowKey="id"
+                  pagination={{ pageSize: 5 }}
+                  size="middle"
+                />
+              ) : (
+                <Empty
+                  description={`Không có dữ liệu tiêm chủng ${
+                    activeTab === "all"
+                      ? ""
+                      : activeTab === "upcoming"
+                      ? "sắp tới"
+                      : activeTab === "completed"
+                      ? "đã hoàn thành"
+                      : "đã từ chối"
+                  }`}
+                />
+              )}
+            </Card>
+          </Col>
+        </Row>
+      )}
 
-        {/* Calendar */}
-        <Col xs={24} lg={10}>
-          <Card title="Lịch tiêm" extra={<CalendarOutlined />}>
-            <Calendar
-              cellRender={dateCellRender}
-              onSelect={setSelectedDate}
-              fullscreen={false}
+      {/* Campaign Detail Modal */}
+      <Modal
+        title={selectedCampaign?.name || "Chi tiết chiến dịch tiêm chủng"}
+        visible={campaignModalVisible}
+        onCancel={() => setCampaignModalVisible(false)}
+        footer={null}
+        width={700}
+      >
+        {selectedCampaign && (
+          <>
+            <Descriptions bordered column={1} size="small">
+              <Descriptions.Item label="Tên chiến dịch">
+                {selectedCampaign.name}
+              </Descriptions.Item>
+              <Descriptions.Item label="Mô tả">
+                {selectedCampaign.description}
+              </Descriptions.Item>
+              <Descriptions.Item label="Thời gian">
+                {moment(selectedCampaign.startDate).format("DD/MM/YYYY")} -{" "}
+                {moment(selectedCampaign.endDate).format("DD/MM/YYYY")}
+              </Descriptions.Item>
+              <Descriptions.Item label="Địa điểm">
+                {selectedCampaign.location}
+              </Descriptions.Item>
+              <Descriptions.Item label="Loại vắc xin">
+                {selectedCampaign.vaccineType}
+              </Descriptions.Item>
+              <Descriptions.Item label="Nhà sản xuất">
+                {selectedCampaign.manufacturer}
+              </Descriptions.Item>
+              <Descriptions.Item label="Đối tượng tiêm">
+                {selectedCampaign.targetGroups}
+              </Descriptions.Item>
+              <Descriptions.Item label="Tác dụng phụ có thể gặp">
+                {selectedCampaign.sideEffects}
+              </Descriptions.Item>
+              <Descriptions.Item label="Chống chỉ định">
+                {selectedCampaign.contraindications}
+              </Descriptions.Item>
+              <Descriptions.Item label="Ghi chú">
+                {selectedCampaign.notes}
+              </Descriptions.Item>
+              <Descriptions.Item label="Hạn phản hồi">
+                {moment(selectedCampaign.responseDeadline).format("DD/MM/YYYY")}
+              </Descriptions.Item>
+            </Descriptions>
+
+            <Divider />
+
+            <Alert
+              message="Phản hồi đồng ý/từ chối tiêm chủng"
+              description="Vui lòng cho biết quyết định của bạn về việc cho con tham gia chiến dịch tiêm chủng này."
+              type="info"
+              showIcon
+              icon={<InfoCircleOutlined />}
+              style={{ marginBottom: 16 }}
             />
-          </Card>
-        </Col>
-      </Row>
+
+            <Form
+              form={responseForm}
+              layout="vertical"
+              onFinish={handleRespondToVaccine}
+            >
+              <Form.Item
+                name="response"
+                label="Quyết định của bạn"
+                rules={[
+                  {
+                    required: true,
+                    message: "Vui lòng chọn quyết định của bạn",
+                  },
+                ]}
+              >
+                <Radio.Group>
+                  <Radio value="approved">
+                    Đồng ý cho con tham gia tiêm chủng
+                  </Radio>
+                  <Radio value="declined">
+                    Không đồng ý cho con tham gia tiêm chủng
+                  </Radio>
+                </Radio.Group>
+              </Form.Item>
+
+              <Form.Item name="notes" label="Ghi chú (nếu có)">
+                <TextArea
+                  rows={4}
+                  placeholder="Nhập ghi chú của bạn (nếu có)"
+                />
+              </Form.Item>
+
+              <Form.Item>
+                <Button type="primary" htmlType="submit">
+                  Gửi phản hồi
+                </Button>
+                <Button
+                  style={{ marginLeft: 8 }}
+                  onClick={() => setCampaignModalVisible(false)}
+                >
+                  Hủy
+                </Button>
+              </Form.Item>
+            </Form>
+          </>
+        )}
+      </Modal>
     </div>
   );
 }

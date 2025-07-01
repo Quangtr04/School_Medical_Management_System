@@ -1,11 +1,7 @@
 /* eslint-disable no-unused-vars */
 // src/App.jsx
 import React, { useEffect } from "react";
-import {
-  createBrowserRouter,
-  RouterProvider,
-  Navigate,
-} from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { message } from "antd"; // Import Ant Design message for notifications
 
@@ -100,149 +96,96 @@ function App() {
     }
   }, [notificationMessage, notificationType, dispatch]);
 
-  const router = createBrowserRouter([
-    {
-      path: "/",
-      element: <HomePage />,
-    },
-    {
-      path: "/login",
-      element: <LoginPage />,
-    },
-    {
-      path: "/register",
-      element: <RegisterPage />,
-    },
-    {
-      path: "/forgot-password",
-      element: <ForgotPassword />,
-    },
-    {
-      path: "/documents/:id",
-      element: <DocumentDetail />, // Consider wrapping with a general PrivateRoute if only logged-in users can view docs
-    },
-    {
-      path: "/support",
-      element: <SupportPage />, // Consider wrapping with a general PrivateRoute
-    },
-    {
-      path: "/unauthorized", // Route for access denied messages
-      element: <UnauthorizedPage />,
-    },
-
-    // Admin Routes - Protected by Admin Role
-    {
-      path: "/admin",
-      element: <RoleProtectedRoute allowedRoles={[ROLE_ADMIN]} />, // Protects /admin and its children
-      children: [
-        {
-          element: <AdminLayOut />, // This layout will be rendered within RoleProtectedRoute's Outlet
-          children: [
-            {
-              index: true,
-              element: <AdminOverViewPage />,
-            },
-            {
-              path: "nurses",
-              element: <NurseManagementPage />,
-            },
-            {
-              path: "parents",
-              element: <ParentManagementPage />,
-            },
-            {
-              path: "managers",
-              element: <ManagerManagementPage />,
-            },
-            {
-              path: "files",
-              element: <FileManagementSection />,
-            },
-            {
-              path: "settings",
-              element: <AdminSettingPage />,
-            },
-            {
-              path: "monitor",
-              element: <SystemActivityPage />,
-            },
-          ],
-        },
-      ],
-    },
-
-    // Nurse Routes - Protected by Nurse Role
-    {
-      path: "/nurse",
-      element: <RoleProtectedRoute allowedRoles={[ROLE_NURSE]} />, // Protects /nurse and its children
-      children: [
-        {
-          element: <SchoolNurseLayOut />, // This layout will be rendered within RoleProtectedRoute's Outlet
-          children: [
-            { index: true, element: <SchoolNurseOverView /> },
-            { path: "students-record", element: <StudentRecordPage /> },
-            {
-              path: "medical-supplies",
-              element: <SchoolNurseMedicalSupplyPage />,
-            },
-            { path: "medical-incidents", element: <MedicalIncident /> },
-            { path: "vaccinations", element: <Vaccinations /> },
-            { path: "checkups", element: <Examinations /> },
-            { path: "notifications", element: <Notification /> },
-            { path: "report", element: <ReportsPage /> },
-          ],
-        },
-      ],
-    },
-
-    // Manager Routes - Protected by Manager Role
-    {
-      path: "/manager",
-      element: <RoleProtectedRoute allowedRoles={[ROLE_MANAGER]} />, // Protects /manager and its children
-      children: [
-        {
-          element: <ManagerLayOut />, // This layout will be rendered within RoleProtectedRoute's Outlet
-          children: [
-            { index: true, element: <ManagerOverViewPage /> },
-            {
-              path: "appoinment-apporve",
-              element: <ManagerApprovalRequestsPage />,
-            },
-          ],
-        },
-      ],
-    },
-
-    // Parent Routes - Protected by Parent Role
-    {
-      path: "/parent",
-      element: <RoleProtectedRoute allowedRoles={[ROLE_PARENT]} />, // Protects /parent and its children
-      children: [
-        {
-          element: <ParentLayOut />, // This layout will be rendered within RoleProtectedRoute's Outlet
-          children: [
-            { index: true, element: <ParentDashboard /> },
-            { path: "children", element: <ChildrenInfoPage /> },
-            { path: "health-records", element: <HealthRecordsPage /> },
-            { path: "vaccinations", element: <VaccinationsPage /> },
-            { path: "medicine-request", element: <MedicineRequestPage /> },
-            // Add more parent pages here as needed
-          ],
-        },
-      ],
-    },
-
-    // Catch-all route for unmatched paths (404)
-    {
-      path: "*",
-      element: <Navigate to="/" replace />, // Redirect to home or a 404 page
-    },
-  ]);
-
   return (
-    <>
-      <RouterProvider router={router} />
-    </>
+    <Routes>
+      {/* Public Routes */}
+      <Route path="/" element={<HomePage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/documents/:id" element={<DocumentDetail />} />
+      <Route path="/support" element={<SupportPage />} />
+      <Route path="/unauthorized" element={<UnauthorizedPage />} />
+
+      {/* Admin Routes */}
+      <Route
+        path="/admin"
+        element={
+          <RoleProtectedRoute
+            element={<AdminLayOut />}
+            allowedRoles={[ROLE_ADMIN]}
+          />
+        }
+      >
+        <Route index element={<AdminOverViewPage />} />
+        <Route path="nurses" element={<NurseManagementPage />} />
+        <Route path="parents" element={<ParentManagementPage />} />
+        <Route path="managers" element={<ManagerManagementPage />} />
+        <Route path="files" element={<FileManagementSection />} />
+        <Route path="settings" element={<AdminSettingPage />} />
+        <Route path="monitor" element={<SystemActivityPage />} />
+      </Route>
+
+      {/* Nurse Routes */}
+      <Route
+        path="/nurse"
+        element={
+          <RoleProtectedRoute
+            element={<SchoolNurseLayOut />}
+            allowedRoles={[ROLE_NURSE]}
+          />
+        }
+      >
+        <Route index element={<SchoolNurseOverView />} />
+        <Route path="students-record" element={<StudentRecordPage />} />
+        <Route
+          path="medical-supplies"
+          element={<SchoolNurseMedicalSupplyPage />}
+        />
+        <Route path="medical-incidents" element={<MedicalIncident />} />
+        <Route path="vaccinations" element={<Vaccinations />} />
+        <Route path="checkups" element={<Examinations />} />
+        <Route path="notifications" element={<Notification />} />
+        <Route path="report" element={<ReportsPage />} />
+      </Route>
+
+      {/* Manager Routes */}
+      <Route
+        path="/manager"
+        element={
+          <RoleProtectedRoute
+            element={<ManagerLayOut />}
+            allowedRoles={[ROLE_MANAGER]}
+          />
+        }
+      >
+        <Route index element={<ManagerOverViewPage />} />
+        <Route
+          path="appoinment-apporve"
+          element={<ManagerApprovalRequestsPage />}
+        />
+      </Route>
+
+      {/* Parent Routes */}
+      <Route
+        path="/parent"
+        element={
+          <RoleProtectedRoute
+            element={<ParentLayOut />}
+            allowedRoles={[ROLE_PARENT]}
+          />
+        }
+      >
+        <Route index element={<ParentDashboard />} />
+        <Route path="children" element={<ChildrenInfoPage />} />
+        <Route path="health-records" element={<HealthRecordsPage />} />
+        <Route path="vaccinations" element={<VaccinationsPage />} />
+        <Route path="medicine-request" element={<MedicineRequestPage />} />
+      </Route>
+
+      {/* Catch-all route for unmatched paths (404) */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 

@@ -13,25 +13,12 @@ const initialState = {
   success: false,
 };
 
-<<<<<<< HEAD
 export const loginUser = createAsyncThunk(
   "loginUser",
   async (values, { rejectWithValue }) => {
     try {
       const response = await api.post("/login", values);
-      console.log("Response data:", response.data);
-=======
-//*createAsyncThunk sẽ nhận vào hai đối số
-// 1.action.type
-// 2.thunkAPI
-//  */
-
-export const loginUser = createAsyncThunk("loginUser", async (values, { rejectWithValue }) => {
-  try {
-    const response = await api.post("/login", values);
-    console.log("Response data:", response.data);
-    const { token, user } = response.data;
->>>>>>> 957d4d7 (Cập nhập lại nhiều chức năng của nurse)
+      console.log("Login response data:", response.data);
 
       // Flexible handling for different response structures
       let token, user;
@@ -74,11 +61,17 @@ export const loginUser = createAsyncThunk("loginUser", async (values, { rejectWi
         throw new Error("Missing token or user data in response");
       }
 
+      // Thêm role_id nếu chưa có
+      if (!user.role_id && user.role) {
+        user.role_id = typeof user.role === "object" ? user.role.id : user.role;
+      }
+
       localStorage.setItem("accessToken", token);
       localStorage.setItem("currentUser", JSON.stringify(user));
 
       return { user, accessToken: token };
     } catch (error) {
+      console.error("Login error:", error);
       console.log("Error status:", error.response?.status);
       console.log("Error response:", error.response?.data);
 
@@ -120,43 +113,38 @@ export const initializeAuth = createAsyncThunk(
       const accessToken = localStorage.getItem("accessToken");
       const currentUser = localStorage.getItem("currentUser");
 
-<<<<<<< HEAD
+      console.log("Initializing auth from localStorage:", {
+        hasAccessToken: !!accessToken,
+        hasCurrentUser: !!currentUser,
+      });
+
       if (accessToken && currentUser) {
-        const user = JSON.parse(currentUser);
-        dispatch(authSlice.actions.setAuth({ user, accessToken }));
+        try {
+          const user = JSON.parse(currentUser);
+          console.log("Parsed user from localStorage:", user);
+          dispatch(authSlice.actions.setAuth({ user, accessToken }));
+          return { user, accessToken };
+        } catch (parseError) {
+          console.error("Error parsing user from localStorage:", parseError);
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("currentUser");
+          return rejectWithValue(
+            "Lỗi khi đọc thông tin người dùng từ localStorage"
+          );
+        }
       }
+
       dispatch(authSlice.actions.finishAuthInitialization());
-      return true; // Mark as fulfilled
+      return null; // No user logged in
     } catch (error) {
       console.error("Failed to initialize auth from localStorage", error);
       localStorage.removeItem("accessToken");
       localStorage.removeItem("currentUser");
-      dispatch(
-        authSlice.actions.setAuthInitializationError(
-          "Không thể tải thông tin đăng nhập. Vui lòng đăng nhập lại."
-        )
-      );
       dispatch(authSlice.actions.finishAuthInitialization());
       return rejectWithValue(
         "Không thể tải thông tin đăng nhập. Vui lòng đăng nhập lại."
       );
     }
-=======
-    console.log(currentUser);
-
-    if (accessToken && currentUser) {
-      const user = JSON.parse(currentUser);
-      dispatch(authSlice.actions.setAuth({ user, accessToken }));
-    }
-    dispatch(authSlice.actions.finishAuthInitialization());
-    return true; // Mark as fulfilled
-  } catch (error) {
-    console.error("Failed to initialize auth from localStorage", error);
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("currentUser");
-    dispatch(authSlice.actions.finishAuthInitialization());
-    return rejectWithValue("Không thể tải thông tin đăng nhập. Vui lòng đăng nhập lại.");
->>>>>>> 957d4d7 (Cập nhập lại nhiều chức năng của nurse)
   }
 );
 
@@ -230,9 +218,14 @@ const authSlice = createSlice({
         state.isAuthInitialized = false; // Reset to false when re-initializing
         state.authInitializationError = null;
       })
-      .addCase(initializeAuth.fulfilled, (state) => {
+      .addCase(initializeAuth.fulfilled, (state, action) => {
         state.isAuthInitialized = true;
         state.authInitializationError = null;
+        // If user data was returned, update the state
+        if (action.payload?.user) {
+          state.user = action.payload.user;
+          state.isAuthenticated = true;
+        }
       })
       .addCase(initializeAuth.rejected, (state, action) => {
         state.isAuthInitialized = true; // Mark as initialized even on rejection to prevent hanging UI

@@ -1,58 +1,96 @@
 // Your RoleProtectedRoute.jsx
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
+import { Navigate, useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { Navigate, Outlet } from "react-router-dom";
+import { initializeAuth } from "./redux/auth/authSlice";
+import { CircularProgress, Box, Typography, Paper } from "@mui/material";
 
-const INITIALIZATION_TIMEOUT = 5000; // 5 giây timeout
-
-const RoleProtectedRoute = ({ allowedRoles }) => {
+const RoleProtectedRoute = ({ element, allowedRoles }) => {
   const dispatch = useDispatch();
-
-  const user = useSelector((state) => state.auth.user);
-  //isAuthenticated cho biết người dùng đã đăng nhập hay chưa
-  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated); //
-
-  const isAuthInitialized = useSelector(
-    //isAuthInitialized cho biết ứng dụng đã kiểm tra xong việc xác thực chưa.
-    (state) => state.auth.isAuthInitialized
-  );
-
-  const userRoleId = user?.role_id;
-
-  const initializationTimeoutRef = useRef(null);
+  const location = useLocation();
+  const { user, isAuthenticated, isAuthInitialized, authInitializationError } =
+    useSelector((state) => state.auth);
 
   useEffect(() => {
     if (!isAuthInitialized) {
-      initializationTimeoutRef.current = setTimeout(() => {
-        <Navigate to="/unauthorized" />;
-      }, INITIALIZATION_TIMEOUT);
-    } else {
-      if (initializationTimeoutRef.current) {
-        clearTimeout(initializationTimeoutRef.current);
-        initializationTimeoutRef.current = null;
-      }
+      console.log("Auth not initialized, dispatching initializeAuth");
+      dispatch(initializeAuth());
     }
+  }, [dispatch, isAuthInitialized]);
 
-    return () => {
-      if (initializationTimeoutRef.current) {
-        clearTimeout(initializationTimeoutRef.current);
-      }
-    };
-  }, [isAuthInitialized, dispatch]);
+  console.log("RoleProtectedRoute:", {
+    isAuthInitialized,
+    isAuthenticated,
+    user,
+    allowedRoles,
+    authInitializationError,
+  });
 
-  // Render logic
+  // Nếu đang khởi tạo auth, hiển thị loading
   if (!isAuthInitialized) {
-    return <div>Đang kiểm tra xác thực...</div>;
+    return (
+      <Box
+        display="flex"
+        flexDirection="column"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="100vh"
+      >
+        <CircularProgress size={60} />
+        <Typography variant="h6" mt={2}>
+          Đang tải thông tin người dùng...
+        </Typography>
+      </Box>
+    );
   }
 
-  if (
-    !isAuthenticated ||
-    (allowedRoles && !allowedRoles.includes(userRoleId))
-  ) {
-    return <Navigate to="/" replace />;
+  // Nếu có lỗi khởi tạo auth
+  if (authInitializationError) {
+    return (
+      <Box
+        display="flex"
+        flexDirection="column"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="100vh"
+        p={3}
+      >
+        <Paper elevation={3} sx={{ p: 4, maxWidth: 500, textAlign: "center" }}>
+          <Typography variant="h5" color="error" gutterBottom>
+            Lỗi xác thực
+          </Typography>
+          <Typography variant="body1" mb={2}>
+            {authInitializationError}
+          </Typography>
+          <Typography variant="body2">
+            Vui lòng thử{" "}
+            <a href="/login" style={{ textDecoration: "underline" }}>
+              đăng nhập lại
+            </a>
+          </Typography>
+        </Paper>
+      </Box>
+    );
   }
 
-  return <Outlet />;
+  // Nếu chưa đăng nhập, chuyển hướng đến trang đăng nhập
+  if (!isAuthenticated || !user) {
+    console.log("User not authenticated, redirecting to login");
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Kiểm tra role_id
+  const userRoleId = user.role_id;
+  console.log("User role_id:", userRoleId, "Allowed roles:", allowedRoles);
+
+  // Nếu không có role_id hoặc role_id không nằm trong danh sách cho phép
+  if (!userRoleId || !allowedRoles.includes(userRoleId)) {
+    console.log("User role not allowed, redirecting to unauthorized");
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  // Nếu đã đăng nhập và có quyền truy cập, hiển thị component
+  return element;
 };
 
 export default RoleProtectedRoute;

@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
   Card,
   Row,
@@ -16,6 +17,8 @@ import {
   Upload,
   message,
   Descriptions,
+  Spin,
+  Empty,
 } from "antd";
 import {
   UserOutlined,
@@ -26,26 +29,47 @@ import {
   MailOutlined,
   HomeOutlined,
 } from "@ant-design/icons";
-import { parentData } from "../../data/parentData";
+import moment from "moment";
+import {
+  getParentChildren,
+  getParentProfile,
+  setSelectedChild,
+} from "../../redux/parent/parentSlice";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 export default function ChildrenInfoPage() {
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
+  const { children, profile, loading, error } = useSelector(
+    (state) => state.parent
+  );
+
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedChild, setSelectedChild] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [form] = Form.useForm();
 
+  useEffect(() => {
+    if (user?.id) {
+      dispatch(getParentProfile(user.id));
+      dispatch(getParentChildren());
+    }
+  }, [dispatch, user]);
+
   const handleEdit = (child) => {
-    setSelectedChild(child);
+    dispatch(setSelectedChild(child));
     setIsEditing(true);
     setIsModalVisible(true);
-    form.setFieldsValue(child);
+    form.setFieldsValue({
+      ...child,
+      dateOfBirth: child.dateOfBirth ? moment(child.dateOfBirth) : null,
+      allergies: child.allergies ? child.allergies.join(", ") : "",
+    });
   };
 
   const handleAdd = () => {
-    setSelectedChild(null);
+    dispatch(setSelectedChild(null));
     setIsEditing(false);
     setIsModalVisible(true);
     form.resetFields();
@@ -53,12 +77,30 @@ export default function ChildrenInfoPage() {
 
   const handleSubmit = (values) => {
     console.log("Form values:", values);
+    // Here you would dispatch an action to update or add a child
+    // For example: dispatch(updateChildInfo(values)) or dispatch(addChildInfo(values))
     message.success(
       isEditing ? "Cập nhật thành công!" : "Thêm con thành công!"
     );
     setIsModalVisible(false);
     form.resetFields();
   };
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: "center", padding: "50px" }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ textAlign: "center", padding: "50px" }}>
+        <Text type="danger">{error}</Text>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -77,29 +119,33 @@ export default function ChildrenInfoPage() {
       <Card title="Thông tin phụ huynh" style={{ marginBottom: 24 }}>
         <Row gutter={24}>
           <Col span={4}>
-            <Avatar size={80} icon={<UserOutlined />} />
+            <Avatar
+              size={80}
+              src={profile?.avatar}
+              icon={!profile?.avatar && <UserOutlined />}
+            />
           </Col>
           <Col span={20}>
             <Descriptions column={2}>
               <Descriptions.Item label="Họ và tên" span={1}>
-                {parentData.user.name}
+                {profile?.name || user?.name || "N/A"}
               </Descriptions.Item>
               <Descriptions.Item label="Email" span={1}>
                 <Space>
                   <MailOutlined />
-                  {parentData.user.email}
+                  {profile?.email || user?.email || "N/A"}
                 </Space>
               </Descriptions.Item>
               <Descriptions.Item label="Số điện thoại" span={1}>
                 <Space>
                   <PhoneOutlined />
-                  {parentData.user.phone}
+                  {profile?.phone || user?.phone || "N/A"}
                 </Space>
               </Descriptions.Item>
               <Descriptions.Item label="Địa chỉ" span={1}>
                 <Space>
                   <HomeOutlined />
-                  {parentData.user.address}
+                  {profile?.address || "N/A"}
                 </Space>
               </Descriptions.Item>
             </Descriptions>
@@ -109,77 +155,107 @@ export default function ChildrenInfoPage() {
 
       {/* Children Information */}
       <Row gutter={24}>
-        {parentData.children.map((child) => (
-          <Col key={child.id} span={12} style={{ marginBottom: 24 }}>
-            <Card
-              title={
-                <Space>
-                  <Avatar size="large" icon={<UserOutlined />} />
-                  <div>
-                    <Title level={4} style={{ margin: 0 }}>
-                      {child.name}
-                    </Title>
-                    <Text type="secondary">{child.age} tuổi</Text>
-                  </div>
-                </Space>
-              }
-              extra={
-                <Button
-                  type="text"
-                  icon={<EditOutlined />}
-                  onClick={() => handleEdit(child)}
-                >
-                  Chỉnh sửa
-                </Button>
-              }
-              style={{ height: "100%" }}
-            >
-              <Descriptions column={1} size="small">
-                <Descriptions.Item label="Ngày sinh">
-                  {child.dateOfBirth}
-                </Descriptions.Item>
-                <Descriptions.Item label="Lớp học">
-                  {child.class}
-                </Descriptions.Item>
-                <Descriptions.Item label="Trường học">
-                  {child.school}
-                </Descriptions.Item>
-                <Descriptions.Item label="Chiều cao">
-                  {child.height} cm
-                </Descriptions.Item>
-                <Descriptions.Item label="Cân nặng">
-                  {child.weight} kg
-                </Descriptions.Item>
-                <Descriptions.Item label="Nhóm máu">
-                  <Tag color="blue">{child.bloodType}</Tag>
-                </Descriptions.Item>
-                <Descriptions.Item label="Tình trạng sức khỏe">
-                  <Tag
-                    color={
-                      child.healthStatus === "Khỏe mạnh" ? "green" : "orange"
-                    }
+        {children && children.length > 0 ? (
+          children.map((child) => (
+            <Col key={child.id} span={12} style={{ marginBottom: 24 }}>
+              <Card
+                title={
+                  <Space>
+                    <Avatar
+                      size="large"
+                      src={child.avatar}
+                      icon={!child.avatar && <UserOutlined />}
+                    />
+                    <div>
+                      <Title level={4} style={{ margin: 0 }}>
+                        {child.name}
+                      </Title>
+                      <Text type="secondary">{child.age || "N/A"} tuổi</Text>
+                    </div>
+                  </Space>
+                }
+                extra={
+                  <Button
+                    type="text"
+                    icon={<EditOutlined />}
+                    onClick={() => handleEdit(child)}
                   >
-                    {child.healthStatus}
-                  </Tag>
-                </Descriptions.Item>
-                <Descriptions.Item label="Dị ứng">
-                  {child.allergies.length > 0 ? (
-                    child.allergies.map((allergy) => (
-                      <Tag key={allergy} color="red" style={{ margin: "2px" }}>
-                        {allergy}
+                    Chỉnh sửa
+                  </Button>
+                }
+                style={{ height: "100%" }}
+              >
+                <Descriptions column={1} size="small">
+                  <Descriptions.Item label="Ngày sinh">
+                    {child.dateOfBirth
+                      ? moment(child.dateOfBirth).format("DD/MM/YYYY")
+                      : "N/A"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Lớp học">
+                    {child.class || "N/A"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Trường học">
+                    {child.school || "N/A"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Chiều cao">
+                    {child.height ? `${child.height} cm` : "N/A"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Cân nặng">
+                    {child.weight ? `${child.weight} kg` : "N/A"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Nhóm máu">
+                    {child.bloodType ? (
+                      <Tag color="blue">{child.bloodType}</Tag>
+                    ) : (
+                      "N/A"
+                    )}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Tình trạng sức khỏe">
+                    {child.healthStatus ? (
+                      <Tag
+                        color={
+                          child.healthStatus === "Khỏe mạnh"
+                            ? "green"
+                            : "orange"
+                        }
+                      >
+                        {child.healthStatus}
                       </Tag>
-                    ))
-                  ) : (
-                    <Text type="secondary">Không có</Text>
-                  )}
-                </Descriptions.Item>
-                <Descriptions.Item label="Khám lần cuối">
-                  {child.lastCheckup}
-                </Descriptions.Item>
-              </Descriptions>
+                    ) : (
+                      "N/A"
+                    )}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Dị ứng">
+                    {child.allergies && child.allergies.length > 0 ? (
+                      child.allergies.map((allergy) => (
+                        <Tag
+                          key={allergy}
+                          color="red"
+                          style={{ margin: "2px" }}
+                        >
+                          {allergy}
+                        </Tag>
+                      ))
+                    ) : (
+                      <Text type="secondary">Không có</Text>
+                    )}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Khám lần cuối">
+                    {child.lastCheckup
+                      ? moment(child.lastCheckup).format("DD/MM/YYYY")
+                      : "N/A"}
+                  </Descriptions.Item>
+                </Descriptions>
+              </Card>
+            </Col>
+          ))
+        ) : (
+          <Col span={24}>
+            <Card>
+              <Empty description="Không có thông tin con em" />
             </Card>
           </Col>
-        ))}
+        )}
       </Row>
 
       {/* Add/Edit Child Modal */}
@@ -263,13 +339,16 @@ export default function ChildrenInfoPage() {
             </Col>
           </Row>
 
-          <Form.Item label="Dị ứng (nếu có)" name="allergies">
-            <Select mode="tags" placeholder="Nhập các chất gây dị ứng">
-              <Option value="Đậu phộng">Đậu phộng</Option>
-              <Option value="Tôm cua">Tôm cua</Option>
-              <Option value="Sữa">Sữa</Option>
-              <Option value="Trứng">Trứng</Option>
+          <Form.Item label="Tình trạng sức khỏe" name="healthStatus">
+            <Select>
+              <Option value="Khỏe mạnh">Khỏe mạnh</Option>
+              <Option value="Cần theo dõi">Cần theo dõi</Option>
+              <Option value="Bệnh mãn tính">Bệnh mãn tính</Option>
             </Select>
+          </Form.Item>
+
+          <Form.Item label="Dị ứng (ngăn cách bởi dấu phẩy)" name="allergies">
+            <Input />
           </Form.Item>
 
           <Form.Item label="Ảnh đại diện" name="avatar">
@@ -279,19 +358,24 @@ export default function ChildrenInfoPage() {
               beforeUpload={() => false}
             >
               <div>
-                <UploadOutlined />
-                <div style={{ marginTop: 8 }}>Tải ảnh lên</div>
+                <PlusOutlined />
+                <div style={{ marginTop: 8 }}>Tải ảnh</div>
               </div>
             </Upload>
           </Form.Item>
 
-          <Form.Item style={{ textAlign: "right", marginTop: 24 }}>
-            <Space>
-              <Button onClick={() => setIsModalVisible(false)}>Hủy</Button>
-              <Button type="primary" htmlType="submit">
-                {isEditing ? "Cập nhật" : "Thêm mới"}
-              </Button>
-            </Space>
+          <Form.Item>
+            <Button type="primary" htmlType="submit" style={{ marginRight: 8 }}>
+              {isEditing ? "Cập nhật" : "Thêm mới"}
+            </Button>
+            <Button
+              onClick={() => {
+                setIsModalVisible(false);
+                form.resetFields();
+              }}
+            >
+              Hủy
+            </Button>
           </Form.Item>
         </Form>
       </Modal>

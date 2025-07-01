@@ -7,6 +7,7 @@ import medicalsuppliesReducer from "./nurse/medicalSupplies/medicalSupplies";
 import examinationReducer from "./nurse/heathExaminations/heathExamination";
 import incidentsReducer from "./nurse/medicalIncidents/medicalIncidents";
 import immunizationsReducer from "./nurse/vaccinations/vaccinationSlice";
+import parentReducer from "./parent/parentSlice"; // Import parent reducer
 
 const store = configureStore({
   reducer: {
@@ -17,6 +18,7 @@ const store = configureStore({
     examination: examinationReducer,
     medicalIncidents: incidentsReducer,
     vaccination: immunizationsReducer,
+    parent: parentReducer, // Add parent reducer
   },
   // DevTools được bật mặc định trong môi trường phát triển
 });

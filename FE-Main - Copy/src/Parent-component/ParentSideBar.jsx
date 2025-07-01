@@ -144,7 +144,7 @@ export default function ParentSideBar() {
         className="custom-menu"
       />
 
-      <style jsx>{`
+      <style>{`
         .custom-menu .ant-menu-item,
         .custom-menu .ant-menu-submenu-title {
           height: 44px;
