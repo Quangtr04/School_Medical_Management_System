@@ -1,10 +1,13 @@
+// Import các thư viện và module cần thiết
 const sql = require("mssql");
 const sqlServerPool = require("../../Utils/connectMySql");
 
+// Thêm một vật tư y tế mới
 const medicalSupply = async (req, res, next) => {
-  const medicalSupplyData = req.body;
+  const medicalSupplyData = req.body; // Dữ liệu vật tư được gửi từ client
   const pool = await sqlServerPool;
 
+  // Thực hiện thêm bản ghi vào bảng Medical_Supply
   const result = await pool
     .request()
     .input("name", sql.NVarChar, medicalSupplyData.name)
@@ -20,6 +23,7 @@ const medicalSupply = async (req, res, next) => {
        VALUES (@name, @type, @unit, @quantity, @description, @expired_date, @is_active, @usage_note)`
     );
 
+  // Kiểm tra kết quả và trả về phản hồi
   if (result.rowsAffected.length > 0) {
     res.status(200).json({
       status: "success",
@@ -31,12 +35,14 @@ const medicalSupply = async (req, res, next) => {
       message: "Failed to add medical supply",
     });
   }
-}
+};
 
+// Lấy danh sách tất cả vật tư y tế
 const getAllMedicalSupplies = async (req, res, next) => {
   const pool = await sqlServerPool;
+
   const result = await pool.request().query("SELECT * FROM Medical_Supply");
-  
+
   if (result.recordset.length > 0) {
     res.status(200).json({
       status: "success",
@@ -50,15 +56,16 @@ const getAllMedicalSupplies = async (req, res, next) => {
   }
 };
 
+// Lấy thông tin vật tư theo ID
 const getMedicalSupplyByID = async (req, res, next) => {
-  const supplyId = req.params.supplyId;
+  const supplyId = req.params.supplyId; // ID được truyền qua URL
   const pool = await sqlServerPool;
-  
+
   const result = await pool
     .request()
     .input("supply_id", sql.Int, supplyId)
     .query("SELECT * FROM Medical_Supply WHERE supply_id = @supply_id");
-  
+
   if (result.recordset.length > 0) {
     res.status(200).json({
       status: "success",
@@ -69,9 +76,10 @@ const getMedicalSupplyByID = async (req, res, next) => {
       status: "fail",
       message: "Medical supply not found",
     });
-  } 
-}
+  }
+};
 
+// Cập nhật số lượng, ngày hết hạn và trạng thái hoạt động của vật tư y tế
 const updateMedicalSupply = async (req, res, next) => {
   const supplyId = req.params.supplyId;
   const medicalSupplyData = req.body;
@@ -104,6 +112,7 @@ const updateMedicalSupply = async (req, res, next) => {
   }
 };
 
+// Xóa một vật tư y tế khỏi hệ thống
 const deleteMedicalSupply = async (req, res, next) => {
   const supplyId = req.params.supplyId;
   const pool = await sqlServerPool;
@@ -123,9 +132,10 @@ const deleteMedicalSupply = async (req, res, next) => {
       status: "fail",
       message: "Failed to delete medical supply",
     });
-  }            
-}
-// thong bao trong 7 ngay toi co thuoc nao het han
+  }
+};
+
+// Lấy các vật tư sắp hết hạn trong vòng 7 ngày kể từ ngày hiện tại
 const getNearExpiryMedicalSupplies = async (req, res, next) => {
   try {
     const pool = await sqlServerPool;
@@ -142,7 +152,7 @@ const getNearExpiryMedicalSupplies = async (req, res, next) => {
       data: result.recordset,
       message:
         result.recordset.length > 0
-          ? `${result.recordset.length} medical supplies will expire within 3 days.`
+          ? `${result.recordset.length} medical supplies will expire within 7 days.`
           : "No medical supplies are about to expire.",
     });
   } catch (error) {
@@ -151,6 +161,7 @@ const getNearExpiryMedicalSupplies = async (req, res, next) => {
   }
 };
 
+// Xuất các hàm để sử dụng ở nơi khác
 module.exports = {
   medicalSupply,
   getAllMedicalSupplies,
@@ -158,4 +169,4 @@ module.exports = {
   updateMedicalSupply,
   deleteMedicalSupply,
   getNearExpiryMedicalSupplies
-}; 
+};

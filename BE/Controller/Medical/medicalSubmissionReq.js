@@ -2,17 +2,19 @@ const sql = require("mssql");
 const sqlServerPool = require("../../Utils/connectMySql");
 const sendNotification = require("../../Utils/sendNotification");
 
+// API tạo yêu cầu uống thuốc từ phụ huynh
 const medicationSubmissionReq = async (req, res, next) => {
-  const medicationSubmissionReqData = req.body;
+  const medicationSubmissionReqData = req.body; // Dữ liệu yêu cầu từ body
   const pool = await sqlServerPool;
 
   try {
+    // Thêm bản ghi mới vào bảng Medication_Submisstion_Request
     const result = await pool
       .request()
       .input("parent_id", sql.Int, medicationSubmissionReqData.parent_id)
       .input("student_id", sql.NVarChar, medicationSubmissionReqData.student_id)
       .input("status", sql.NVarChar, medicationSubmissionReqData.status)
-      .input("created_at", sql.DateTime, new Date())
+      .input("created_at", sql.DateTime, new Date()) // Thời gian tạo yêu cầu
       .input("note", sql.NVarChar, medicationSubmissionReqData.note)
       .input("image_url", sql.NVarChar, medicationSubmissionReqData.image_url)
       .input("start_date", sql.Date, medicationSubmissionReqData.start_date)
@@ -23,7 +25,7 @@ const medicationSubmissionReq = async (req, res, next) => {
       `);
 
     if (result.rowsAffected[0] > 0) {
-      // tb đến y tá
+      // Nếu thêm thành công => gửi thông báo đến tất cả y tá (role_id = 3)
       const nurses = await pool
         .request()
         .query("SELECT user_id FROM Users WHERE role_id = 3");
@@ -42,6 +44,7 @@ const medicationSubmissionReq = async (req, res, next) => {
         message: "medicationSubmissionReq added successfully",
       });
     } else {
+      // Nếu thêm thất bại
       return res.status(400).json({
         status: "fail",
         message: "Failed to add medicationSubmissionReq",
@@ -49,6 +52,7 @@ const medicationSubmissionReq = async (req, res, next) => {
     }
   } catch (error) {
     console.error("Error creating medicationSubmissionReq:", error);
+    // Lỗi server khi thêm yêu cầu
     res.status(500).json({
       status: "error",
       message: "Server error while creating medicationSubmissionReq",
@@ -56,17 +60,21 @@ const medicationSubmissionReq = async (req, res, next) => {
   }
 };
 
+// API lấy tất cả yêu cầu uống thuốc
 const getAllMedicationSubmissionReq = async (req, res, next) => {
   const pool = await sqlServerPool;
   const result = await pool
     .request()
     .query("SELECT * FROM Medication_Submisstion_Request");
+
   if (result.recordset.length > 0) {
+    // Trả về danh sách các yêu cầu nếu có
     res.status(200).json({
       status: "success",
       data: result.recordset,
     });
   } else {
+    // Không có bản ghi nào
     res.status(400).json({
       status: "fail",
       message: "Something went wrong",
@@ -74,8 +82,9 @@ const getAllMedicationSubmissionReq = async (req, res, next) => {
   }
 };
 
+// API lấy yêu cầu uống thuốc theo ID
 const getMedicationSubmissionReqByID = async (req, res, next) => {
-  const ReqId = req.params.ReqId;
+  const ReqId = req.params.ReqId; // Lấy ID từ URL param
   const pool = await sqlServerPool;
   const result = await pool
     .request()
@@ -85,11 +94,13 @@ const getMedicationSubmissionReqByID = async (req, res, next) => {
     );
 
   if (result.recordset.length > 0) {
+    // Trả về bản ghi nếu tìm thấy
     res.status(200).json({
       status: "success",
       data: result.recordset[0],
     });
   } else {
+    // Không tìm thấy bản ghi với ID tương ứng
     res.status(400).json({
       status: "fail",
       message: "medicationSubmissionReq not found",
@@ -97,12 +108,14 @@ const getMedicationSubmissionReqByID = async (req, res, next) => {
   }
 };
 
+// API y tá cập nhật trạng thái yêu cầu uống thuốc
 const updateMedicationSubmissionReqByNurse = async (req, res, next) => {
   const ReqId = req.params.ReqId;
-  const { status } = req.body;
+  const { status } = req.body; // Lấy trạng thái mới từ body
   const pool = await sqlServerPool;
 
   try {
+    // Cập nhật trạng thái cho bản ghi
     const result = await pool
       .request()
       .input("id_req", sql.Int, ReqId)
@@ -113,7 +126,7 @@ const updateMedicationSubmissionReqByNurse = async (req, res, next) => {
       `);
 
     if (result.rowsAffected[0] > 0) {
-      // tb cho phụ huynh
+      // Nếu cập nhật thành công => gửi thông báo đến phụ huynh
       const parentResult = await pool
         .request()
         .input("id_req", sql.Int, ReqId)
@@ -136,6 +149,7 @@ const updateMedicationSubmissionReqByNurse = async (req, res, next) => {
         message: "medicationSubmissionReq updated successfully",
       });
     } else {
+      // Không có bản ghi nào được cập nhật
       return res.status(400).json({
         status: "fail",
         message: "Failed to update medicationSubmissionReq",
@@ -143,6 +157,7 @@ const updateMedicationSubmissionReqByNurse = async (req, res, next) => {
     }
   } catch (error) {
     console.error("Error updating medicationSubmissionReq:", error);
+    // Lỗi server khi cập nhật
     res.status(500).json({
       status: "error",
       message: "Server error while updating medicationSubmissionReq",
@@ -150,6 +165,7 @@ const updateMedicationSubmissionReqByNurse = async (req, res, next) => {
   }
 };
 
+// Xuất các hàm để dùng ở nơi khác (route/controller)
 module.exports = {
   medicationSubmissionReq,
   getAllMedicationSubmissionReq,
