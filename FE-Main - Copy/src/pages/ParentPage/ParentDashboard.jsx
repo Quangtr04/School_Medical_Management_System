@@ -32,6 +32,9 @@ import {
   getChildDetails,
   getParentProfile,
   getParentNotifications,
+  getCheckupHistory,
+  getCheckupAppointments,
+  getStudentVaccinations,
 } from "../../redux/parent/parentSlice";
 
 const { Title, Text, Paragraph } = Typography;
@@ -39,13 +42,16 @@ const { Title, Text, Paragraph } = Typography;
 export default function ParentDashboard() {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
-  const { children, selectedChild, profile, notifications, loading, error } =
-    useSelector((state) => state.parent);
-
-  // Mock data for demonstration
-  const [healthRecords, setHealthRecords] = useState([]);
-  const [vaccinations, setVaccinations] = useState([]);
-  const [appointments, setAppointments] = useState([]);
+  const {
+    children,
+    selectedChild,
+    profile,
+    notifications,
+    checkups,
+    vaccinations,
+    loading,
+    error,
+  } = useSelector((state) => state.parent);
 
   useEffect(() => {
     dispatch(getParentChildren());
@@ -63,94 +69,26 @@ export default function ParentDashboard() {
 
   useEffect(() => {
     if (selectedChild?.id) {
-      // Mock health records data
-      const mockHealthRecords = [
-        {
-          id: 1,
-          childId: selectedChild.id,
-          type: "Khám định kỳ",
-          date: moment().subtract(10, "days").format("DD/MM/YYYY"),
-          doctor: "Bác sĩ Nguyễn Văn A",
-          diagnosis: "Sức khỏe tốt, phát triển bình thường",
-          status: "completed",
-        },
-        {
-          id: 2,
-          childId: selectedChild.id,
-          type: "Khám bệnh",
-          date: moment().subtract(30, "days").format("DD/MM/YYYY"),
-          doctor: "Bác sĩ Trần Thị B",
-          diagnosis: "Cảm cúm nhẹ, đã kê đơn thuốc",
-          status: "completed",
-        },
-      ];
-
-      // Mock vaccination data
-      const mockVaccinations = [
-        {
-          id: 1,
-          childId: selectedChild.id,
-          vaccineName: "Vắc xin phòng cúm",
-          scheduledDate: moment().add(10, "days").format("YYYY-MM-DD"),
-          status: "upcoming",
-        },
-        {
-          id: 2,
-          childId: selectedChild.id,
-          vaccineName: "Vắc xin MMR",
-          scheduledDate: moment().subtract(30, "days").format("YYYY-MM-DD"),
-          status: "completed",
-        },
-      ];
-
-      // Mock appointment data
-      const mockAppointments = [
-        {
-          id: 1,
-          childId: selectedChild.id,
-          type: "Khám định kỳ",
-          date: moment().add(5, "days").format("DD/MM/YYYY"),
-          time: "09:00",
-          doctor: "Bác sĩ Nguyễn Văn A",
-          location: "Phòng y tế trường học",
-        },
-        {
-          id: 2,
-          childId: selectedChild.id,
-          type: "Khám răng",
-          date: moment().add(15, "days").format("DD/MM/YYYY"),
-          time: "14:30",
-          doctor: "Bác sĩ Lê Thị C",
-          location: "Phòng khám nha khoa trường học",
-        },
-      ];
-
-      setHealthRecords(mockHealthRecords);
-      setVaccinations(mockVaccinations);
-      setAppointments(mockAppointments);
+      dispatch(getCheckupHistory(selectedChild.id));
+      dispatch(getCheckupAppointments(selectedChild.id));
+      dispatch(getStudentVaccinations(selectedChild.id));
     }
-  }, [selectedChild]);
+  }, [dispatch, selectedChild]);
 
   // Get recent data for selected child
   const recentHealthRecords =
-    selectedChild && healthRecords
-      ? healthRecords
-          .filter((record) => record.childId === selectedChild.id)
-          .slice(0, 3)
-      : [];
+    selectedChild && checkups?.history ? checkups.history.slice(0, 3) : [];
 
   const upcomingVaccinations =
-    selectedChild && vaccinations
-      ? vaccinations.filter(
-          (vac) => vac.childId === selectedChild.id && vac.status === "upcoming"
+    selectedChild && vaccinations?.studentVaccinations
+      ? (vaccinations.studentVaccinations[selectedChild.id] || []).filter(
+          (vac) => vac.status === "upcoming"
         )
       : [];
 
   const upcomingAppointments =
-    selectedChild && appointments
-      ? appointments
-          .filter((apt) => apt.childId === selectedChild.id)
-          .slice(0, 2)
+    selectedChild && checkups?.appointments
+      ? checkups.appointments.slice(0, 2)
       : [];
 
   const unreadNotifications = notifications

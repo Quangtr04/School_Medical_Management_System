@@ -48,6 +48,8 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import viLocale from "date-fns/locale/vi";
 import { format } from "date-fns";
 import {
+  getParentChildren,
+  getChildDetails,
   getCheckupHistory,
   getCheckupAppointments,
   requestCheckupAppointment,
@@ -73,6 +75,21 @@ function HealthRecordsPage() {
     description: "",
   });
 
+  // Fetch children data if not already loaded
+  useEffect(() => {
+    if (!children || children.length === 0) {
+      dispatch(getParentChildren());
+    }
+  }, [dispatch, children]);
+
+  // Select first child if none selected
+  useEffect(() => {
+    if (children && children.length > 0 && !selectedChild) {
+      dispatch(getChildDetails(children[0].id));
+    }
+  }, [dispatch, children, selectedChild]);
+
+  // Fetch checkup data when child is selected
   useEffect(() => {
     if (selectedChild) {
       dispatch(getCheckupHistory(selectedChild.id));

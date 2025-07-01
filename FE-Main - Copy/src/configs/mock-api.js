@@ -4,12 +4,14 @@ import moment from "moment";
 
 // Create a new instance of axios
 const api = axios.create({
-  baseURL: "/api",
+  baseURL: "",
   timeout: 10000,
 });
 
 // Create a mock instance
 const mock = new MockAdapter(api, { delayResponse: 1000 });
+
+console.log("Mock API initialized for development");
 
 // Mock data
 const children = [
@@ -429,6 +431,8 @@ const users = [
 // Mock login API
 mock.onPost("/login").reply((config) => {
   const { username, password } = JSON.parse(config.data);
+  console.log(`Login attempt with username: ${username}`);
+
   const user = users.find(
     (u) => u.username === username && u.password === password
   );
@@ -463,14 +467,15 @@ mock.onPost("/login").reply((config) => {
     ];
   }
 
+  console.log("Login failed: Invalid credentials");
   return [401, { message: "Tên đăng nhập hoặc mật khẩu không chính xác" }];
 });
 
 // Mock API endpoints
 
 // Student Information
-mock.onGet("/api/parent/students").reply(200, children);
-mock.onGet(/\/api\/parent\/students\/\d+/).reply((config) => {
+mock.onGet("/parent/students").reply(200, children);
+mock.onGet(/\/parent\/students\/\d+/).reply((config) => {
   const id = parseInt(config.url.split("/").pop());
   const child = children.find((c) => c.id === id);
   return child
@@ -478,14 +483,14 @@ mock.onGet(/\/api\/parent\/students\/\d+/).reply((config) => {
     : [404, { message: "Không tìm thấy thông tin học sinh" }];
 });
 
-mock.onGet(/\/api\/parent\/profile\/\d+/).reply((config) => {
+mock.onGet(/\/parent\/profile\/\d+/).reply((config) => {
   const id = parseInt(config.url.split("/").pop());
   return id === parentProfile.id
     ? [200, parentProfile]
     : [404, { message: "Không tìm thấy thông tin phụ huynh" }];
 });
 
-mock.onPatch(/\/api\/parent\/profile\/\d+/).reply((config) => {
+mock.onPatch(/\/parent\/profile\/\d+/).reply((config) => {
   const id = parseInt(config.url.split("/").pop());
   if (id !== parentProfile.id) {
     return [404, { message: "Không tìm thấy thông tin phụ huynh" }];
@@ -496,15 +501,11 @@ mock.onPatch(/\/api\/parent\/profile\/\d+/).reply((config) => {
 });
 
 // Health Checkups
-mock.onGet("/api/parent/checkups/approved").reply(200, checkups.approved);
-mock
-  .onGet("/api/parent/consents-checkups/approved")
-  .reply(200, checkups.approved);
-mock
-  .onGet("/api/parent/consents-checkups/pending")
-  .reply(200, checkups.pending);
+mock.onGet("/parent/checkups/approved").reply(200, checkups.approved);
+mock.onGet("/parent/consents-checkups/approved").reply(200, checkups.approved);
+mock.onGet("/parent/consents-checkups/pending").reply(200, checkups.pending);
 
-mock.onGet(/\/api\/parent\/consents-checkups\/\d+/).reply((config) => {
+mock.onGet(/\/parent\/consents-checkups\/\d+/).reply((config) => {
   const id = parseInt(config.url.split("/").pop());
   const checkup = [...checkups.approved, ...checkups.pending].find(
     (c) => c.id === id
@@ -514,50 +515,44 @@ mock.onGet(/\/api\/parent\/consents-checkups\/\d+/).reply((config) => {
     : [404, { message: "Không tìm thấy thông tin khám sức khỏe" }];
 });
 
-mock
-  .onPost(/\/api\/parent\/consents-checkups\/\d+\/respond/)
-  .reply((config) => {
-    const id = parseInt(config.url.split("/").pop());
-    const response = JSON.parse(config.data);
-    return [200, { message: "Đã phản hồi thành công" }];
-  });
+mock.onPost(/\/parent\/consents-checkups\/\d+\/respond/).reply((config) => {
+  const id = parseInt(config.url.split("/").pop());
+  const response = JSON.parse(config.data);
+  return [200, { message: "Đã phản hồi thành công" }];
+});
 
-mock.onPatch(/\/api\/parent\/checkups\/\d+\/consent/).reply((config) => {
+mock.onPatch(/\/parent\/checkups\/\d+\/consent/).reply((config) => {
   const id = parseInt(config.url.split("/").pop());
   const { status } = JSON.parse(config.data);
   return [200, { message: "Đã cập nhật trạng thái đồng ý thành công" }];
 });
 
 // Health Declarations
-mock
-  .onGet(/\/api\/parent\/students\/\d+\/health-declaration/)
-  .reply((config) => {
-    const id = parseInt(config.url.split("/").pop());
-    const declaration = healthDeclarations[id];
-    return declaration
-      ? [200, declaration]
-      : [404, { message: "Không tìm thấy thông tin khai báo y tế" }];
-  });
+mock.onGet(/\/parent\/students\/\d+\/health-declaration/).reply((config) => {
+  const id = parseInt(config.url.split("/").pop());
+  const declaration = healthDeclarations[id];
+  return declaration
+    ? [200, declaration]
+    : [404, { message: "Không tìm thấy thông tin khai báo y tế" }];
+});
 
-mock
-  .onPatch(/\/api\/parent\/students\/\d+\/health-declaration/)
-  .reply((config) => {
-    const id = parseInt(config.url.split("/").pop());
-    if (!healthDeclarations[id]) {
-      return [404, { message: "Không tìm thấy thông tin khai báo y tế" }];
-    }
-    const updatedData = JSON.parse(config.data);
-    const updatedDeclaration = {
-      ...healthDeclarations[id],
-      ...updatedData,
-      lastUpdated: moment().format("YYYY-MM-DD"),
-    };
-    healthDeclarations[id] = updatedDeclaration;
-    return [200, updatedDeclaration];
-  });
+mock.onPatch(/\/parent\/students\/\d+\/health-declaration/).reply((config) => {
+  const id = parseInt(config.url.split("/").pop());
+  if (!healthDeclarations[id]) {
+    return [404, { message: "Không tìm thấy thông tin khai báo y tế" }];
+  }
+  const updatedData = JSON.parse(config.data);
+  const updatedDeclaration = {
+    ...healthDeclarations[id],
+    ...updatedData,
+    lastUpdated: moment().format("YYYY-MM-DD"),
+  };
+  healthDeclarations[id] = updatedDeclaration;
+  return [200, updatedDeclaration];
+});
 
 // Medical Incidents
-mock.onGet(/\/api\/parent\/incidents\/\d+/).reply((config) => {
+mock.onGet(/\/parent\/incidents\/\d+/).reply((config) => {
   const id = parseInt(config.url.split("/").pop());
 
   // Kiểm tra xem id có phải là incident_id không
@@ -572,7 +567,7 @@ mock.onGet(/\/api\/parent\/incidents\/\d+/).reply((config) => {
 });
 
 // Medical Submissions
-mock.onPost("/api/parent/medical-submissions").reply((config) => {
+mock.onPost("/parent/medical-submissions").reply((config) => {
   const requestData = JSON.parse(config.data);
   return [
     200,
@@ -586,15 +581,15 @@ mock.onPost("/api/parent/medical-submissions").reply((config) => {
 });
 
 // Vaccinations
-mock.onGet("/api/parent/vaccine-campaigns").reply(200, vaccineCampaigns.all);
+mock.onGet("/parent/vaccine-campaigns").reply(200, vaccineCampaigns.all);
 mock
-  .onGet("/api/parent/vaccine-campaigns/approved")
+  .onGet("/parent/vaccine-campaigns/approved")
   .reply(200, vaccineCampaigns.approved);
 mock
-  .onGet("/api/parent/vaccine-campaigns/declined")
+  .onGet("/parent/vaccine-campaigns/declined")
   .reply(200, vaccineCampaigns.declined);
 
-mock.onGet(/\/api\/parent\/vaccine-campaigns\/\d+/).reply((config) => {
+mock.onGet(/\/parent\/vaccine-campaigns\/\d+/).reply((config) => {
   const id = parseInt(config.url.split("/").pop());
   const campaign = vaccineCampaigns.all.find((c) => c.id === id);
   return campaign
@@ -603,7 +598,7 @@ mock.onGet(/\/api\/parent\/vaccine-campaigns\/\d+/).reply((config) => {
 });
 
 // Get student vaccinations
-mock.onGet(/\/api\/parent\/students\/\d+\/vaccinations/).reply((config) => {
+mock.onGet(/\/parent\/students\/\d+\/vaccinations/).reply((config) => {
   const studentId = parseInt(config.url.split("/").pop());
   const studentVaccinations = vaccineCampaigns.studentVaccinations.filter(
     (v) => v.studentId === studentId
@@ -612,133 +607,129 @@ mock.onGet(/\/api\/parent\/students\/\d+\/vaccinations/).reply((config) => {
 });
 
 // Respond to vaccination campaign
-mock
-  .onPost(/\/api\/parent\/vaccine-campaigns\/\d+\/respond/)
-  .reply((config) => {
-    const campaignId = parseInt(config.url.split("/").pop());
-    const { status, studentId, notes } = JSON.parse(config.data);
+mock.onPost(/\/parent\/vaccine-campaigns\/\d+\/respond/).reply((config) => {
+  const campaignId = parseInt(config.url.split("/").pop());
+  const { status, studentId, notes } = JSON.parse(config.data);
 
-    // Find the campaign
-    const campaignIndex = vaccineCampaigns.all.findIndex(
-      (c) => c.id === campaignId
+  // Find the campaign
+  const campaignIndex = vaccineCampaigns.all.findIndex(
+    (c) => c.id === campaignId
+  );
+
+  if (campaignIndex === -1) {
+    return [404, { message: "Không tìm thấy chiến dịch tiêm chủng" }];
+  }
+
+  // Update the campaign's student responses
+  const campaign = vaccineCampaigns.all[campaignIndex];
+
+  // Add response to campaign
+  campaign.studentResponses[studentId] = {
+    studentId: parseInt(studentId),
+    status,
+    responseDate: moment().format("YYYY-MM-DD"),
+    parentNotes: notes || "",
+  };
+
+  // Update the approved or declined lists
+  if (status === "approved") {
+    const approvedCampaign = {
+      ...campaign,
+      responseStatus: "approved",
+      studentId: parseInt(studentId),
+    };
+
+    // Check if already in approved list
+    const existingIndex = vaccineCampaigns.approved.findIndex(
+      (c) => c.id === campaignId && c.studentId === parseInt(studentId)
     );
-
-    if (campaignIndex === -1) {
-      return [404, { message: "Không tìm thấy chiến dịch tiêm chủng" }];
+    if (existingIndex === -1) {
+      vaccineCampaigns.approved.push(approvedCampaign);
+    } else {
+      vaccineCampaigns.approved[existingIndex] = approvedCampaign;
     }
 
-    // Update the campaign's student responses
-    const campaign = vaccineCampaigns.all[campaignIndex];
-
-    // Add response to campaign
-    campaign.studentResponses[studentId] = {
+    // Remove from declined if exists
+    const declinedIndex = vaccineCampaigns.declined.findIndex(
+      (c) => c.id === campaignId && c.studentId === parseInt(studentId)
+    );
+    if (declinedIndex !== -1) {
+      vaccineCampaigns.declined.splice(declinedIndex, 1);
+    }
+  } else if (status === "declined") {
+    const declinedCampaign = {
+      ...campaign,
+      responseStatus: "declined",
       studentId: parseInt(studentId),
-      status,
-      responseDate: moment().format("YYYY-MM-DD"),
       parentNotes: notes || "",
     };
 
-    // Update the approved or declined lists
-    if (status === "approved") {
-      const approvedCampaign = {
-        ...campaign,
-        responseStatus: "approved",
-        studentId: parseInt(studentId),
-      };
-
-      // Check if already in approved list
-      const existingIndex = vaccineCampaigns.approved.findIndex(
-        (c) => c.id === campaignId && c.studentId === parseInt(studentId)
-      );
-      if (existingIndex === -1) {
-        vaccineCampaigns.approved.push(approvedCampaign);
-      } else {
-        vaccineCampaigns.approved[existingIndex] = approvedCampaign;
-      }
-
-      // Remove from declined if exists
-      const declinedIndex = vaccineCampaigns.declined.findIndex(
-        (c) => c.id === campaignId && c.studentId === parseInt(studentId)
-      );
-      if (declinedIndex !== -1) {
-        vaccineCampaigns.declined.splice(declinedIndex, 1);
-      }
-    } else if (status === "declined") {
-      const declinedCampaign = {
-        ...campaign,
-        responseStatus: "declined",
-        studentId: parseInt(studentId),
-        parentNotes: notes || "",
-      };
-
-      // Check if already in declined list
-      const existingIndex = vaccineCampaigns.declined.findIndex(
-        (c) => c.id === campaignId && c.studentId === parseInt(studentId)
-      );
-      if (existingIndex === -1) {
-        vaccineCampaigns.declined.push(declinedCampaign);
-      } else {
-        vaccineCampaigns.declined[existingIndex] = declinedCampaign;
-      }
-
-      // Remove from approved if exists
-      const approvedIndex = vaccineCampaigns.approved.findIndex(
-        (c) => c.id === campaignId && c.studentId === parseInt(studentId)
-      );
-      if (approvedIndex !== -1) {
-        vaccineCampaigns.approved.splice(approvedIndex, 1);
-      }
+    // Check if already in declined list
+    const existingIndex = vaccineCampaigns.declined.findIndex(
+      (c) => c.id === campaignId && c.studentId === parseInt(studentId)
+    );
+    if (existingIndex === -1) {
+      vaccineCampaigns.declined.push(declinedCampaign);
+    } else {
+      vaccineCampaigns.declined[existingIndex] = declinedCampaign;
     }
 
-    return [
-      200,
-      {
-        message: "Đã phản hồi thành công",
-        campaign: campaign,
-        studentResponse: campaign.studentResponses[studentId],
-      },
-    ];
-  });
+    // Remove from approved if exists
+    const approvedIndex = vaccineCampaigns.approved.findIndex(
+      (c) => c.id === campaignId && c.studentId === parseInt(studentId)
+    );
+    if (approvedIndex !== -1) {
+      vaccineCampaigns.approved.splice(approvedIndex, 1);
+    }
+  }
+
+  return [
+    200,
+    {
+      message: "Đã phản hồi thành công",
+      campaign: campaign,
+      studentResponse: campaign.studentResponses[studentId],
+    },
+  ];
+});
 
 // Update vaccination status
-mock
-  .onPatch(/\/api\/parent\/vaccine-campaigns\/\d+\/status/)
-  .reply((config) => {
-    const id = parseInt(config.url.split("/").pop());
-    const { status, studentId } = JSON.parse(config.data);
+mock.onPatch(/\/parent\/vaccine-campaigns\/\d+\/status/).reply((config) => {
+  const id = parseInt(config.url.split("/").pop());
+  const { status, studentId } = JSON.parse(config.data);
 
-    // Find the campaign
-    const campaignIndex = vaccineCampaigns.all.findIndex((c) => c.id === id);
+  // Find the campaign
+  const campaignIndex = vaccineCampaigns.all.findIndex((c) => c.id === id);
 
-    if (campaignIndex === -1) {
-      return [404, { message: "Không tìm thấy chiến dịch tiêm chủng" }];
-    }
+  if (campaignIndex === -1) {
+    return [404, { message: "Không tìm thấy chiến dịch tiêm chủng" }];
+  }
 
-    // Update student vaccination record if needed
-    const studentVaccinationIndex =
-      vaccineCampaigns.studentVaccinations.findIndex(
-        (v) => v.campaignId === id && v.studentId === parseInt(studentId)
-      );
+  // Update student vaccination record if needed
+  const studentVaccinationIndex =
+    vaccineCampaigns.studentVaccinations.findIndex(
+      (v) => v.campaignId === id && v.studentId === parseInt(studentId)
+    );
 
-    if (studentVaccinationIndex !== -1) {
-      vaccineCampaigns.studentVaccinations[studentVaccinationIndex].status =
-        status === "approved" ? "upcoming" : "cancelled";
-    }
+  if (studentVaccinationIndex !== -1) {
+    vaccineCampaigns.studentVaccinations[studentVaccinationIndex].status =
+      status === "approved" ? "upcoming" : "cancelled";
+  }
 
-    return [
-      200,
-      {
-        message: "Đã cập nhật trạng thái thành công",
-        updatedVaccination:
-          studentVaccinationIndex !== -1
-            ? vaccineCampaigns.studentVaccinations[studentVaccinationIndex]
-            : null,
-      },
-    ];
-  });
+  return [
+    200,
+    {
+      message: "Đã cập nhật trạng thái thành công",
+      updatedVaccination:
+        studentVaccinationIndex !== -1
+          ? vaccineCampaigns.studentVaccinations[studentVaccinationIndex]
+          : null,
+    },
+  ];
+});
 
 // Notifications
-mock.onGet("/api/parent/notifications").reply(200, notifications);
+mock.onGet("/parent/notifications").reply(200, notifications);
 
 // Thêm dữ liệu mẫu cho lịch khám sức khỏe
 const healthCheckups = {
@@ -880,17 +871,17 @@ const healthCheckups = {
 };
 
 // API endpoints cho lịch khám sức khỏe
-mock.onGet("/api/parent/checkups/approved").reply(200, healthCheckups.approved);
+mock.onGet("/parent/checkups/approved").reply(200, healthCheckups.approved);
 
 mock
-  .onGet("/api/parent/consents-checkups/approved")
+  .onGet("/parent/consents-checkups/approved")
   .reply(200, healthCheckups.approved);
 
 mock
-  .onGet("/api/parent/consents-checkups/pending")
+  .onGet("/parent/consents-checkups/pending")
   .reply(200, healthCheckups.pending);
 
-mock.onGet(/\/api\/parent\/consents-checkups\/\d+/).reply((config) => {
+mock.onGet(/\/parent\/consents-checkups\/\d+/).reply((config) => {
   const id = parseInt(config.url.split("/").pop());
   const checkup = [
     ...healthCheckups.approved,
@@ -904,46 +895,44 @@ mock.onGet(/\/api\/parent\/consents-checkups\/\d+/).reply((config) => {
 });
 
 // API endpoint để phản hồi form đồng ý khám
-mock
-  .onPost(/\/api\/parent\/consents-checkups\/\d+\/respond/)
-  .reply((config) => {
-    const id = parseInt(config.url.split("/").pop());
-    const { response, notes } = JSON.parse(config.data);
+mock.onPost(/\/parent\/consents-checkups\/\d+\/respond/).reply((config) => {
+  const id = parseInt(config.url.split("/").pop());
+  const { response, notes } = JSON.parse(config.data);
 
-    // Tìm lịch khám cần phản hồi
-    const pendingIndex = healthCheckups.pending.findIndex((c) => c.id === id);
+  // Tìm lịch khám cần phản hồi
+  const pendingIndex = healthCheckups.pending.findIndex((c) => c.id === id);
 
-    if (pendingIndex === -1) {
-      return [404, { message: "Không tìm thấy lịch khám cần phản hồi" }];
-    }
+  if (pendingIndex === -1) {
+    return [404, { message: "Không tìm thấy lịch khám cần phản hồi" }];
+  }
 
-    const checkup = healthCheckups.pending[pendingIndex];
+  const checkup = healthCheckups.pending[pendingIndex];
 
-    // Cập nhật trạng thái dựa trên phản hồi
-    if (response === "approve") {
-      // Chuyển từ pending sang approved
-      checkup.status = "approved";
-      checkup.parentNotes = notes || "";
-      healthCheckups.approved.push(checkup);
-      healthCheckups.pending.splice(pendingIndex, 1);
-    } else if (response === "reject") {
-      // Đánh dấu là bị từ chối
-      checkup.status = "rejected";
-      checkup.parentNotes = notes || "";
-      healthCheckups.pending.splice(pendingIndex, 1);
-    }
+  // Cập nhật trạng thái dựa trên phản hồi
+  if (response === "approve") {
+    // Chuyển từ pending sang approved
+    checkup.status = "approved";
+    checkup.parentNotes = notes || "";
+    healthCheckups.approved.push(checkup);
+    healthCheckups.pending.splice(pendingIndex, 1);
+  } else if (response === "reject") {
+    // Đánh dấu là bị từ chối
+    checkup.status = "rejected";
+    checkup.parentNotes = notes || "";
+    healthCheckups.pending.splice(pendingIndex, 1);
+  }
 
-    return [
-      200,
-      {
-        message: "Đã phản hồi thành công",
-        checkup: checkup,
-      },
-    ];
-  });
+  return [
+    200,
+    {
+      message: "Đã phản hồi thành công",
+      checkup: checkup,
+    },
+  ];
+});
 
 // API endpoint để cập nhật trạng thái đồng ý
-mock.onPatch(/\/api\/parent\/checkups\/\d+\/consent/).reply((config) => {
+mock.onPatch(/\/parent\/checkups\/\d+\/consent/).reply((config) => {
   const id = parseInt(config.url.split("/").pop());
   const { status, notes } = JSON.parse(config.data);
 
@@ -987,7 +976,7 @@ mock.onPatch(/\/api\/parent\/checkups\/\d+\/consent/).reply((config) => {
 });
 
 // API endpoint để đặt lịch khám mới
-mock.onPost("/api/parent/checkups/request").reply((config) => {
+mock.onPost("/parent/checkups/request").reply((config) => {
   const requestData = JSON.parse(config.data);
 
   // Tạo lịch khám mới
@@ -1012,7 +1001,7 @@ mock.onPost("/api/parent/checkups/request").reply((config) => {
 });
 
 // API endpoint để lấy lịch sử khám
-mock.onGet(/\/api\/parent\/students\/\d+\/checkup-history/).reply((config) => {
+mock.onGet(/\/parent\/students\/\d+\/checkup-history/).reply((config) => {
   const studentId = parseInt(config.url.split("/").pop());
 
   // Lọc lịch sử khám theo student_id
@@ -1024,7 +1013,7 @@ mock.onGet(/\/api\/parent\/students\/\d+\/checkup-history/).reply((config) => {
 });
 
 // API endpoint để lấy lịch hẹn khám
-mock.onGet(/\/api\/parent\/students\/\d+\/appointments/).reply((config) => {
+mock.onGet(/\/parent\/students\/\d+\/appointments/).reply((config) => {
   const studentId = parseInt(config.url.split("/").pop());
 
   // Lọc lịch hẹn khám theo student_id

@@ -35,7 +35,7 @@ export const getParentChildren = createAsyncThunk(
   "parent/getChildren",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get("/api/parent/students");
+      const response = await api.get("/parent/students");
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -49,7 +49,7 @@ export const getChildDetails = createAsyncThunk(
   "parent/getChildDetails",
   async (student_id, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/api/parent/students/${student_id}`);
+      const response = await api.get(`/parent/students/${student_id}`);
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -63,7 +63,7 @@ export const getParentProfile = createAsyncThunk(
   "parent/getProfile",
   async (user_id, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/api/parent/profile/${user_id}`);
+      const response = await api.get(`/parent/profile/${user_id}`);
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -78,7 +78,7 @@ export const updateParentProfile = createAsyncThunk(
   async ({ user_id, profileData }, { rejectWithValue }) => {
     try {
       const response = await api.patch(
-        `/api/parent/profile/${user_id}`,
+        `/parent/profile/${user_id}`,
         profileData
       );
       return response.data;
@@ -95,7 +95,7 @@ export const getApprovedCheckups = createAsyncThunk(
   "parent/getApprovedCheckups",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get("/api/parent/checkups/approved");
+      const response = await api.get("/parent/checkups/approved");
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -109,7 +109,7 @@ export const getApprovedConsents = createAsyncThunk(
   "parent/getApprovedConsents",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get("/api/parent/consents-checkups/approved");
+      const response = await api.get("/parent/consents-checkups/approved");
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -123,7 +123,7 @@ export const getCheckupDetails = createAsyncThunk(
   "parent/getCheckupDetails",
   async (id, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/api/parent/consents-checkups/${id}`);
+      const response = await api.get(`/parent/consents-checkups/${id}`);
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -137,7 +137,7 @@ export const getPendingConsents = createAsyncThunk(
   "parent/getPendingConsents",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get("/api/parent/consents-checkups/pending");
+      const response = await api.get("/parent/consents-checkups/pending");
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -152,7 +152,7 @@ export const respondToConsentForm = createAsyncThunk(
   async ({ form_id, response, notes }, { rejectWithValue, dispatch }) => {
     try {
       const apiResponse = await api.post(
-        `/api/parent/consents-checkups/${form_id}/respond`,
+        `/parent/consents-checkups/${form_id}/respond`,
         { response, notes }
       );
 
@@ -174,7 +174,7 @@ export const updateConsentStatus = createAsyncThunk(
   async ({ checkup_id, status, notes }, { rejectWithValue, dispatch }) => {
     try {
       const response = await api.patch(
-        `/api/parent/checkups/${checkup_id}/consent`,
+        `/parent/checkups/${checkup_id}/consent`,
         { status, notes }
       );
 
@@ -197,7 +197,7 @@ export const getHealthDeclaration = createAsyncThunk(
   async (student_id, { rejectWithValue }) => {
     try {
       const response = await api.get(
-        `/api/parent/students/${student_id}/health-declaration`
+        `/parent/students/${student_id}/health-declaration`
       );
       return { student_id, data: response.data };
     } catch (error) {
@@ -213,7 +213,7 @@ export const updateHealthDeclaration = createAsyncThunk(
   async ({ studentId, declarationData }, { rejectWithValue }) => {
     try {
       const response = await api.patch(
-        `/api/parent/students/${studentId}/health-declaration`,
+        `/parent/students/${studentId}/health-declaration`,
         declarationData
       );
       return { studentId, data: response.data };
@@ -230,7 +230,7 @@ export const getIncidentsByUser = createAsyncThunk(
   "parent/getIncidentsByUser",
   async (user_id, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/api/parent/incidents/${user_id}`);
+      const response = await api.get(`/parent/incidents/${user_id}`);
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -244,7 +244,7 @@ export const getIncidentDetails = createAsyncThunk(
   "parent/getIncidentDetails",
   async (incident_id, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/api/parent/incidents/${incident_id}`);
+      const response = await api.get(`/parent/incidents/${incident_id}`);
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -260,7 +260,7 @@ export const submitMedicationRequest = createAsyncThunk(
   async (requestData, { rejectWithValue }) => {
     try {
       const response = await api.post(
-        "/api/parent/medical-submissions",
+        "/parent/medical-submissions",
         requestData
       );
       return response.data;
@@ -277,7 +277,7 @@ export const getVaccineCampaigns = createAsyncThunk(
   "parent/getVaccineCampaigns",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get("/api/parent/vaccine-campaigns");
+      const response = await api.get("/parent/vaccine-campaigns");
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -291,7 +291,7 @@ export const getVaccineCampaignDetails = createAsyncThunk(
   "parent/getVaccineCampaignDetails",
   async (id, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/api/parent/vaccine-campaigns/${id}`);
+      const response = await api.get(`/parent/vaccine-campaigns/${id}`);
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -305,7 +305,7 @@ export const getApprovedCampaigns = createAsyncThunk(
   "parent/getApprovedCampaigns",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get("/api/parent/vaccine-campaigns/approved");
+      const response = await api.get("/parent/vaccine-campaigns/approved");
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -319,7 +319,7 @@ export const getDeclinedCampaigns = createAsyncThunk(
   "parent/getDeclinedCampaigns",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get("/api/parent/vaccine-campaigns/declined");
+      const response = await api.get("/parent/vaccine-campaigns/declined");
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -334,7 +334,7 @@ export const getStudentVaccinations = createAsyncThunk(
   async (studentId, { rejectWithValue }) => {
     try {
       const response = await api.get(
-        `/api/parent/students/${studentId}/vaccinations`
+        `/parent/students/${studentId}/vaccinations`
       );
       return { studentId, vaccinations: response.data };
     } catch (error) {
@@ -350,7 +350,7 @@ export const respondToVaccinationConsent = createAsyncThunk(
   async ({ id, responseData }, { rejectWithValue, dispatch }) => {
     try {
       const response = await api.post(
-        `/api/parent/vaccine-campaigns/${id}/respond`,
+        `/parent/vaccine-campaigns/${id}/respond`,
         responseData
       );
 
@@ -379,7 +379,7 @@ export const updateVaccinationResponse = createAsyncThunk(
   async ({ id, status, studentId }, { rejectWithValue, dispatch }) => {
     try {
       const response = await api.patch(
-        `/api/parent/vaccine-campaigns/${id}/status`,
+        `/parent/vaccine-campaigns/${id}/status`,
         { status, studentId }
       );
 
@@ -407,7 +407,7 @@ export const getParentNotifications = createAsyncThunk(
   "parent/getNotifications",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get("/api/parent/notifications");
+      const response = await api.get("/parent/notifications");
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -423,7 +423,7 @@ export const requestCheckupAppointment = createAsyncThunk(
   async (appointmentData, { rejectWithValue }) => {
     try {
       const response = await api.post(
-        "/api/parent/checkups/request",
+        "/parent/checkups/request",
         appointmentData
       );
       return response.data;
@@ -440,7 +440,7 @@ export const getCheckupHistory = createAsyncThunk(
   async (student_id, { rejectWithValue }) => {
     try {
       const response = await api.get(
-        `/api/parent/students/${student_id}/checkup-history`
+        `/parent/students/${student_id}/checkup-history`
       );
       return { studentId: student_id, history: response.data };
     } catch (error) {
@@ -456,7 +456,7 @@ export const getCheckupAppointments = createAsyncThunk(
   async (student_id, { rejectWithValue }) => {
     try {
       const response = await api.get(
-        `/api/parent/students/${student_id}/appointments`
+        `/parent/students/${student_id}/appointments`
       );
       return { studentId: student_id, appointments: response.data };
     } catch (error) {

@@ -1,5 +1,7 @@
 import axios from "axios";
+import MockAdapter from "axios-mock-adapter";
 
+// Create API instance
 const api = axios.create({
   baseURL: "http://172.20.10.4:3000/api",
   headers: {

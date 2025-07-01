@@ -92,8 +92,16 @@ export default function VaccinationsPage() {
   // Filter vaccinations for the selected child
   useEffect(() => {
     if (selectedChild && vaccinations) {
-      // In a real app, this would be an API call to get student-specific vaccinations
-      // For now, we'll filter from the mock data
+      // Get student vaccinations from Redux store if available
+      const studentVaccinationData =
+        vaccinations.studentVaccinations[selectedChild.id];
+
+      if (studentVaccinationData) {
+        setStudentVaccinations(studentVaccinationData);
+        return;
+      }
+
+      // If not available in Redux store, create from campaigns
       const childVaccines = [];
 
       // Add upcoming vaccinations from campaigns
@@ -399,15 +407,17 @@ export default function VaccinationsPage() {
     if (!selectedChild || !selectedCampaign) return;
 
     const responseData = {
-      id: selectedCampaign.id,
-      responseData: {
-        status: values.response,
-        studentId: selectedChild.id,
-        notes: values.notes,
-      },
+      studentId: selectedChild.id,
+      status: values.response,
+      notes: values.notes,
     };
 
-    dispatch(respondToVaccinationConsent(responseData));
+    dispatch(
+      respondToVaccinationConsent({
+        id: selectedCampaign.id,
+        responseData,
+      })
+    );
 
     // Close modal
     setCampaignModalVisible(false);

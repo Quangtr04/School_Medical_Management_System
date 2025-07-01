@@ -46,11 +46,14 @@ import {
 } from "@mui/icons-material";
 import {
   getParentChildren,
+  getChildDetails,
   submitMedicationRequest,
   getIncidentsByUser,
   setSelectedIncident,
+  setSelectedChild,
 } from "../../redux/parent/parentSlice";
 import moment from "moment";
+import { Form, Modal, message } from "antd";
 
 function MedicineRequestPage() {
   const dispatch = useDispatch();
@@ -62,6 +65,7 @@ function MedicineRequestPage() {
     selectedIncident,
     loading,
     error,
+    success,
   } = useSelector((state) => state.parent);
 
   const [form] = Form.useForm();
@@ -100,22 +104,31 @@ function MedicineRequestPage() {
     },
   ]);
 
+  // Fetch children data
   useEffect(() => {
     dispatch(getParentChildren());
   }, [dispatch]);
 
+  // Select first child if none selected
+  useEffect(() => {
+    if (children && children.length > 0 && !selectedChild) {
+      dispatch(getChildDetails(children[0].id));
+    }
+  }, [dispatch, children, selectedChild]);
+
+  // Fetch incidents when child is selected
   useEffect(() => {
     if (selectedChild) {
       dispatch(getIncidentsByUser(selectedChild.id));
     }
   }, [dispatch, selectedChild]);
 
+  // Handle success from API
   useEffect(() => {
     if (success) {
       message.success("Gửi yêu cầu thuốc thành công!");
       setIsModalVisible(false);
       form.resetFields();
-      setSelectedChild(null);
     }
   }, [success, form]);
 
@@ -127,27 +140,13 @@ function MedicineRequestPage() {
 
     const requestData = {
       childId: selectedChild.id,
-      ...values,
-    };
-
-    // In a real app, we would dispatch the action to submit the request
-    // dispatch(submitMedicationRequest(requestData));
-
-    // For now, we'll just mock the behavior
-    const newRequest = {
-      id: medicineRequests.length + 1,
-      childId: selectedChild.id,
       childName: selectedChild.name,
       ...values,
-      status: "pending",
       requestDate: moment().format("YYYY-MM-DD"),
     };
 
-    setMedicineRequests([...medicineRequests, newRequest]);
-    message.success("Gửi yêu cầu thuốc thành công!");
-    setIsModalVisible(false);
-    form.resetFields();
-    setSelectedChild(null);
+    // Dispatch action to submit the request
+    dispatch(submitMedicationRequest(requestData));
   };
 
   const handleEdit = (record) => {
