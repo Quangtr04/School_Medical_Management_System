@@ -395,3 +395,74 @@
  *       200:
  *         description: Danh sách thông báo
  */
+
+/**
+ * @swagger
+ * /nurse/students/health-declaration:
+ *   get:
+ *     tags: [Nurse]
+ *     summary: Lấy danh sách sức khỏe học sinh
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Trả về danh sách thông tin sức khỏe của tất cả học sinh
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/StudentHealthInfo'
+ */
+
+/**
+ * @swagger
+ * /nurse/students/health-declaration/{student_id}:
+ *   get:
+ *     tags: [Nurse]
+ *     summary: Lấy thông tin sức khỏe của học sinh theo ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: student_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của học sinh
+ *     responses:
+ *       200:
+ *         description: Trả về thông tin sức khỏe của học sinh
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/StudentHealthInfo'
+ *       404:
+ *         description: Không tìm thấy học sinh
+ *
+ *   patch:
+ *     tags: [Nurse]
+ *     summary: Cập nhật thông tin sức khỏe của học sinh theo ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: student_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của học sinh cần cập nhật
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/HealthDeclaration'
+ *     responses:
+ *       200:
+ *         description: Cập nhật thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       404:
+ *         description: Không tìm thấy học sinh
+ */

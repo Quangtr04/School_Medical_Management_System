@@ -50,9 +50,22 @@ const getAllStudentInfo = async (req, res, next) => {
   const pool = await sqlServerPool;
   const result = await pool.request().query("SELECT * FROM [SWP391].[dbo].[Student_Information]");
   if (result.recordset.length > 0) {
+    const resultList = [];
+
+    for (let student of result.recordset) {
+      const healthResult = await pool
+        .request()
+        .input("student_id", sql.Int, student.student_id)
+        .query(`SELECT * FROM Student_Health WHERE student_id = @student_id`);
+
+      resultList.push({
+        ...student,
+        health: healthResult.recordset[0] || null,
+      });
+    }
     res.status(200).json({
       status: "success",
-      data: result.recordset,
+      data: resultList,
     });
   } else {
     res.status(404).json({
@@ -69,9 +82,19 @@ const getStudentInfoById = async (req, res, next) => {
   const result = await pool.request().input("student_id", sql.Int, student_id).query(`
         SELECT * FROM [SWP391].[dbo].[Student_Information] WHERE student_id = @student_id`);
   if (result.recordset.length > 0) {
+    const resultList = [];
+    const healthResult = await pool
+      .request()
+      .input("student_id", sql.Int, result.student_id)
+      .query(`SELECT * FROM Student_Health WHERE student_id = @student_id`);
+
+    resultList.push({
+      ...student,
+      health: healthResult.recordset[0] || null,
+    });
     res.status(200).json({
       status: "success",
-      data: result.recordset[0],
+      data: resultList,
     });
   } else {
     res.status(404).json({

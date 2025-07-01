@@ -20,6 +20,7 @@ const {
 const {
   createHealthDeclarationById,
   getHealthDeclarationOfStudentById,
+  updateHealthDeclarationByStudentId,
 } = require("../Controller/Health/healthDeclaration");
 
 // Sự cố y tế
@@ -93,13 +94,13 @@ parentRouter.patch("/checkups/:checkup_id/consent", authenticateToken, UpdateSta
 parentRouter.get("/students/:student_id/health-declaration", authenticateToken, getHealthDeclarationOfStudentById);
 
 /**
- * 📝 Tạo khai báo y tế cho học sinh
+ * 📝 Cập nhật báo y tế cho học sinh
  */
-parentRouter.post(
-  "/students/:studentId/health-declarations",
-  authenticateToken,
+
+parentRouter.patch(
+  "/students/:studentId/health-declaration",
   validateInput(Schemas, "HealthDeclaration"),
-  createHealthDeclarationById
+  updateHealthDeclarationByStudentId
 );
 
 // --- Nhóm các API liên quan đến Sự cố y tế (Medical Incidents) ---

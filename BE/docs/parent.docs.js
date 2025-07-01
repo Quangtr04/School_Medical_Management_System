@@ -185,18 +185,19 @@
  *       200:
  *         description: Khai báo y tế
  *
- * /students/{studentId}/health-declarations:
- *   post:
+*
+ *   patch:
  *     tags: [Parent]
- *     summary: Tạo khai báo y tế cho học sinh
+ *     summary: Phụ huynh cập nhật khai báo sức khỏe của học sinh
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: studentId
  *         required: true
  *         schema:
  *           type: integer
- *     security:
- *       - bearerAuth: []
+ *         description: ID của học sinh
  *     requestBody:
  *       required: true
  *       content:
@@ -205,8 +206,15 @@
  *             $ref: '#/components/schemas/HealthDeclaration'
  *     responses:
  *       200:
- *         description: Tạo khai báo y tế thành công
+ *         description: Cập nhật khai báo sức khỏe thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Không có quyền truy cập
+ *       404:
+ *         description: Không tìm thấy học sinh hoặc khai báo sức khỏe
  *
+
  * # === INCIDENTS ===
  * /incidents/{user_id}:
  *   get:

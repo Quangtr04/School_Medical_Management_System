@@ -65,6 +65,42 @@ const saveCheckupResult = async (req, res) => {
     WHERE student_id = @student_id
   `);
 
+    let healthStatus = "Healthy";
+    if (abnormal_signs || (notes && notes.includes("ho"))) {
+      healthStatus = "Follow-up required";
+    } else if (vision_left < 1 || vision_right < 1) {
+      healthStatus = "Mild myopia";
+    } else if (hearing_left !== "Bình thường" || hearing_right !== "Bình thường") {
+      healthStatus = "Hearing Impairment";
+    } else if (blood_pressure && blood_pressure !== "120/80") {
+      healthStatus = "Needs BP monitoring";
+    } else if (needs_counseling) {
+      healthStatus = "Needs Counseling";
+    }
+    await pool
+      .request()
+      .input("student_id", sql.Int, checkExist.recordset[0].student_id)
+      .input("checked_at", sql.DateTime, new Date())
+      .input("height_cm", sql.Float, height_cm)
+      .input("weight_kg", sql.Float, weight_kg)
+      .input("vision_left", sql.Float, vision_left)
+      .input("vision_right", sql.Float, vision_right)
+      .input("hearing_left", sql.NVarChar, hearing_left)
+      .input("hearing_right", sql.NVarChar, hearing_right)
+      .input("health_status", sql.NVarChar, healthStatus).query(`
+    UPDATE Student_Health
+    SET
+      updated_at = @checked_at,
+      height_cm = @height_cm,
+      weight_kg = @weight_kg,
+      vision_left = @vision_left,
+      vision_right = @vision_right,
+      hearing_left = @hearing_left,
+      hearing_right = @hearing_right,
+      health_status = @health_status
+    WHERE student_id = @student_id
+  `);
+
     if (getParent.recordset.length > 0) {
       const parentId = getParent.recordset[0].parent_id;
 
@@ -90,7 +126,6 @@ const updateCheckup = async (req, res) => {
   try {
     const pool = await sqlServerPool;
 
-    // 🔍 Kiểm tra bản ghi tồn tại
     const checkExist = await pool
       .request()
       .input("checkup_id", sql.Int, checkup_id)
@@ -104,22 +139,31 @@ const updateCheckup = async (req, res) => {
     }
 
     const newNeedsCounseling = needs_counseling ? 1 : 0;
+    let healthStatus = newNeedsCounseling === 1 ? "Needs Counseling" : "Healthy";
 
-    // ✅ Cập nhật ghi chú
+    // ✅ Cập nhật thông tin
     await pool
       .request()
       .input("checkup_id", sql.Int, checkup_id)
       .input("student_id", sql.Int, student_id)
       .input("needs_counseling", sql.Bit, newNeedsCounseling)
-      .input("note", sql.NVarChar, note).query(`
+      .input("note", sql.NVarChar, note || null).query(`
         UPDATE Checkup_Participation
-        SET notes = @note AND needs_counseling = @needs_counseling
+        SET notes = @note, needs_counseling = @needs_counseling
         WHERE checkup_id = @checkup_id AND student_id = @student_id
       `);
-    const getParent = await pool.request().input("student_id", sql.Int, student_id).query(`
-    SELECT parent_id FROM Student_Information
-    WHERE student_id = @student_id
-  `);
+
+    await pool.request().input("student_id", sql.Int, student_id).input("health_status", sql.NVarChar, healthStatus)
+      .query(`
+        UPDATE Student_Health
+        SET updated_at = GETDATE(), health_status = @health_status
+        WHERE student_id = @student_id
+      `);
+
+    const getParent = await pool
+      .request()
+      .input("student_id", sql.Int, student_id)
+      .query(`SELECT parent_id FROM Student_Information WHERE student_id = @student_id`);
 
     if (getParent.recordset.length > 0) {
       const parentId = getParent.recordset[0].parent_id;
@@ -127,12 +171,12 @@ const updateCheckup = async (req, res) => {
       await sendNotification(
         pool,
         parentId,
-        "Kết quả khám sức khỏe",
-        "Kết quả khám sức khỏe của con bạn đã được cập nhật."
+        "Cập nhật khám sức khỏe",
+        "Thông tin khám sức khỏe của con bạn đã được cập nhật."
       );
     }
 
-    res.status(200).json({ message: "Note updated successfully" });
+    res.status(200).json({ message: "Checkup note updated successfully" });
   } catch (error) {
     console.error("Update failed:", error);
     res.status(500).json({ message: "Internal server error" });

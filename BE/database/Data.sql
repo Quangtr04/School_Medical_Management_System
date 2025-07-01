@@ -16,7 +16,21 @@ INSERT INTO Users (email, password, fullname, dayOfBirth, phone, gender, address
 INSERT INTO Class (class_name, number_of_student)
 VALUES 
 ('5A1', 30),
-('4A1', 30);
+('4A1', 30),
+('5A2', 30),
+('4A2', 30),
+('5A3', 30),
+('4A3', 30),
+('3A1', 30),
+('2A1', 30),
+('3A2', 30),
+('2A2', 30),
+('3A3', 30),
+('2A3', 30),
+('1A1', 30),
+('1A2', 30),
+('1A3', 30);
+
 
 INSERT INTO Student_Health (
     student_id, height_cm, weight_kg, blood_type, allergy, chronic_disease,

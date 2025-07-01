@@ -30,7 +30,7 @@ const Checkup_Result = {
 };
 
 const HealthDeclaration = {
-  student_id: { type: "int", required: true },
+  student_id: { type: "int", required: false },
   height_cm: { type: "int", required: true },
   weight_kg: { type: "int", required: true },
   blood_type: { type: "string", required: true },
@@ -51,7 +51,7 @@ const StudentInformation = {
   day_of_birth: { type: "date", required: true },
   class_name: { type: "string", required: true },
   address: { type: "string", required: true },
-  parent_id: { type: "int", required: true },
+  parent_name: { type: "string", required: true },
 };
 
 const MedicalSubmissionRequest = {
