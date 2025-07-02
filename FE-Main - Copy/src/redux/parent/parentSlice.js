@@ -61,11 +61,24 @@ export const getChildDetails = createAsyncThunk(
 
 export const getParentProfile = createAsyncThunk(
   "parent/getProfile",
-  async (user_id, { rejectWithValue }) => {
+  async (_, { rejectWithValue }) => {
     try {
-      console.log("Fetching profile for user:", user_id);
-      const response = await api.get(`/parent/profile/${user_id}`);
+      console.log("Fetching profile using token");
+      // Thêm timestamp để tránh cache
+      const timestamp = new Date().getTime();
+      const response = await api.get(`/parent/profile?_t=${timestamp}`);
       console.log("Profile data received:", response.data);
+
+      // Trả về dữ liệu người dùng từ mảng data
+      if (
+        response.data &&
+        response.data.data &&
+        Array.isArray(response.data.data) &&
+        response.data.data.length > 0
+      ) {
+        return response.data.data[0]; // Lấy phần tử đầu tiên từ mảng data
+      }
+
       return response.data;
     } catch (error) {
       console.error("Get profile error:", error.response || error);
@@ -78,17 +91,17 @@ export const getParentProfile = createAsyncThunk(
 
 export const updateParentProfile = createAsyncThunk(
   "parent/updateProfile",
-  async ({ user_id, profileData }, { rejectWithValue }) => {
+  async ({ profileData, token }, { rejectWithValue }) => {
     try {
       console.log("Sending profile update with data:", profileData);
-      console.log("To endpoint:", `/parent/profile/${user_id}`);
+      console.log("To endpoint: /parent/profile");
 
-      const response = await api.patch(
-        `/parent/profile/${user_id}`,
-        profileData
-      );
+      const response = await api.patch("/parent/profile", {
+        profileData,
+        token,
+      });
 
-      console.log("Update response:", response.data);
+      console.log("Update response:", response);
       return response.data;
     } catch (error) {
       console.error("Update profile error:", error);
@@ -499,6 +512,12 @@ const parentSlice = createSlice({
   name: "parent",
   initialState,
   reducers: {
+    resetParentState: (state) => {
+      return initialState;
+    },
+    setProfile: (state, action) => {
+      state.profile = action.payload;
+    },
     clearParentErrors: (state) => {
       state.error = null;
     },
@@ -553,10 +572,11 @@ const parentSlice = createSlice({
       .addCase(getParentProfile.fulfilled, (state, action) => {
         state.loading = false;
         state.profile = action.payload;
+        console.log("Profile updated in Redux:", action.payload);
       })
       .addCase(getParentProfile.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error = action.payload || "Failed to fetch profile";
       })
 
       // Update Parent Profile
@@ -1030,11 +1050,18 @@ const parentSlice = createSlice({
 });
 
 export const {
+  resetParentState,
+  setProfile,
   clearParentErrors,
   clearParentSuccess,
   setSelectedChild,
   setSelectedIncident,
   setSelectedCheckup,
 } = parentSlice.actions;
+
+// Thêm action creator để cập nhật profile trực tiếp
+export const updateProfileDirect = (profileData) => (dispatch) => {
+  dispatch(setProfile(profileData));
+};
 
 export default parentSlice.reducer;
