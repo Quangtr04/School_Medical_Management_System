@@ -546,26 +546,6 @@ export default function ParentProfilePage() {
               // View mode
               <>
                 <div style={{ textAlign: "right", marginBottom: 16 }}>
-                  <Button onClick={checkToken} style={{ marginRight: 8 }}>
-                    Kiểm tra token
-                  </Button>
-                  <Button onClick={testDirectAPI} style={{ marginRight: 8 }}>
-                    Test API
-                  </Button>
-                  <Button
-                    icon={<ReloadOutlined />}
-                    onClick={refreshData}
-                    style={{ marginRight: 8 }}
-                  >
-                    Làm mới
-                  </Button>
-                  <Button
-                    icon={<ReloadOutlined />}
-                    onClick={fetchDirectFromServer}
-                    style={{ marginRight: 8 }}
-                  >
-                    Tải trực tiếp
-                  </Button>
                   <Button
                     type="primary"
                     icon={<EditOutlined />}
@@ -633,14 +613,6 @@ export default function ParentProfilePage() {
                 autoComplete="off"
               >
                 <div style={{ textAlign: "right", marginBottom: 16 }}>
-                  <Button
-                    onClick={() =>
-                      console.log("Current form values:", form.getFieldsValue())
-                    }
-                    style={{ marginRight: 8 }}
-                  >
-                    Kiểm tra form
-                  </Button>
                   <Button
                     danger
                     icon={<CloseOutlined />}
