@@ -99,7 +99,7 @@ export default function AdminHeader() {
           <Badge count={1} offset={[-1, 35]} size="medium">
             {" "}
             {/* Điều chỉnh offset để số nằm gọn gàng hơn, dùng size="small" cho chấm tròn nhỏ hơn */}
-            <FaBell
+            <BellOutlined
               style={{
                 fontSize: "35px", // Kích thước icon chuông
                 cursor: "pointer",

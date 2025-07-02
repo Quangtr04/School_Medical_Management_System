@@ -47,6 +47,7 @@ import {
   getDeclinedCampaigns,
   respondToVaccinationConsent,
   getIncidentsByUser,
+  getStudentVaccinations,
 } from "../../redux/parent/parentSlice";
 
 const { Title, Text, Paragraph } = Typography;

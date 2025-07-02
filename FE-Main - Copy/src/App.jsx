@@ -54,6 +54,7 @@ import ChildrenInfoPage from "./pages/ParentPage/ChildrenInfoPage";
 import HealthRecordsPage from "./pages/ParentPage/HealthRecordsPage";
 import VaccinationsPage from "./pages/ParentPage/VaccinationsPage";
 import MedicineRequestPage from "./pages/ParentPage/MedicineRequestPage";
+import ParentProfilePage from "./pages/ParentPage/ParentProfilePage";
 import RoleProtectedRoute from "./RoleProtectedRoute";
 import {
   setNotification,
@@ -178,6 +179,7 @@ function App() {
       >
         <Route index element={<ParentDashboard />} />
         <Route path="children" element={<ChildrenInfoPage />} />
+        <Route path="profile" element={<ParentProfilePage />} />
         <Route path="health-records" element={<HealthRecordsPage />} />
         <Route path="vaccinations" element={<VaccinationsPage />} />
         <Route path="medicine-request" element={<MedicineRequestPage />} />

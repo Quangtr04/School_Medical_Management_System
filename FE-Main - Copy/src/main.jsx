@@ -12,9 +12,6 @@ import store from "./redux/store";
 import "./index.css";
 import "react-toastify/dist/ReactToastify.css";
 
-// Initialize mock API
-import "./configs/mock-api";
-
 // Thêm log để debug
 console.log("Redux store initialized:", store);
 

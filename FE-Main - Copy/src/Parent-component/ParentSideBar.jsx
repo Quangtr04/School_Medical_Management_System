@@ -8,6 +8,7 @@ import {
   QuestionCircleOutlined,
   ArrowLeftOutlined,
   MedicineBoxOutlined,
+  IdcardOutlined,
 } from "@ant-design/icons";
 import { Layout, Menu, Typography } from "antd";
 import React from "react";
@@ -24,10 +25,11 @@ export default function ParentSideBar() {
       label: <Link to="/parent">Trang chủ</Link>,
     },
     {
-      key: "/parent/children",
-      icon: <UserOutlined />,
-      label: <Link to="/parent/children">Thông tin con em</Link>,
+      key: "/parent/profile",
+      icon: <IdcardOutlined />,
+      label: <Link to="/parent/profile">Hồ sơ</Link>,
     },
+
     {
       key: "sub_health",
       icon: <HeartOutlined />,

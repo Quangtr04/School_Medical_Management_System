@@ -63,9 +63,12 @@ export const getParentProfile = createAsyncThunk(
   "parent/getProfile",
   async (user_id, { rejectWithValue }) => {
     try {
+      console.log("Fetching profile for user:", user_id);
       const response = await api.get(`/parent/profile/${user_id}`);
+      console.log("Profile data received:", response.data);
       return response.data;
     } catch (error) {
+      console.error("Get profile error:", error.response || error);
       return rejectWithValue(
         error.response?.data?.message || "Failed to fetch profile"
       );
@@ -77,15 +80,36 @@ export const updateParentProfile = createAsyncThunk(
   "parent/updateProfile",
   async ({ user_id, profileData }, { rejectWithValue }) => {
     try {
+      console.log("Sending profile update with data:", profileData);
+      console.log("To endpoint:", `/parent/profile/${user_id}`);
+
       const response = await api.patch(
         `/parent/profile/${user_id}`,
         profileData
       );
+
+      console.log("Update response:", response.data);
       return response.data;
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to update profile"
-      );
+      console.error("Update profile error:", error);
+
+      if (error.response) {
+        // Lỗi từ server (status code không phải 2xx)
+        console.error("Server error status:", error.response.status);
+        console.error("Server error data:", error.response.data);
+        return rejectWithValue(
+          error.response.data?.message ||
+            `Server error: ${error.response.status}`
+        );
+      } else if (error.request) {
+        // Không nhận được response từ server
+        console.error("No response received:", error.request);
+        return rejectWithValue("Không nhận được phản hồi từ máy chủ");
+      } else {
+        // Lỗi khi thiết lập request
+        console.error("Request setup error:", error.message);
+        return rejectWithValue(`Lỗi kết nối: ${error.message}`);
+      }
     }
   }
 );
@@ -331,11 +355,14 @@ export const getDeclinedCampaigns = createAsyncThunk(
 
 export const getStudentVaccinations = createAsyncThunk(
   "parent/getStudentVaccinations",
-  async (studentId, { rejectWithValue }) => {
+  async (studentId = null, { rejectWithValue }) => {
     try {
-      const response = await api.get(
-        `/parent/students/${studentId}/vaccinations`
-      );
+      let response;
+      if (studentId) {
+        response = await api.get(`/parent/vaccine-campaigns/${studentId}`);
+      } else {
+        response = await api.get(`/parent/vaccine-campaigns`);
+      }
       return { studentId, vaccinations: response.data };
     } catch (error) {
       return rejectWithValue(
@@ -860,8 +887,13 @@ const parentSlice = createSlice({
       })
       .addCase(getStudentVaccinations.fulfilled, (state, action) => {
         state.loading = false;
-        state.vaccinations.studentVaccinations[action.payload.studentId] =
-          action.payload.vaccinations;
+        if (action.payload.studentId) {
+          state.vaccinations.studentVaccinations[action.payload.studentId] =
+            action.payload.vaccinations;
+        } else {
+          // When studentId is null, just store the vaccinations in the campaigns array
+          state.vaccinations.campaigns = action.payload.vaccinations;
+        }
       })
       .addCase(getStudentVaccinations.rejected, (state, action) => {
         state.loading = false;

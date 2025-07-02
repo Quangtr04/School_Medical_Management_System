@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Card,
@@ -6,40 +6,37 @@ import {
   Col,
   Typography,
   Avatar,
-  Badge,
-  Button,
   Tag,
+  Button,
+  Spin,
+  Alert,
+  Empty,
   Space,
   Divider,
+  Statistic,
+  List,
   Timeline,
-  Progress,
-  Alert,
-  Spin,
-  Empty,
+  message,
 } from "antd";
 import {
   UserOutlined,
   HeartOutlined,
+  MedicineBoxOutlined,
   CalendarOutlined,
   BellOutlined,
-  PlusOutlined,
-  EditOutlined,
-  EyeOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons";
-import moment from "moment";
 import {
   getParentChildren,
   getChildDetails,
-  getParentProfile,
   getParentNotifications,
-  getCheckupHistory,
-  getCheckupAppointments,
   getStudentVaccinations,
+  getHealthDeclaration,
 } from "../../redux/parent/parentSlice";
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 
-export default function ParentDashboard() {
+const ParentDashboard = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
   const {
@@ -47,414 +44,459 @@ export default function ParentDashboard() {
     selectedChild,
     profile,
     notifications,
-    checkups,
+    incidents,
     vaccinations,
+    healthDeclarations,
     loading,
     error,
   } = useSelector((state) => state.parent);
 
+  const [activeChildId, setActiveChildId] = useState(null);
+  const [childrenList, setChildrenList] = useState([]);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [childDetailError, setChildDetailError] = useState(null);
+
+  // Fetch initial data
   useEffect(() => {
     dispatch(getParentChildren());
-    if (user?.id) {
-      dispatch(getParentProfile(user.id));
-      dispatch(getParentNotifications());
+
+    if (user?.id || user?.user_id) {
+      const userId = user?.id || user?.user_id;
+      try {
+        dispatch(getParentNotifications());
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+        // Tiếp tục ngay cả khi không thể tải thông báo
+      }
     }
   }, [dispatch, user]);
 
+  // Process children data when it changes
   useEffect(() => {
-    if (children && children.length > 0 && !selectedChild) {
-      dispatch(getChildDetails(children[0].id));
+    console.log("Children data from Redux:", children);
+
+    if (children) {
+      let processedChildren = [];
+
+      // Handle case where children is an object with status and data properties
+      if (children.status === "success" && Array.isArray(children.data)) {
+        processedChildren = children.data;
+      }
+      // Handle case where children is already an array
+      else if (Array.isArray(children)) {
+        processedChildren = children;
+      }
+      // Handle case where children might be nested in a property
+      else if (children.children && Array.isArray(children.children)) {
+        processedChildren = children.children;
+      }
+
+      setChildrenList(processedChildren);
+      console.log("Processed children list:", processedChildren);
     }
-  }, [dispatch, children, selectedChild]);
+  }, [children, dispatch]);
 
-  useEffect(() => {
-    if (selectedChild?.id) {
-      dispatch(getCheckupHistory(selectedChild.id));
-      dispatch(getCheckupAppointments(selectedChild.id));
-      dispatch(getStudentVaccinations(selectedChild.id));
-    }
-  }, [dispatch, selectedChild]);
+  // Handle child selection
+  const handleSelectChild = (childId) => {
+    setActiveChildId(childId);
+    setLoadingDetails(true);
+    setChildDetailError(null);
 
-  // Get recent data for selected child
-  const recentHealthRecords =
-    selectedChild && checkups?.history ? checkups.history.slice(0, 3) : [];
+    // Fetch child details with error handling
+    dispatch(getChildDetails(childId))
+      .unwrap()
+      .then((detailsData) => {
+        console.log("Child details fetched successfully:", detailsData);
 
-  const upcomingVaccinations =
-    selectedChild && vaccinations?.studentVaccinations
-      ? (vaccinations.studentVaccinations[selectedChild.id] || []).filter(
-          (vac) => vac.status === "upcoming"
-        )
-      : [];
-
-  const upcomingAppointments =
-    selectedChild && checkups?.appointments
-      ? checkups.appointments.slice(0, 2)
-      : [];
-
-  const unreadNotifications = notifications
-    ? notifications.filter((notif) => !notif.isRead).slice(0, 4)
-    : [];
-
-  const handleSelectChild = (child) => {
-    dispatch(getChildDetails(child.id));
+        // Also fetch health declaration data separately
+        return dispatch(getHealthDeclaration(childId))
+          .unwrap()
+          .then((healthData) => {
+            console.log("Health data fetched successfully:", healthData);
+            // Continue with other data fetching if needed
+            return dispatch(getStudentVaccinations(childId)).catch((error) => {
+              console.error("Error fetching vaccinations:", error);
+              // Continue even if vaccinations fail
+            });
+          })
+          .catch((error) => {
+            console.error("Error fetching health declaration:", error);
+            message.error(
+              "Không thể tải dữ liệu sức khỏe. Vui lòng thử lại sau."
+            );
+          });
+      })
+      .catch((error) => {
+        console.error("Error fetching child details:", error);
+        setChildDetailError(
+          "Không thể tải thông tin chi tiết từ máy chủ. Vui lòng thử lại sau."
+        );
+        message.error("Lỗi kết nối đến máy chủ");
+      })
+      .finally(() => {
+        setLoadingDetails(false);
+      });
   };
 
-  if (loading) {
+  // Safe data accessors
+  const getChildHealthData = () => {
+    if (!selectedChild) return null;
+
+    // API trả về dữ liệu sức khỏe trực tiếp từ endpoint /health-declaration
+    // Dữ liệu có thể nằm trực tiếp trong selectedChild
+    if (selectedChild && typeof selectedChild === "object") {
+      if (selectedChild.health) {
+        return selectedChild.health;
+      }
+
+      // Trường hợp các thuộc tính sức khỏe nằm trực tiếp trong đối tượng
+      if (
+        selectedChild.height_cm ||
+        selectedChild.weight_kg ||
+        selectedChild.blood_type
+      ) {
+        return selectedChild;
+      }
+    }
+
+    // Dữ liệu có thể được lưu trong healthDeclarations theo student_id
+    const healthData = healthDeclarations?.[activeChildId] || null;
+    if (healthData && healthData.data) {
+      return healthData.data;
+    }
+
+    return healthData;
+  };
+
+  const getChildIncidents = () => {
+    if (!selectedChild || !incidents) return [];
+
+    const childIncidents = incidents[selectedChild.student_id];
+    return Array.isArray(childIncidents) ? childIncidents : [];
+  };
+
+  const getChildVaccinations = () => {
+    if (!selectedChild || !vaccinations?.studentVaccinations) return [];
+
+    const childVaccinations =
+      vaccinations.studentVaccinations[selectedChild.student_id];
+    return Array.isArray(childVaccinations) ? childVaccinations : [];
+  };
+
+  const getNotifications = () => {
+    // Handle case where notifications has a structure like {items: [...]}
+    if (
+      notifications &&
+      notifications.items &&
+      Array.isArray(notifications.items)
+    ) {
+      return notifications.items;
+    }
+
+    return Array.isArray(notifications) ? notifications : [];
+  };
+
+  // Get current child data from API response
+  const getDisplayChild = () => {
+    return selectedChild;
+  };
+
+  if (loading && !childrenList.length) {
     return (
       <div style={{ textAlign: "center", padding: "50px" }}>
         <Spin size="large" />
+        <Text style={{ display: "block", marginTop: 16 }}>
+          Đang tải thông tin...
+        </Text>
       </div>
     );
   }
 
-  if (error) {
+  if (error && !childrenList.length) {
     return (
-      <div style={{ textAlign: "center", padding: "50px" }}>
-        <Text type="danger">{error}</Text>
-      </div>
+      <Alert
+        message="Đã xảy ra lỗi"
+        description={error}
+        type="error"
+        showIcon
+      />
     );
   }
 
-  if (!children || children.length === 0) {
-    return (
-      <Card>
-        <Empty description="Không có thông tin con em" />
-      </Card>
-    );
-  }
+  const displayChild = getDisplayChild();
+  const healthData = getChildHealthData();
 
   return (
-    <div style={{ padding: "0", background: "#f0f2f5" }}>
-      {/* Welcome Section */}
+    <div style={{ padding: "0" }}>
+      {/* Welcome Banner */}
       <Card
         style={{
           marginBottom: 24,
-          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-          border: "none",
+          background: "linear-gradient(135deg, #4CAF50 0%, #2196F3 100%)",
+          color: "white",
+          borderRadius: "8px",
         }}
       >
-        <div style={{ color: "white" }}>
-          <Title level={2} style={{ color: "white", margin: 0 }}>
-            Xin chào, {profile?.name || user?.name || "Phụ huynh"}!
-          </Title>
-          <Paragraph
-            style={{
-              color: "rgba(255,255,255,0.9)",
-              fontSize: "16px",
-              margin: "8px 0 0 0",
-            }}
-          >
-            Chào mừng bạn đến với trang quản lý sức khỏe con em
-          </Paragraph>
-        </div>
+        <Title level={3} style={{ color: "white", margin: 0 }}>
+          Xin chào, {user?.fullname || "Phụ huynh"}!
+        </Title>
+        <Text style={{ color: "rgba(255,255,255,0.9)" }}>
+          Chào mừng đến với hệ thống quản lý sức khỏe học đường
+        </Text>
       </Card>
 
-      {/* Child Selection */}
-      <Card title="Chọn con của bạn" style={{ marginBottom: 24 }}>
-        <Row gutter={16}>
-          {children.map((child) => (
-            <Col key={child.id} span={12}>
-              <Card
-                hoverable
-                onClick={() => handleSelectChild(child)}
-                style={{
-                  border:
-                    selectedChild?.id === child.id
-                      ? "2px solid #1890ff"
-                      : "1px solid #d9d9d9",
-                  borderRadius: "8px",
-                }}
-              >
-                <Space>
+      {/* Children Selection */}
+      <Card title="Danh sách con em" style={{ marginBottom: 24 }}>
+        {childrenList && childrenList.length > 0 ? (
+          <Row gutter={[16, 16]}>
+            {childrenList.map((child) => (
+              <Col key={child.student_id} xs={24} sm={12} md={8} lg={8}>
+                <Card
+                  hoverable
+                  onClick={() => handleSelectChild(child.student_id)}
+                  style={{
+                    background:
+                      activeChildId === child.student_id ? "#f0f7ff" : "white",
+                    border:
+                      activeChildId === child.student_id
+                        ? "2px solid #1890ff"
+                        : "1px solid #f0f0f0",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <Avatar
+                      size={64}
+                      icon={<UserOutlined />}
+                      style={{ backgroundColor: "#1890ff" }}
+                    />
+                    <div style={{ marginLeft: 16 }}>
+                      <Title level={5} style={{ marginBottom: 4 }}>
+                        {child.full_name}
+                      </Title>
+                      <Text type="secondary">
+                        {child.student_code || "STU001"}
+                      </Text>
+                      <br />
+                      <Text type="secondary">
+                        {child.date_of_birth
+                          ? `Sinh nhật: ${child.date_of_birth.split("T")[0]}`
+                          : ""}
+                      </Text>
+                    </div>
+                  </div>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        ) : (
+          <Empty
+            description="Không có thông tin con em"
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          />
+        )}
+      </Card>
+
+      {/* Child details section */}
+      {activeChildId && (
+        <>
+          {loadingDetails ? (
+            <div style={{ textAlign: "center", padding: "50px" }}>
+              <Spin size="large" />
+              <Text style={{ display: "block", marginTop: 16 }}>
+                Đang tải thông tin chi tiết...
+              </Text>
+            </div>
+          ) : childDetailError ? (
+            <Alert
+              message="Lỗi kết nối"
+              description={childDetailError}
+              type="error"
+              showIcon
+              style={{ marginBottom: 24 }}
+              action={
+                <Button
+                  type="primary"
+                  onClick={() => handleSelectChild(activeChildId)}
+                >
+                  Thử lại
+                </Button>
+              }
+            />
+          ) : (
+            <>
+              {/* Child Info Card */}
+              <Card style={{ marginBottom: 24 }}>
+                <div style={{ display: "flex", alignItems: "center" }}>
                   <Avatar
-                    size={48}
-                    src={child.avatar}
-                    icon={!child.avatar && <UserOutlined />}
+                    size={80}
+                    icon={<UserOutlined />}
+                    style={{ backgroundColor: "#1890ff" }}
                   />
-                  <div>
-                    <Title level={5} style={{ margin: 0 }}>
-                      {child.name}
+                  <div style={{ marginLeft: 24 }}>
+                    <Title level={3} style={{ marginBottom: 8 }}>
+                      {displayChild?.full_name || "Học sinh"}
                     </Title>
-                    <Text type="secondary">
-                      {child.age || "N/A"} tuổi • {child.class || "N/A"}
-                    </Text>
-                    <br />
-                    <Tag
-                      color={
-                        child.healthStatus === "Khỏe mạnh" ? "green" : "orange"
-                      }
-                    >
-                      {child.healthStatus || "Chưa có thông tin"}
-                    </Tag>
-                  </div>
-                </Space>
-              </Card>
-            </Col>
-          ))}
-        </Row>
-      </Card>
-
-      {selectedChild && (
-        <Row gutter={24}>
-          {/* Left Column */}
-          <Col span={16}>
-            {/* Child Health Overview */}
-            <Card
-              title={
-                <Space>
-                  <HeartOutlined />
-                  <span>Sức khỏe của {selectedChild.name}</span>
-                </Space>
-              }
-              extra={
-                <Button type="primary" icon={<EditOutlined />}>
-                  Cập nhật
-                </Button>
-              }
-              style={{ marginBottom: 24 }}
-            >
-              <Row gutter={24}>
-                <Col span={8}>
-                  <Card
-                    size="small"
-                    style={{ textAlign: "center", background: "#f6ffed" }}
-                  >
-                    <Title level={4} style={{ color: "#52c41a", margin: 0 }}>
-                      {selectedChild.height || "N/A"} cm
-                    </Title>
-                    <Text type="secondary">Chiều cao</Text>
-                  </Card>
-                </Col>
-                <Col span={8}>
-                  <Card
-                    size="small"
-                    style={{ textAlign: "center", background: "#fff7e6" }}
-                  >
-                    <Title level={4} style={{ color: "#fa8c16", margin: 0 }}>
-                      {selectedChild.weight || "N/A"} kg
-                    </Title>
-                    <Text type="secondary">Cân nặng</Text>
-                  </Card>
-                </Col>
-                <Col span={8}>
-                  <Card
-                    size="small"
-                    style={{ textAlign: "center", background: "#f0f5ff" }}
-                  >
-                    <Title level={4} style={{ color: "#1890ff", margin: 0 }}>
-                      {selectedChild.bloodType || "N/A"}
-                    </Title>
-                    <Text type="secondary">Nhóm máu</Text>
-                  </Card>
-                </Col>
-              </Row>
-
-              <Divider />
-
-              {selectedChild.allergies &&
-                selectedChild.allergies.length > 0 && (
-                  <div>
-                    <Text strong>Dị ứng: </Text>
-                    {selectedChild.allergies.map((allergy) => (
-                      <Tag key={allergy} color="red" style={{ margin: "2px" }}>
-                        {allergy}
+                    <div>
+                      <Tag color="blue">{displayChild?.class_name || "5A"}</Tag>
+                      <Tag color="green">
+                        {displayChild?.student_code || "STU001"}
                       </Tag>
-                    ))}
-                  </div>
-                )}
-
-              <div style={{ marginTop: 8 }}>
-                <Text type="secondary">
-                  Khám lần cuối:{" "}
-                  {selectedChild.lastCheckup
-                    ? moment(selectedChild.lastCheckup).format("DD/MM/YYYY")
-                    : "N/A"}
-                </Text>
-              </div>
-            </Card>
-
-            {/* Recent Health Records */}
-            <Card
-              title="Hồ sơ sức khỏe gần đây"
-              extra={
-                <Button type="link" icon={<EyeOutlined />}>
-                  Xem tất cả
-                </Button>
-              }
-              style={{ marginBottom: 24 }}
-            >
-              {recentHealthRecords.length > 0 ? (
-                <Timeline>
-                  {recentHealthRecords.map((record) => (
-                    <Timeline.Item
-                      key={record.id}
-                      color={record.status === "completed" ? "green" : "blue"}
+                      <Tag color="geekblue">
+                        {displayChild?.gender || "Nam"}
+                      </Tag>
+                    </div>
+                    <Text
+                      type="secondary"
+                      style={{ marginTop: 8, display: "block" }}
                     >
-                      <div>
-                        <Text strong>{record.type}</Text>
-                        <br />
-                        <Text type="secondary">
-                          {record.date} • {record.doctor}
-                        </Text>
-                        <br />
-                        <Text>{record.diagnosis}</Text>
-                      </div>
-                    </Timeline.Item>
-                  ))}
-                </Timeline>
-              ) : (
-                <Empty description="Không có hồ sơ sức khỏe gần đây" />
-              )}
-            </Card>
-
-            {/* Upcoming Appointments */}
-            <Card
-              title="Lịch hẹn sắp tới"
-              extra={
-                <Button type="primary" icon={<PlusOutlined />}>
-                  Đặt lịch mới
-                </Button>
-              }
-            >
-              {upcomingAppointments.length > 0 ? (
-                upcomingAppointments.map((appointment) => (
-                  <Card
-                    key={appointment.id}
-                    size="small"
-                    style={{ marginBottom: 12 }}
-                  >
-                    <Row justify="space-between" align="middle">
-                      <Col>
-                        <Text strong>{appointment.type}</Text>
-                        <br />
-                        <Text type="secondary">
-                          {appointment.date} • {appointment.time}
-                        </Text>
-                        <br />
-                        <Text>
-                          {appointment.doctor} • {appointment.location}
-                        </Text>
-                      </Col>
-                      <Col>
-                        <Space>
-                          <Button size="small">Hủy</Button>
-                          <Button type="primary" size="small">
-                            Xác nhận
-                          </Button>
-                        </Space>
-                      </Col>
-                    </Row>
-                  </Card>
-                ))
-              ) : (
-                <Empty description="Không có lịch hẹn sắp tới" />
-              )}
-            </Card>
-          </Col>
-
-          {/* Right Column */}
-          <Col span={8}>
-            {/* Notifications */}
-            <Card
-              title={
-                <Space>
-                  <BellOutlined />
-                  <span>Thông báo</span>
-                  {unreadNotifications.length > 0 && (
-                    <Badge count={unreadNotifications.length} />
-                  )}
-                </Space>
-              }
-              style={{ marginBottom: 24 }}
-            >
-              {unreadNotifications.length > 0 ? (
-                <div>
-                  {unreadNotifications.map((notification) => (
-                    <Alert
-                      key={notification.id}
-                      message={notification.title}
-                      description={notification.content}
-                      type={notification.type}
-                      showIcon
-                      style={{ marginBottom: 12 }}
-                    />
-                  ))}
-                  <Button type="link" block>
-                    Xem tất cả thông báo
-                  </Button>
+                      {displayChild?.date_of_birth
+                        ? `Ngày sinh: ${
+                            displayChild.date_of_birth.split("T")[0]
+                          }`
+                        : ""}
+                    </Text>
+                  </div>
                 </div>
-              ) : (
-                <Empty description="Không có thông báo mới" />
-              )}
-            </Card>
+              </Card>
 
-            {/* Upcoming Vaccinations */}
-            <Card
-              title={
-                <Space>
-                  <CalendarOutlined />
-                  <span>Lịch tiêm chủng sắp tới</span>
-                </Space>
-              }
-              style={{ marginBottom: 24 }}
-            >
-              {upcomingVaccinations.length > 0 ? (
-                <div>
-                  {upcomingVaccinations.map((vaccination) => (
-                    <Alert
-                      key={vaccination.id}
-                      message={vaccination.vaccineName}
-                      description={`Ngày tiêm: ${moment(
-                        vaccination.scheduledDate
-                      ).format("DD/MM/YYYY")}`}
-                      type="warning"
-                      showIcon
-                      style={{ marginBottom: 12 }}
-                    />
-                  ))}
-                  <Button type="link" block>
-                    Xem tất cả lịch tiêm chủng
-                  </Button>
-                </div>
-              ) : (
-                <Empty description="Không có lịch tiêm chủng sắp tới" />
-              )}
-            </Card>
+              {/* Health Overview */}
+              <Card
+                title={
+                  <Space>
+                    <HeartOutlined />
+                    <span>Thông tin sức khỏe</span>
+                  </Space>
+                }
+                style={{ marginBottom: 24 }}
+              >
+                {healthData ? (
+                  <Row gutter={[16, 16]}>
+                    <Col xs={24} sm={8}>
+                      <Card>
+                        <Statistic
+                          title="Chiều cao"
+                          value={healthData.height_cm}
+                          suffix="cm"
+                        />
+                      </Card>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Card>
+                        <Statistic
+                          title="Cân nặng"
+                          value={healthData.weight_kg}
+                          suffix="kg"
+                        />
+                      </Card>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Card>
+                        <Statistic
+                          title="Nhóm máu"
+                          value={healthData.blood_type || "Chưa có"}
+                        />
+                      </Card>
+                    </Col>
+                    <Col span={24}>
+                      <Divider orientation="left">Chi tiết</Divider>
+                      <Row gutter={[16, 16]}>
+                        <Col xs={24} sm={12}>
+                          <Card size="small" title="Tình trạng sức khỏe">
+                            <Text>
+                              {healthData.health_status === "Healthy" ||
+                              healthData.health_status === "healthy" ||
+                              healthData.health_status === "Khỏe mạnh"
+                                ? "Khỏe mạnh"
+                                : healthData.health_status ||
+                                  "Không có thông tin"}
+                            </Text>
+                          </Card>
+                        </Col>
+                        <Col xs={24} sm={12}>
+                          <Card size="small" title="Dị ứng">
+                            <Text>
+                              {healthData.allergy || "Không có dị ứng"}
+                            </Text>
+                          </Card>
+                        </Col>
+                        <Col xs={24}>
+                          <Card size="small" title="Bệnh mãn tính">
+                            <Text>
+                              {healthData.chronic_diseases
+                                ? typeof healthData.chronic_diseases ===
+                                  "string"
+                                  ? healthData.chronic_diseases
+                                  : "Có"
+                                : "Không có"}
+                            </Text>
+                          </Card>
+                        </Col>
+                      </Row>
+                    </Col>
+                  </Row>
+                ) : (
+                  <Empty description="Chưa có thông tin sức khỏe" />
+                )}
+              </Card>
 
-            {/* Health Tips */}
-            <Card title="Mẹo sức khỏe">
-              <ul style={{ paddingLeft: 20 }}>
-                <li>
-                  <Text>
-                    Đảm bảo con bạn uống đủ nước mỗi ngày, đặc biệt trong thời
-                    tiết nóng
-                  </Text>
-                </li>
-                <li>
-                  <Text>
-                    Khuyến khích con tham gia hoạt động thể chất ít nhất 60 phút
-                    mỗi ngày
-                  </Text>
-                </li>
-                <li>
-                  <Text>
-                    Đảm bảo con ngủ đủ 8-10 tiếng mỗi đêm để phát triển khỏe
-                    mạnh
-                  </Text>
-                </li>
-                <li>
-                  <Text>
-                    Hạn chế thời gian sử dụng thiết bị điện tử của con
-                  </Text>
-                </li>
-              </ul>
-              <Button type="link" block>
-                Xem thêm mẹo sức khỏe
-              </Button>
-            </Card>
-          </Col>
-        </Row>
+              {/* Debug Info - hiển thị cấu trúc dữ liệu từ API */}
+              {process.env.NODE_ENV !== "production" && (
+                <Card title="Debug - API Response" style={{ marginBottom: 24 }}>
+                  <div style={{ maxHeight: "200px", overflow: "auto" }}>
+                    <pre style={{ fontSize: "12px" }}>
+                      {JSON.stringify(selectedChild, null, 2)}
+                    </pre>
+                  </div>
+                </Card>
+              )}
+            </>
+          )}
+        </>
       )}
+
+      {/* Notifications for all users */}
+      <Card
+        title={
+          <Space>
+            <BellOutlined />
+            <span>Thông báo</span>
+            {getNotifications().filter((n) => !n.is_read).length > 0 && (
+              <Tag color="red">
+                {getNotifications().filter((n) => !n.is_read).length} mới
+              </Tag>
+            )}
+          </Space>
+        }
+      >
+        {getNotifications().length > 0 ? (
+          <List
+            dataSource={getNotifications().slice(0, 5)}
+            renderItem={(item) => (
+              <List.Item>
+                <List.Item.Meta
+                  title={item.title || "Thông báo mới"}
+                  description={
+                    <>
+                      <Text>{item.message || "Không có nội dung"}</Text>
+                      <br />
+                      <Text type="secondary">
+                        {item.created_at
+                          ? new Date(item.created_at).toLocaleString()
+                          : ""}
+                      </Text>
+                    </>
+                  }
+                />
+                {!item.is_read && <Tag color="blue">Mới</Tag>}
+              </List.Item>
+            )}
+          />
+        ) : (
+          <Empty description="Không có thông báo" />
+        )}
+      </Card>
     </div>
   );
-}
+};
+
+export default ParentDashboard;
