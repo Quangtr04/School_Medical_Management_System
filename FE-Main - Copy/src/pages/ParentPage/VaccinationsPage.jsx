@@ -66,6 +66,10 @@ export default function VaccinationsPage() {
   const [responseForm] = Form.useForm();
   const [activeTab, setActiveTab] = useState("upcoming");
   const [studentVaccinations, setStudentVaccinations] = useState([]);
+  const [vaccineResultModalVisible, setVaccineResultModalVisible] =
+    useState(false);
+  const [selectedVaccineResult, setSelectedVaccineResult] = useState(null);
+  const [followUpModalVisible, setFollowUpModalVisible] = useState(false);
 
   // Fetch data on component mount
   useEffect(() => {
@@ -86,6 +90,7 @@ export default function VaccinationsPage() {
   useEffect(() => {
     if (selectedChild?.id) {
       dispatch(getIncidentsByUser(selectedChild.id));
+      dispatch(getStudentVaccinations(selectedChild.id));
     }
   }, [dispatch, selectedChild]);
 
@@ -328,6 +333,7 @@ export default function VaccinationsPage() {
       title: "Hành động",
       key: "action",
       render: (_, record) => {
+        // Hiển thị các hành động phù hợp với trạng thái
         if (record.status === "upcoming" && !record.responseStatus) {
           return (
             <Space>
@@ -344,7 +350,28 @@ export default function VaccinationsPage() {
           record.responseStatus === "approved" &&
           record.status !== "completed"
         ) {
-          return <Tag color="green">Đã đồng ý</Tag>;
+          return (
+            <Space>
+              <Tag color="green">Đã đồng ý</Tag>
+              <Button
+                type="link"
+                size="small"
+                onClick={() => handleViewCampaign(record)}
+              >
+                Chi tiết
+              </Button>
+            </Space>
+          );
+        } else if (record.status === "completed") {
+          return (
+            <Button
+              type="primary"
+              size="small"
+              onClick={() => handleViewVaccineResult(record)}
+            >
+              Xem kết quả
+            </Button>
+          );
         } else if (record.responseStatus === "declined") {
           return <Tag color="red">Đã từ chối</Tag>;
         }
@@ -400,6 +427,18 @@ export default function VaccinationsPage() {
 
     // Reset form
     responseForm.resetFields();
+  };
+
+  // Handle viewing vaccination result
+  const handleViewVaccineResult = (vaccination) => {
+    setSelectedVaccineResult(vaccination);
+    setVaccineResultModalVisible(true);
+  };
+
+  // Handle viewing follow-up information
+  const handleViewFollowUp = (vaccination) => {
+    setSelectedVaccineResult(vaccination);
+    setFollowUpModalVisible(true);
   };
 
   // Handle responding to vaccination consent
@@ -465,7 +504,7 @@ export default function VaccinationsPage() {
           <Col>
             <Title level={2} style={{ margin: 0, color: "#1890ff" }}>
               <MedicineBoxOutlined style={{ marginRight: 8 }} />
-              Lịch tiêm chủng
+              Quản lý tiêm chủng
             </Title>
           </Col>
         </Row>
@@ -730,6 +769,150 @@ export default function VaccinationsPage() {
                 </Button>
               </Form.Item>
             </Form>
+          </>
+        )}
+      </Modal>
+
+      {/* Vaccination Result Modal */}
+      <Modal
+        title="Kết quả tiêm chủng"
+        visible={vaccineResultModalVisible}
+        onCancel={() => setVaccineResultModalVisible(false)}
+        footer={[
+          <Button
+            key="close"
+            onClick={() => setVaccineResultModalVisible(false)}
+          >
+            Đóng
+          </Button>,
+        ]}
+        width={600}
+      >
+        {selectedVaccineResult && (
+          <>
+            <Descriptions bordered column={1} size="small">
+              <Descriptions.Item label="Loại vắc xin">
+                {selectedVaccineResult.vaccineName}
+              </Descriptions.Item>
+              <Descriptions.Item label="Ngày tiêm">
+                {selectedVaccineResult.actualDate
+                  ? moment(selectedVaccineResult.actualDate).format(
+                      "DD/MM/YYYY"
+                    )
+                  : "Chưa tiêm"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Địa điểm">
+                {selectedVaccineResult.location}
+              </Descriptions.Item>
+              <Descriptions.Item label="Trạng thái">
+                <Tag
+                  color={
+                    selectedVaccineResult.status === "completed"
+                      ? "green"
+                      : "orange"
+                  }
+                >
+                  {selectedVaccineResult.status === "completed"
+                    ? "Đã hoàn thành"
+                    : "Chưa tiêm"}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Lô vắc xin">
+                {selectedVaccineResult.batchNumber || "Không có thông tin"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Nhân viên y tế tiêm">
+                {selectedVaccineResult.vaccinator || "Không có thông tin"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Phản ứng sau tiêm">
+                {selectedVaccineResult.reactions || "Không có phản ứng"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Theo dõi sau tiêm">
+                {selectedVaccineResult.followUpRequired ? (
+                  <Tag color="orange">Cần theo dõi</Tag>
+                ) : (
+                  <Tag color="green">Không cần theo dõi</Tag>
+                )}
+              </Descriptions.Item>
+              <Descriptions.Item label="Ghi chú">
+                {selectedVaccineResult.notes || "Không có ghi chú"}
+              </Descriptions.Item>
+            </Descriptions>
+
+            {selectedVaccineResult.followUpRequired && (
+              <Alert
+                message="Thông tin theo dõi sau tiêm"
+                description={
+                  <div>
+                    <p>
+                      Con bạn cần được theo dõi sau tiêm chủng. Vui lòng chú ý
+                      các dấu hiệu bất thường và liên hệ ngay với nhân viên y tế
+                      nếu cần.
+                    </p>
+                    <Button
+                      type="primary"
+                      onClick={() => handleViewFollowUp(selectedVaccineResult)}
+                    >
+                      Xem hướng dẫn theo dõi
+                    </Button>
+                  </div>
+                }
+                type="warning"
+                showIcon
+                style={{ marginTop: 16 }}
+              />
+            )}
+          </>
+        )}
+      </Modal>
+
+      {/* Follow-up Information Modal */}
+      <Modal
+        title="Hướng dẫn theo dõi sau tiêm"
+        visible={followUpModalVisible}
+        onCancel={() => setFollowUpModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setFollowUpModalVisible(false)}>
+            Đóng
+          </Button>,
+        ]}
+        width={600}
+      >
+        {selectedVaccineResult && (
+          <>
+            <Alert
+              message="Theo dõi sau tiêm chủng"
+              description="Vui lòng theo dõi con em trong vòng 24-48 giờ sau khi tiêm vắc xin và chú ý các dấu hiệu sau."
+              type="info"
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
+
+            <Descriptions title="Các dấu hiệu cần theo dõi" bordered>
+              <Descriptions.Item label="Các dấu hiệu thông thường" span={3}>
+                Sốt nhẹ, đau tại chỗ tiêm, mệt mỏi, đau cơ
+              </Descriptions.Item>
+              <Descriptions.Item label="Các dấu hiệu cần báo ngay" span={3}>
+                <Text type="danger">
+                  Sốt cao trên 39°C, phát ban, khó thở, sưng nặng tại chỗ tiêm
+                </Text>
+              </Descriptions.Item>
+              <Descriptions.Item label="Thời gian theo dõi" span={3}>
+                48 giờ sau tiêm
+              </Descriptions.Item>
+              <Descriptions.Item label="Liên hệ khi cần" span={3}>
+                Nhân viên y tế trường học: 0123.456.789
+              </Descriptions.Item>
+            </Descriptions>
+
+            <Alert
+              message="Lịch tái khám"
+              description={`Vui lòng đưa con đến tái khám vào ngày ${moment()
+                .add(7, "days")
+                .format("DD/MM/YYYY")} tại phòng y tế trường học.`}
+              type="success"
+              showIcon
+              style={{ marginTop: 16 }}
+            />
           </>
         )}
       </Modal>

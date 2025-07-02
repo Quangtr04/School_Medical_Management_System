@@ -53,7 +53,18 @@ import {
   setSelectedChild,
 } from "../../redux/parent/parentSlice";
 import moment from "moment";
-import { Form, Modal, message } from "antd";
+import {
+  Form,
+  Modal,
+  message,
+  Input as AntInput,
+  Upload,
+  DatePicker,
+  TimePicker,
+  Divider as AntDivider,
+} from "antd";
+
+const { TextArea } = AntInput;
 
 function MedicineRequestPage() {
   const dispatch = useDispatch();
@@ -72,37 +83,8 @@ function MedicineRequestPage() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [tabValue, setTabValue] = useState(0);
   const [openIncidentDialog, setOpenIncidentDialog] = useState(false);
-
-  const [medicineRequests, setMedicineRequests] = useState([
-    {
-      id: 1,
-      childId: 1,
-      childName: "Nguyễn Văn An",
-      medicineName: "Paracetamol",
-      dosage: "5ml",
-      frequency: "3 lần/ngày",
-      duration: "3 ngày",
-      time: "8:00, 12:00, 18:00",
-      notes: "Uống sau ăn",
-      status: "pending",
-      requestDate: "2023-12-20",
-      prescription: "prescription1.pdf",
-    },
-    {
-      id: 2,
-      childId: 1,
-      childName: "Nguyễn Văn An",
-      medicineName: "Vitamin C",
-      dosage: "1 viên",
-      frequency: "1 lần/ngày",
-      duration: "7 ngày",
-      time: "8:00",
-      notes: "Uống sau bữa sáng",
-      status: "approved",
-      requestDate: "2023-12-18",
-      prescription: "prescription2.pdf",
-    },
-  ]);
+  const [medicineRequests, setMedicineRequests] = useState([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
 
   // Fetch children data
   useEffect(() => {
@@ -120,6 +102,7 @@ function MedicineRequestPage() {
   useEffect(() => {
     if (selectedChild) {
       dispatch(getIncidentsByUser(selectedChild.id));
+      fetchMedicineRequests(selectedChild.id);
     }
   }, [dispatch, selectedChild]);
 
@@ -129,8 +112,53 @@ function MedicineRequestPage() {
       message.success("Gửi yêu cầu thuốc thành công!");
       setIsModalVisible(false);
       form.resetFields();
+
+      // Refresh medicine requests
+      if (selectedChild) {
+        fetchMedicineRequests(selectedChild.id);
+      }
     }
-  }, [success, form]);
+  }, [success, form, selectedChild]);
+
+  // Mock function to fetch medicine requests - in a real app, this would be a Redux action
+  const fetchMedicineRequests = (childId) => {
+    setRequestsLoading(true);
+    // Simulating API call
+    setTimeout(() => {
+      const mockRequests = [
+        {
+          id: 1,
+          childId: childId,
+          childName: selectedChild?.name || "Học sinh",
+          medicineName: "Paracetamol",
+          dosage: "5ml",
+          frequency: "3 lần/ngày",
+          duration: "3 ngày",
+          time: "8:00, 12:00, 18:00",
+          notes: "Uống sau ăn",
+          status: "pending",
+          requestDate: moment().subtract(2, "days").format("YYYY-MM-DD"),
+          prescription: null,
+        },
+        {
+          id: 2,
+          childId: childId,
+          childName: selectedChild?.name || "Học sinh",
+          medicineName: "Vitamin C",
+          dosage: "1 viên",
+          frequency: "1 lần/ngày",
+          duration: "7 ngày",
+          time: "8:00",
+          notes: "Uống sau bữa sáng",
+          status: "approved",
+          requestDate: moment().subtract(5, "days").format("YYYY-MM-DD"),
+          prescription: null,
+        },
+      ];
+      setMedicineRequests(mockRequests);
+      setRequestsLoading(false);
+    }, 1000);
+  };
 
   const handleSubmit = (values) => {
     if (!selectedChild) {
@@ -138,11 +166,22 @@ function MedicineRequestPage() {
       return;
     }
 
+    // Format the time values into a string if they're array of moments
+    let formattedTime = values.time;
+    if (
+      Array.isArray(values.time) &&
+      values.time.every((t) => moment.isMoment(t))
+    ) {
+      formattedTime = values.time.map((t) => t.format("HH:mm")).join(", ");
+    }
+
     const requestData = {
       childId: selectedChild.id,
       childName: selectedChild.name,
       ...values,
+      time: formattedTime,
       requestDate: moment().format("YYYY-MM-DD"),
+      status: "pending",
     };
 
     // Dispatch action to submit the request
@@ -151,10 +190,19 @@ function MedicineRequestPage() {
 
   const handleEdit = (record) => {
     const childToEdit = children.find((child) => child.id === record.childId);
-    setSelectedChild(childToEdit || null);
+    if (childToEdit) {
+      dispatch(setSelectedChild(childToEdit));
+    }
+
+    // Parse times from string to array of moments if needed
+    let timeValues = record.time;
+    if (typeof record.time === "string") {
+      timeValues = record.time.split(", ").map((t) => moment(t, "HH:mm"));
+    }
+
     form.setFieldsValue({
       ...record,
-      time: record.time,
+      time: timeValues,
     });
     setIsModalVisible(true);
   };
@@ -183,8 +231,13 @@ function MedicineRequestPage() {
     setOpenIncidentDialog(false);
   };
 
+  const handleOpenMedicineModal = () => {
+    form.resetFields();
+    setIsModalVisible(true);
+  };
+
   const getSeverityColor = (severity) => {
-    switch (severity.toLowerCase()) {
+    switch (severity?.toLowerCase()) {
       case "nhẹ":
         return "success";
       case "trung bình":
@@ -220,6 +273,111 @@ function MedicineRequestPage() {
       default:
         return "Không xác định";
     }
+  };
+
+  const renderMedicineRequests = () => {
+    if (requestsLoading || loading) {
+      return (
+        <Box display="flex" justifyContent="center" mt={3}>
+          <CircularProgress />
+        </Box>
+      );
+    }
+
+    if (!selectedChild) {
+      return (
+        <Typography variant="body1" align="center" mt={3}>
+          Vui lòng chọn học sinh để xem yêu cầu thuốc
+        </Typography>
+      );
+    }
+
+    return (
+      <>
+        <Box display="flex" justifyContent="flex-end" mb={2}>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={handleOpenMedicineModal}
+          >
+            Gửi yêu cầu thuốc mới
+          </Button>
+        </Box>
+
+        {medicineRequests.length === 0 ? (
+          <Typography variant="body1" align="center" mt={3}>
+            Không có yêu cầu thuốc nào
+          </Typography>
+        ) : (
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Ngày yêu cầu</TableCell>
+                  <TableCell>Tên thuốc</TableCell>
+                  <TableCell>Liều lượng</TableCell>
+                  <TableCell>Tần suất</TableCell>
+                  <TableCell>Thời gian</TableCell>
+                  <TableCell>Trạng thái</TableCell>
+                  <TableCell>Hành động</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {medicineRequests.map((request) => (
+                  <TableRow key={request.id}>
+                    <TableCell>{request.requestDate}</TableCell>
+                    <TableCell>{request.medicineName}</TableCell>
+                    <TableCell>{request.dosage}</TableCell>
+                    <TableCell>{request.frequency}</TableCell>
+                    <TableCell>{request.time}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={
+                          request.status === "pending"
+                            ? "Chờ xử lý"
+                            : request.status === "approved"
+                            ? "Đã duyệt"
+                            : "Từ chối"
+                        }
+                        color={
+                          request.status === "pending"
+                            ? "warning"
+                            : request.status === "approved"
+                            ? "success"
+                            : "error"
+                        }
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Stack direction="row" spacing={1}>
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => handleEdit(request)}
+                        >
+                          <VisibilityIcon fontSize="small" />
+                        </IconButton>
+                        {request.status === "pending" && (
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleDelete(request.id)}
+                          >
+                            <Warning fontSize="small" />
+                          </IconButton>
+                        )}
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </>
+    );
   };
 
   const renderActiveIncidents = () => {
@@ -462,7 +620,7 @@ function MedicineRequestPage() {
   return (
     <Box p={3}>
       <Typography variant="h5" gutterBottom>
-        Sự cố y tế
+        Quản lý thuốc và sự cố y tế
       </Typography>
 
       <Paper sx={{ mt: 2 }}>
@@ -473,15 +631,99 @@ function MedicineRequestPage() {
           textColor="primary"
           variant="fullWidth"
         >
+          <Tab label="Yêu cầu thuốc" />
           <Tab label="Sự cố đang xử lý" />
           <Tab label="Lịch sử sự cố" />
         </Tabs>
 
         <Box p={2}>
-          {tabValue === 0 && renderActiveIncidents()}
-          {tabValue === 1 && renderIncidentHistory()}
+          {tabValue === 0 && renderMedicineRequests()}
+          {tabValue === 1 && renderActiveIncidents()}
+          {tabValue === 2 && renderIncidentHistory()}
         </Box>
       </Paper>
+
+      {/* Modal gửi yêu cầu thuốc */}
+      <Modal
+        title="Gửi yêu cầu thuốc cho con"
+        visible={isModalVisible}
+        onCancel={() => setIsModalVisible(false)}
+        footer={null}
+        width={700}
+      >
+        <Form form={form} layout="vertical" onFinish={handleSubmit}>
+          <Form.Item
+            name="medicineName"
+            label="Tên thuốc"
+            rules={[{ required: true, message: "Vui lòng nhập tên thuốc" }]}
+          >
+            <AntInput placeholder="Nhập tên thuốc" />
+          </Form.Item>
+
+          <Form.Item
+            name="dosage"
+            label="Liều lượng"
+            rules={[{ required: true, message: "Vui lòng nhập liều lượng" }]}
+          >
+            <AntInput placeholder="VD: 5ml, 1 viên, 1 gói..." />
+          </Form.Item>
+
+          <Form.Item
+            name="frequency"
+            label="Tần suất"
+            rules={[{ required: true, message: "Vui lòng nhập tần suất" }]}
+          >
+            <AntInput placeholder="VD: 3 lần/ngày, 1 lần/ngày..." />
+          </Form.Item>
+
+          <Form.Item
+            name="duration"
+            label="Thời gian dùng"
+            rules={[
+              { required: true, message: "Vui lòng nhập thời gian dùng" },
+            ]}
+          >
+            <AntInput placeholder="VD: 3 ngày, 1 tuần..." />
+          </Form.Item>
+
+          <Form.Item
+            name="time"
+            label="Thời điểm uống thuốc"
+            rules={[
+              { required: true, message: "Vui lòng nhập thời điểm uống thuốc" },
+            ]}
+          >
+            <AntInput placeholder="VD: 8:00, 12:00, 18:00" />
+          </Form.Item>
+
+          <Form.Item name="notes" label="Ghi chú">
+            <TextArea
+              rows={4}
+              placeholder="Thêm ghi chú về cách dùng thuốc (nếu có)"
+            />
+          </Form.Item>
+
+          <Form.Item name="prescription" label="Đơn thuốc (nếu có)">
+            <Upload>
+              <Button icon={<UploadOutlined />}>Tải lên đơn thuốc</Button>
+            </Upload>
+          </Form.Item>
+
+          <AntDivider />
+
+          <Form.Item>
+            <Button type="primary" htmlType="submit" loading={loading}>
+              Gửi yêu cầu
+            </Button>
+            <Button
+              style={{ marginLeft: 8 }}
+              onClick={() => setIsModalVisible(false)}
+            >
+              Hủy
+            </Button>
+          </Form.Item>
+        </Form>
+      </Modal>
 
       {/* Dialog chi tiết sự cố */}
       <Dialog

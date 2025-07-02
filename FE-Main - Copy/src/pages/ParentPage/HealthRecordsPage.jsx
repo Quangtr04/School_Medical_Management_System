@@ -40,6 +40,8 @@ import {
   MedicalServices,
   Add as AddIcon,
   Visibility as VisibilityIcon,
+  CheckCircle as CheckCircleIcon,
+  Cancel as CancelIcon,
 } from "@mui/icons-material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
@@ -55,18 +57,24 @@ import {
   requestCheckupAppointment,
   getCheckupDetails,
   setSelectedCheckup,
+  getPendingConsents,
+  respondToConsentForm,
 } from "../../redux/parent/parentSlice";
+import { Alert, Modal, Form, Input, Radio, Space, message } from "antd";
+
+const { TextArea } = Input;
 
 function HealthRecordsPage() {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
-  const { children, selectedChild, checkups, loading, error } = useSelector(
-    (state) => state.parent
-  );
+  const { children, selectedChild, checkups, loading, error, success } =
+    useSelector((state) => state.parent);
 
   const [tabValue, setTabValue] = useState(0);
   const [openAppointmentDialog, setOpenAppointmentDialog] = useState(false);
   const [openDetailsDialog, setOpenDetailsDialog] = useState(false);
+  const [openConsentDialog, setOpenConsentDialog] = useState(false);
+  const [selectedConsent, setSelectedConsent] = useState(null);
   const [appointmentData, setAppointmentData] = useState({
     studentId: selectedChild?.id || "",
     date: null,
@@ -74,6 +82,7 @@ function HealthRecordsPage() {
     type: "",
     description: "",
   });
+  const [consentForm] = Form.useForm();
 
   // Fetch children data if not already loaded
   useEffect(() => {
@@ -94,8 +103,18 @@ function HealthRecordsPage() {
     if (selectedChild) {
       dispatch(getCheckupHistory(selectedChild.id));
       dispatch(getCheckupAppointments(selectedChild.id));
+      dispatch(getPendingConsents());
     }
   }, [dispatch, selectedChild]);
+
+  // Handle success from API
+  useEffect(() => {
+    if (success) {
+      message.success("Thao tác thành công!");
+      setOpenConsentDialog(false);
+      consentForm.resetFields();
+    }
+  }, [success, consentForm]);
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -120,6 +139,16 @@ function HealthRecordsPage() {
 
   const handleCloseDetailsDialog = () => {
     setOpenDetailsDialog(false);
+  };
+
+  const handleOpenConsentDialog = (consent) => {
+    setSelectedConsent(consent);
+    setOpenConsentDialog(true);
+    consentForm.resetFields();
+  };
+
+  const handleCloseConsentDialog = () => {
+    setOpenConsentDialog(false);
   };
 
   const handleAppointmentInputChange = (e) => {
@@ -158,6 +187,18 @@ function HealthRecordsPage() {
     handleCloseAppointmentDialog();
   };
 
+  const handleSubmitConsent = (values) => {
+    if (!selectedConsent) return;
+
+    dispatch(
+      respondToConsentForm({
+        form_id: selectedConsent.id,
+        response: values.response === "approve" ? "approved" : "rejected",
+        notes: values.notes || "",
+      })
+    );
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case "completed":
@@ -168,9 +209,137 @@ function HealthRecordsPage() {
         return "warning";
       case "requested":
         return "secondary";
+      case "approved":
+        return "success";
+      case "rejected":
+        return "error";
       default:
         return "default";
     }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case "completed":
+        return "Đã hoàn thành";
+      case "scheduled":
+        return "Đã xếp lịch";
+      case "pending":
+        return "Chờ xác nhận";
+      case "requested":
+        return "Đã yêu cầu";
+      case "approved":
+        return "Đã đồng ý";
+      case "rejected":
+        return "Đã từ chối";
+      default:
+        return "Không xác định";
+    }
+  };
+
+  const renderPendingConsentsTab = () => {
+    if (loading) {
+      return (
+        <Box display="flex" justifyContent="center" mt={3}>
+          <CircularProgress />
+        </Box>
+      );
+    }
+
+    if (!selectedChild) {
+      return (
+        <Typography variant="body1" align="center" mt={3}>
+          Vui lòng chọn học sinh để xem phiếu đồng ý kiểm tra sức khỏe
+        </Typography>
+      );
+    }
+
+    const pendingConsents = checkups.pending.filter(
+      (consent) => consent.studentId === selectedChild.id
+    );
+
+    if (pendingConsents.length === 0) {
+      return (
+        <Typography variant="body1" align="center" mt={3}>
+          Không có phiếu đồng ý kiểm tra sức khỏe nào chờ xác nhận
+        </Typography>
+      );
+    }
+
+    return (
+      <Grid container spacing={2} mt={1}>
+        {pendingConsents.map((consent) => (
+          <Grid item xs={12} md={6} key={consent.id}>
+            <Card>
+              <CardHeader
+                title={consent.type}
+                subheader={
+                  <Chip
+                    label="Chờ phản hồi"
+                    color="warning"
+                    size="small"
+                    sx={{ mt: 1 }}
+                  />
+                }
+              />
+              <Divider />
+              <CardContent>
+                <Box display="flex" alignItems="center" mb={1}>
+                  <CalendarToday fontSize="small" sx={{ mr: 1 }} />
+                  <Typography variant="body2">
+                    Ngày khám: {consent.date}
+                  </Typography>
+                </Box>
+                <Box display="flex" alignItems="center" mb={1}>
+                  <AccessTime fontSize="small" sx={{ mr: 1 }} />
+                  <Typography variant="body2">
+                    Giờ khám: {consent.time}
+                  </Typography>
+                </Box>
+                <Box display="flex" alignItems="center" mb={1}>
+                  <Person fontSize="small" sx={{ mr: 1 }} />
+                  <Typography variant="body2">
+                    Bác sĩ: {consent.doctor || "Chưa phân công"}
+                  </Typography>
+                </Box>
+                <Box display="flex" alignItems="center" mb={1}>
+                  <LocationOn fontSize="small" sx={{ mr: 1 }} />
+                  <Typography variant="body2">
+                    Địa điểm: {consent.location || "Phòng y tế trường học"}
+                  </Typography>
+                </Box>
+                {consent.description && (
+                  <Box display="flex" alignItems="flex-start" mb={1}>
+                    <Description fontSize="small" sx={{ mr: 1, mt: 0.5 }} />
+                    <Typography variant="body2">
+                      Mô tả: {consent.description}
+                    </Typography>
+                  </Box>
+                )}
+                <Box mt={2} display="flex" justifyContent="space-between">
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    size="small"
+                    onClick={() => handleOpenDetailsDialog(consent)}
+                  >
+                    Xem chi tiết
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    size="small"
+                    onClick={() => handleOpenConsentDialog(consent)}
+                  >
+                    Phản hồi
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+    );
   };
 
   const renderHistoryTab = () => {
@@ -445,6 +614,15 @@ function HealthRecordsPage() {
               <Typography variant="body2">{checkup.description}</Typography>
             </Grid>
           )}
+
+          {checkup.consentRequired && (
+            <Grid item xs={12}>
+              <Alert severity="info" sx={{ mt: 2 }}>
+                Cần có sự đồng ý của phụ huynh trước{" "}
+                {checkup.consentDeadline || "ngày khám"}
+              </Alert>
+            </Grid>
+          )}
         </Grid>
       </Box>
     );
@@ -464,13 +642,15 @@ function HealthRecordsPage() {
           textColor="primary"
           variant="fullWidth"
         >
-          <Tab label="Lịch sử khám" />
+          <Tab label="Phiếu đồng ý kiểm tra" />
           <Tab label="Lịch hẹn khám" />
+          <Tab label="Lịch sử khám" />
         </Tabs>
 
         <Box p={2}>
-          {tabValue === 0 && renderHistoryTab()}
+          {tabValue === 0 && renderPendingConsentsTab()}
           {tabValue === 1 && renderAppointmentsTab()}
+          {tabValue === 2 && renderHistoryTab()}
         </Box>
       </Paper>
 
@@ -573,6 +753,97 @@ function HealthRecordsPage() {
           <Button onClick={handleCloseDetailsDialog}>Đóng</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Dialog phản hồi đồng ý kiểm tra sức khỏe */}
+      <Modal
+        title="Phản hồi phiếu đồng ý kiểm tra sức khỏe"
+        open={openConsentDialog}
+        onCancel={handleCloseConsentDialog}
+        footer={null}
+        width={600}
+      >
+        {selectedConsent && (
+          <>
+            <Alert
+              message="Thông tin kiểm tra sức khỏe"
+              description={
+                <div>
+                  <p>
+                    <strong>Loại khám:</strong> {selectedConsent.type}
+                  </p>
+                  <p>
+                    <strong>Ngày khám:</strong> {selectedConsent.date}
+                  </p>
+                  <p>
+                    <strong>Giờ khám:</strong> {selectedConsent.time}
+                  </p>
+                  <p>
+                    <strong>Địa điểm:</strong>{" "}
+                    {selectedConsent.location || "Phòng y tế trường học"}
+                  </p>
+                  <p>
+                    <strong>Mô tả:</strong>{" "}
+                    {selectedConsent.description || "Không có mô tả"}
+                  </p>
+                </div>
+              }
+              type="info"
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
+
+            <Form
+              form={consentForm}
+              layout="vertical"
+              onFinish={handleSubmitConsent}
+            >
+              <Form.Item
+                name="response"
+                label="Phản hồi của bạn"
+                rules={[
+                  { required: true, message: "Vui lòng chọn phản hồi của bạn" },
+                ]}
+              >
+                <Radio.Group>
+                  <Space direction="vertical">
+                    <Radio value="approve">
+                      <Space>
+                        <CheckCircleIcon color="success" fontSize="small" />
+                        Đồng ý cho con tham gia kiểm tra sức khỏe
+                      </Space>
+                    </Radio>
+                    <Radio value="reject">
+                      <Space>
+                        <CancelIcon color="error" fontSize="small" />
+                        Không đồng ý cho con tham gia kiểm tra sức khỏe
+                      </Space>
+                    </Radio>
+                  </Space>
+                </Radio.Group>
+              </Form.Item>
+
+              <Form.Item name="notes" label="Ghi chú (nếu có)">
+                <TextArea
+                  rows={4}
+                  placeholder="Nhập ghi chú của bạn (nếu có)"
+                />
+              </Form.Item>
+
+              <Form.Item>
+                <Button type="primary" htmlType="submit" loading={loading}>
+                  Gửi phản hồi
+                </Button>
+                <Button
+                  style={{ marginLeft: 8 }}
+                  onClick={handleCloseConsentDialog}
+                >
+                  Hủy
+                </Button>
+              </Form.Item>
+            </Form>
+          </>
+        )}
+      </Modal>
     </Box>
   );
 }
