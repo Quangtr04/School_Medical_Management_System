@@ -55,6 +55,8 @@ import HealthRecordsPage from "./pages/ParentPage/HealthRecordsPage";
 import VaccinationsPage from "./pages/ParentPage/VaccinationsPage";
 import MedicineRequestPage from "./pages/ParentPage/MedicineRequestPage";
 import ParentProfilePage from "./pages/ParentPage/ParentProfilePage";
+import ParentNotificationsPage from "./pages/ParentPage/ParentNotificationsPage";
+import MedicalIncidentsPage from "./pages/ParentPage/MedicalIncidentsPage";
 import RoleProtectedRoute from "./RoleProtectedRoute";
 import {
   setNotification,
@@ -183,6 +185,8 @@ function App() {
         <Route path="health-records" element={<HealthRecordsPage />} />
         <Route path="vaccinations" element={<VaccinationsPage />} />
         <Route path="medicine-request" element={<MedicineRequestPage />} />
+        <Route path="notifications" element={<ParentNotificationsPage />} />
+        <Route path="medical-incidents" element={<MedicalIncidentsPage />} />
       </Route>
 
       {/* Catch-all route for unmatched paths (404) */}

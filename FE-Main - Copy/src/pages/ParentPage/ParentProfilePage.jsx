@@ -36,6 +36,7 @@ import {
   getParentProfile,
   updateParentProfile,
   getParentChildren,
+  getChildDetails,
   updateProfileDirect,
 } from "../../redux/parent/parentSlice";
 import api from "../../configs/config-axios";
@@ -49,11 +50,10 @@ const { Option } = Select;
 
 export default function ParentProfilePage() {
   const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
+  const { selectedChild } = useSelector((state) => state.parent);
   const { profile, children, loading, error, success } = useSelector(
     (state) => state.parent
   );
-
   const [form] = Form.useForm();
   console.log("Form instance created:", form);
 
@@ -62,6 +62,7 @@ export default function ParentProfilePage() {
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewImage, setPreviewImage] = useState("");
   const [forceUpdate, setForceUpdate] = useState(0);
+  const [detailVisible, setDetailVisible] = useState(false);
 
   // State để quản lý giá trị của các trường input
   const [formValues, setFormValues] = useState({
@@ -928,7 +929,11 @@ export default function ParentProfilePage() {
         <TabPane tab="Thông tin con em" key="children">
           <Card>
             <Title level={4}>Danh sách con em</Title>
-            {children && children.length > 0 ? (
+            {loading ? (
+              <div style={{ textAlign: "center", padding: "20px" }}>
+                <Spin size="large" />
+              </div>
+            ) : children && children.length > 0 ? (
               children.map((child, index) => (
                 <Card
                   key={child.student_id || index}
@@ -975,24 +980,35 @@ export default function ParentProfilePage() {
                           {child.grade || "Chưa cập nhật"}
                         </Descriptions.Item>
                         <Descriptions.Item label="Nhóm máu">
-                          {child.blood_type || "Chưa cập nhật"}
+                          {child.health?.blood_type || "Chưa cập nhật"}
                         </Descriptions.Item>
                         <Descriptions.Item label="Chiều cao">
-                          {child.height_cm
-                            ? `${child.height_cm} cm`
+                          {child.health?.height_cm
+                            ? `${child.health.height_cm} cm`
                             : "Chưa cập nhật"}
                         </Descriptions.Item>
                         <Descriptions.Item label="Cân nặng">
-                          {child.weight_kg
-                            ? `${child.weight_kg} kg`
+                          {child.health?.weight_kg
+                            ? `${child.health.weight_kg} kg`
                             : "Chưa cập nhật"}
                         </Descriptions.Item>
                         <Descriptions.Item label="Dị ứng">
-                          {child.allergies || "Không có"}
+                          {child.health?.allergy || "Không có"}
                         </Descriptions.Item>
                       </Descriptions>
                     </Col>
                   </Row>
+                  <div style={{ textAlign: "right", marginTop: 8 }}>
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        dispatch(getChildDetails(child.student_id));
+                        setDetailVisible(true);
+                      }}
+                    >
+                      Xem chi tiết
+                    </Button>
+                  </div>
                 </Card>
               ))
             ) : (
@@ -1008,6 +1024,54 @@ export default function ParentProfilePage() {
         onCancel={() => setPreviewVisible(false)}
       >
         <img alt="preview" style={{ width: "100%" }} src={previewImage} />
+      </Modal>
+
+      {/* Child Details Modal */}
+      <Modal
+        visible={detailVisible}
+        title="Chi tiết học sinh"
+        footer={null}
+        onCancel={() => setDetailVisible(false)}
+      >
+        {selectedChild ? (
+          <Descriptions column={1} bordered size="small">
+            <Descriptions.Item label="Họ và tên">
+              {selectedChild.full_name}
+            </Descriptions.Item>
+            <Descriptions.Item label="Ngày sinh">
+              {selectedChild.date_of_birth
+                ? format(new Date(selectedChild.date_of_birth), "dd/MM/yyyy")
+                : "Chưa cập nhật"}
+            </Descriptions.Item>
+            <Descriptions.Item label="Giới tính">
+              {selectedChild.gender || "Chưa cập nhật"}
+            </Descriptions.Item>
+            <Descriptions.Item label="Lớp">
+              {selectedChild.class_name || "Chưa cập nhật"}
+            </Descriptions.Item>
+            <Descriptions.Item label="Khối">
+              {selectedChild.grade || "Chưa cập nhật"}
+            </Descriptions.Item>
+            <Descriptions.Item label="Nhóm máu">
+              {selectedChild.health?.blood_type || "Chưa cập nhật"}
+            </Descriptions.Item>
+            <Descriptions.Item label="Chiều cao">
+              {selectedChild.health?.height_cm
+                ? `${selectedChild.health.height_cm} cm`
+                : "Chưa cập nhật"}
+            </Descriptions.Item>
+            <Descriptions.Item label="Cân nặng">
+              {selectedChild.health?.weight_kg
+                ? `${selectedChild.health.weight_kg} kg`
+                : "Chưa cập nhật"}
+            </Descriptions.Item>
+            <Descriptions.Item label="Dị ứng">
+              {selectedChild.health?.allergy || "Không có"}
+            </Descriptions.Item>
+          </Descriptions>
+        ) : (
+          <Spin size="small" />
+        )}
       </Modal>
     </div>
   );

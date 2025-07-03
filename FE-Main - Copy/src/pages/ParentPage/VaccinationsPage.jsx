@@ -46,7 +46,6 @@ import {
   getApprovedCampaigns,
   getDeclinedCampaigns,
   respondToVaccinationConsent,
-  getIncidentsByUser,
   getStudentVaccinations,
 } from "../../redux/parent/parentSlice";
 

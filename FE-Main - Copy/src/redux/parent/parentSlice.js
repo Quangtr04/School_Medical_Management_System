@@ -36,7 +36,14 @@ export const getParentChildren = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await api.get("/parent/students");
-      return response.data;
+      // Return list of children from response data or direct response
+      if (Array.isArray(response.data.data)) {
+        return response.data.data;
+      }
+      if (Array.isArray(response.data)) {
+        return response.data;
+      }
+      return [];
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to fetch children information"
@@ -50,7 +57,14 @@ export const getChildDetails = createAsyncThunk(
   async (student_id, { rejectWithValue }) => {
     try {
       const response = await api.get(`/parent/students/${student_id}`);
-      return response.data;
+      // Extract payload where student details reside
+      const payload = response.data.data ?? response.data;
+      // If payload is array, find matching student_id
+      if (Array.isArray(payload)) {
+        return payload.find((item) => item.student_id === student_id) || null;
+      }
+      // Otherwise payload is object
+      return payload;
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to fetch child details"
@@ -263,15 +277,19 @@ export const updateHealthDeclaration = createAsyncThunk(
 );
 
 // Medical Incidents
-export const getIncidentsByUser = createAsyncThunk(
-  "parent/getIncidentsByUser",
-  async (user_id, { rejectWithValue }) => {
+export const getParentIncidents = createAsyncThunk(
+  "parent/getIncidents",
+  async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/parent/incidents/${user_id}`);
+      console.log("Fetching parent incidents with token");
+      // The token is automatically added by the axios interceptor
+      const response = await api.get("/parent/incidents");
+      console.log("Incidents data received:", response.data);
       return response.data;
     } catch (error) {
+      console.error("Error fetching incidents:", error);
       return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch incidents"
+        error.response?.data?.message || "Failed to fetch medical incidents"
       );
     }
   }
@@ -279,14 +297,47 @@ export const getIncidentsByUser = createAsyncThunk(
 
 export const getIncidentDetails = createAsyncThunk(
   "parent/getIncidentDetails",
-  async (incident_id, { rejectWithValue }) => {
+  async (incidentId, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/parent/incidents/${incident_id}`);
-      return response.data;
+      console.log(`Fetching incident details for ID: ${incidentId}`);
+
+      // Extract numeric ID if it's an object
+      const id = typeof incidentId === "object" ? incidentId.id : incidentId;
+
+      // Make sure we're using the correct endpoint format without trailing slash
+      // The token is automatically added by the axios interceptor
+      const response = await api.get(`/parent/incidents/${id}`);
+
+      console.log("Incident details API response:", response);
+      console.log("Incident details data:", response.data);
+
+      // Return the data in the expected format
+      if (response.data && typeof response.data === "object") {
+        // If response.data is an object with a data property, return that
+        if (response.data.data) {
+          return response.data.data;
+        }
+        // Otherwise return the whole response.data object
+        return response.data;
+      }
+
+      // If response.data is not an object, wrap it
+      return { data: response.data };
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch incident details"
-      );
+      console.error("Error fetching incident details:", error);
+      console.error("Error response:", error.response);
+      console.error("Error request:", error.request);
+      console.error("Error config:", error.config);
+
+      // Return a more detailed error message
+      return rejectWithValue({
+        message:
+          error.response?.data?.message || "Failed to fetch incident details",
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url,
+        method: error.config?.method,
+      });
     }
   }
 );
@@ -387,28 +438,21 @@ export const getStudentVaccinations = createAsyncThunk(
 
 export const respondToVaccinationConsent = createAsyncThunk(
   "parent/respondToVaccinationConsent",
-  async ({ id, responseData }, { rejectWithValue, dispatch }) => {
+  async (
+    { notificationId, studentId, campaignId, consent },
+    { rejectWithValue }
+  ) => {
     try {
-      const response = await api.post(
-        `/parent/vaccine-campaigns/${id}/respond`,
-        responseData
-      );
-
-      // After successful response, refresh the campaign lists
-      dispatch(getVaccineCampaigns());
-      dispatch(getApprovedCampaigns());
-      dispatch(getDeclinedCampaigns());
-
-      // Also refresh student vaccinations if available
-      if (responseData.studentId) {
-        dispatch(getStudentVaccinations(responseData.studentId));
-      }
-
+      const response = await api.post("/parent/vaccinations/consent", {
+        notification_id: notificationId,
+        student_id: studentId,
+        campaign_id: campaignId,
+        consent: consent,
+      });
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message ||
-          "Failed to respond to vaccination consent"
+        error.response?.data?.message || "Failed to submit vaccination consent"
       );
     }
   }
@@ -452,6 +496,59 @@ export const getParentNotifications = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to fetch notifications"
+      );
+    }
+  }
+);
+
+export const markNotificationAsRead = createAsyncThunk(
+  "parent/markNotificationAsRead",
+  async (notificationId, { rejectWithValue }) => {
+    try {
+      const response = await api.put(
+        `/parent/notifications/${notificationId}/read`
+      );
+      return { notificationId, response: response.data };
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to mark notification as read"
+      );
+    }
+  }
+);
+
+export const markAllNotificationsAsRead = createAsyncThunk(
+  "parent/markAllNotificationsAsRead",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.put("/parent/notifications/read-all");
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message ||
+          "Failed to mark all notifications as read"
+      );
+    }
+  }
+);
+
+export const respondToCheckupConsent = createAsyncThunk(
+  "parent/respondToCheckupConsent",
+  async (
+    { notificationId, studentId, checkupId, consent },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await api.post("/parent/checkups/consent", {
+        notification_id: notificationId,
+        student_id: studentId,
+        checkup_id: checkupId,
+        consent: consent,
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to submit checkup consent"
       );
     }
   }
@@ -532,6 +629,9 @@ const parentSlice = createSlice({
     },
     setSelectedCheckup: (state, action) => {
       state.checkups.selectedCheckup = action.payload;
+    },
+    setLoading: (state, action) => {
+      state.loading = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -806,19 +906,20 @@ const parentSlice = createSlice({
       })
 
       // Medical Incidents
-      .addCase(getIncidentsByUser.pending, (state) => {
+      .addCase(getParentIncidents.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(getIncidentsByUser.fulfilled, (state, action) => {
+      .addCase(getParentIncidents.fulfilled, (state, action) => {
         state.loading = false;
         state.incidents = action.payload;
       })
-      .addCase(getIncidentsByUser.rejected, (state, action) => {
+      .addCase(getParentIncidents.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
 
+      // Incident Details
       .addCase(getIncidentDetails.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -920,119 +1021,6 @@ const parentSlice = createSlice({
         state.error = action.payload;
       })
 
-      .addCase(respondToVaccinationConsent.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-        state.success = false;
-      })
-      .addCase(respondToVaccinationConsent.fulfilled, (state, action) => {
-        state.loading = false;
-        state.success = true;
-
-        // If the response includes campaign data, update it
-        if (action.payload.campaign) {
-          const campaignIndex = state.vaccinations.campaigns.findIndex(
-            (c) => c.id === action.payload.campaign.id
-          );
-
-          if (campaignIndex !== -1) {
-            state.vaccinations.campaigns[campaignIndex] =
-              action.payload.campaign;
-          }
-        }
-
-        // If the response includes student response data, update it
-        if (action.payload.studentResponse) {
-          const { studentId, status } = action.payload.studentResponse;
-
-          // Update approved/declined lists based on response
-          if (status === "approved") {
-            // Check if campaign is already in approved list
-            const existingApprovedIndex = state.vaccinations.approved.findIndex(
-              (c) =>
-                c.id === action.payload.campaign.id && c.studentId === studentId
-            );
-
-            if (existingApprovedIndex === -1) {
-              state.vaccinations.approved.push({
-                ...action.payload.campaign,
-                responseStatus: "approved",
-                studentId,
-              });
-            }
-
-            // Remove from declined list if exists
-            state.vaccinations.declined = state.vaccinations.declined.filter(
-              (c) =>
-                !(
-                  c.id === action.payload.campaign.id &&
-                  c.studentId === studentId
-                )
-            );
-          } else if (status === "declined") {
-            // Check if campaign is already in declined list
-            const existingDeclinedIndex = state.vaccinations.declined.findIndex(
-              (c) =>
-                c.id === action.payload.campaign.id && c.studentId === studentId
-            );
-
-            if (existingDeclinedIndex === -1) {
-              state.vaccinations.declined.push({
-                ...action.payload.campaign,
-                responseStatus: "declined",
-                studentId,
-              });
-            }
-
-            // Remove from approved list if exists
-            state.vaccinations.approved = state.vaccinations.approved.filter(
-              (c) =>
-                !(
-                  c.id === action.payload.campaign.id &&
-                  c.studentId === studentId
-                )
-            );
-          }
-        }
-      })
-      .addCase(respondToVaccinationConsent.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-        state.success = false;
-      })
-
-      .addCase(updateVaccinationResponse.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-        state.success = false;
-      })
-      .addCase(updateVaccinationResponse.fulfilled, (state, action) => {
-        state.loading = false;
-        state.success = true;
-
-        // If the response includes updated vaccination data, update it
-        if (action.payload.updatedVaccination) {
-          const { studentId } = action.payload.updatedVaccination;
-
-          if (state.vaccinations.studentVaccinations[studentId]) {
-            const vaccinationIndex = state.vaccinations.studentVaccinations[
-              studentId
-            ].findIndex((v) => v.id === action.payload.updatedVaccination.id);
-
-            if (vaccinationIndex !== -1) {
-              state.vaccinations.studentVaccinations[studentId][
-                vaccinationIndex
-              ] = action.payload.updatedVaccination;
-            }
-          }
-        }
-      })
-      .addCase(updateVaccinationResponse.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-        state.success = false;
-      })
-
       // Notifications
       .addCase(getParentNotifications.pending, (state) => {
         state.loading = true;
@@ -1043,6 +1031,91 @@ const parentSlice = createSlice({
         state.notifications = action.payload;
       })
       .addCase(getParentNotifications.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // Mark notification as read
+      .addCase(markNotificationAsRead.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(markNotificationAsRead.fulfilled, (state, action) => {
+        state.loading = false;
+
+        // Update the notification in the state
+        const notificationId = action.payload.notificationId;
+
+        // Handle case where notifications has a structure like {items: [...]}
+        if (state.notifications && state.notifications.items) {
+          const index = state.notifications.items.findIndex(
+            (notification) => notification.id === notificationId
+          );
+          if (index !== -1) {
+            state.notifications.items[index].isRead = true;
+          }
+        } else if (Array.isArray(state.notifications)) {
+          const index = state.notifications.findIndex(
+            (notification) => notification.id === notificationId
+          );
+          if (index !== -1) {
+            state.notifications[index].isRead = true;
+          }
+        }
+      })
+      .addCase(markNotificationAsRead.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // Mark all notifications as read
+      .addCase(markAllNotificationsAsRead.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(markAllNotificationsAsRead.fulfilled, (state) => {
+        state.loading = false;
+
+        // Update all notifications in the state
+        if (state.notifications && state.notifications.items) {
+          state.notifications.items.forEach((notification) => {
+            notification.isRead = true;
+          });
+        } else if (Array.isArray(state.notifications)) {
+          state.notifications.forEach((notification) => {
+            notification.isRead = true;
+          });
+        }
+      })
+      .addCase(markAllNotificationsAsRead.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // Vaccination consent response
+      .addCase(respondToVaccinationConsent.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(respondToVaccinationConsent.fulfilled, (state) => {
+        state.loading = false;
+        state.success = true;
+      })
+      .addCase(respondToVaccinationConsent.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // Checkup consent response
+      .addCase(respondToCheckupConsent.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(respondToCheckupConsent.fulfilled, (state) => {
+        state.loading = false;
+        state.success = true;
+      })
+      .addCase(respondToCheckupConsent.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });
@@ -1057,6 +1130,7 @@ export const {
   setSelectedChild,
   setSelectedIncident,
   setSelectedCheckup,
+  setLoading,
 } = parentSlice.actions;
 
 // Thêm action creator để cập nhật profile trực tiếp

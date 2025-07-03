@@ -48,7 +48,6 @@ import {
   getParentChildren,
   getChildDetails,
   submitMedicationRequest,
-  getIncidentsByUser,
   setSelectedIncident,
   setSelectedChild,
 } from "../../redux/parent/parentSlice";
