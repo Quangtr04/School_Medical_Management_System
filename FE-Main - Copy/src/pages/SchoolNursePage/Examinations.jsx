@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Table,
   Button,
@@ -15,6 +15,9 @@ import {
   Tag,
   Empty,
   Spin,
+  Row,
+  Col,
+  List,
 } from "antd";
 import {
   PlusOutlined,
@@ -31,10 +34,21 @@ import {
   CheckCircleOutlined, // For Trạng thái (Status)
   DollarCircleOutlined, // For Nhà tài trợ (Sponsor)
   SettingOutlined, // For Hành động (Actions)
+  UserOutlined,
+  ManOutlined,
+  WomanOutlined,
+  TeamOutlined,
+  RightOutlined,
 } from "@ant-design/icons";
 import moment from "moment";
-import { format, parseISO } from "date-fns";
-import { FiFilePlus } from "react-icons/fi";
+import {
+  format,
+  parseISO,
+  isWithinInterval,
+  addDays,
+  startOfDay,
+} from "date-fns";
+import { FiCalendar, FiFeather, FiFilePlus, FiUserCheck } from "react-icons/fi";
 import { toast } from "react-toastify";
 
 import { useDispatch, useSelector } from "react-redux";
@@ -45,18 +59,39 @@ import {
   deleteHealthExaminationSchedule,
   clearHealthExaminationsError,
   clearHealthExaminationsSuccess,
+  fetchHealthExaminationById,
 } from "../../redux/nurse/heathExaminations/heathExamination"; // <-- ĐÃ SỬA LỖI CHÍNH TẢ Ở ĐÂY
+import { Typography } from "antd";
+import { differenceInCalendarDays } from "date-fns";
 
 const { TextArea } = Input;
 const { Option } = Select;
-
+const { Text } = Typography;
 export default function Examination() {
   const dispatch = useDispatch();
   const examinations = useSelector((state) => state.examination.records);
   const loading = useSelector((state) => state.examination.loading);
   const error = useSelector((state) => state.examination.error);
   const success = useSelector((state) => state.examination.success);
+  const today = startOfDay(new Date());
 
+  const upcomingExaminations = useMemo(() => {
+    const today = startOfDay(new Date());
+
+    return examinations.filter((item) => {
+      if (!item || !item.scheduled_date || item.approval_status !== "APPROVED")
+        return false;
+
+      const parsedDate = parseISO(item.scheduled_date);
+      return isWithinInterval(parsedDate, {
+        start: today,
+        end: addDays(today, 7),
+      });
+    });
+  }, [examinations]);
+
+  const [isStudentListModalVisible, setIsStudentListModalVisible] =
+    useState(false);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -69,6 +104,7 @@ export default function Examination() {
   const [currentExamination, setCurrentExamination] = useState(null);
   const [form] = Form.useForm();
 
+  const [approvedStudent, setApprovedStudents] = useState(null);
   // Dữ liệu cho Select lớp áp dụng trong form tạo/sửa
   const classOptions = Array.from({ length: 5 }, (_, i) => ({
     label: `Lớp ${i + 1}`,
@@ -105,6 +141,10 @@ export default function Examination() {
   }, [fetchExaminations]);
 
   useEffect(() => {
+    console.log("Examinations loaded:", examinations);
+  }, [examinations]);
+
+  useEffect(() => {
     if (error) {
       message.error(error);
       dispatch(clearHealthExaminationsError());
@@ -136,16 +176,18 @@ export default function Examination() {
 
   const showModal = (record = null) => {
     setCurrentExamination(record);
+    console.log(record);
+
     if (record) {
       form.setFieldsValue({
         title: record.title,
         description: record.description,
         // Đảm bảo date được chuyển đổi đúng định dạng moment
-        scheduled_date: record.scheduled_date
-          ? moment(record.scheduled_date)
+        scheduled_date: record?.scheduled_date
+          ? moment(record?.scheduled_date)
           : null,
-        sponsor: record.sponsor,
-        className: record.class_name, // Đảm bảo trường này khớp với API
+        sponsor: record?.sponsor,
+        className: record?.class_name, // Đảm bảo trường này khớp với API
       });
     } else {
       form.resetFields();
@@ -154,6 +196,8 @@ export default function Examination() {
   };
 
   const handleFormSubmit = async (values) => {
+    console.log(values);
+
     try {
       const formattedValues = {
         ...values,
@@ -189,26 +233,6 @@ export default function Examination() {
     setIsModalVisible(false);
     setCurrentExamination(null);
     form.resetFields();
-  };
-
-  const handleDelete = async (id) => {
-    Modal.confirm({
-      title: "Xác nhận xóa",
-      content:
-        "Bạn có chắc chắn muốn xóa đơn khám sức khỏe này? Thao tác này có thể ảnh hưởng đến các bản ghi khám của học sinh thuộc đơn này.",
-      okText: "Xóa",
-      okType: "danger",
-      onOk: async () => {
-        try {
-          await dispatch(deleteHealthExaminationSchedule(id)).unwrap();
-          message.success("Xóa đơn khám sức khỏe thành công!");
-          fetchExaminations(); // Re-fetch after successful deletion
-        } catch (error) {
-          console.error("Failed to delete examination campaign:", error);
-          message.error(error.message || "Đã xảy ra lỗi khi xóa đơn khám.");
-        }
-      },
-    });
   };
 
   const columns = [
@@ -334,21 +358,26 @@ export default function Examination() {
           <Tooltip title="Xem danh sách học sinh">
             <Button
               icon={<EyeOutlined />}
-              onClick={() => {
-                message.info(`Xem danh sách học sinh cho đơn: ${record.title}`);
-                // TODO: Chuyển hướng hoặc mở modal để xem danh sách học sinh của đơn khám này
-                // Ví dụ: history.push(`/health-examinations/${record.id}/students`);
+              onClick={async () => {
+                if (record.approval_status === "APPROVED") {
+                  console.log(record.checkup_id);
+
+                  try {
+                    const result = await dispatch(
+                      fetchHealthExaminationById(record.checkup_id) // truyền campaignId
+                    ).unwrap();
+
+                    setApprovedStudents(result); // dùng nếu cần thông tin khác
+                    setIsStudentListModalVisible(true); // mở modal
+
+                    // lưu danh sách học sinh theo lịch tiêm cụ thể
+                  } catch (err) {
+                    message.error(err || "Tải danh sách thất bại.");
+                  }
+                } else {
+                  message.warning("Lịch trình này chưa được duyệt.");
+                }
               }}
-            />
-          </Tooltip>
-          <Tooltip title="Chỉnh sửa đơn khám">
-            <Button icon={<EditOutlined />} onClick={() => showModal(record)} />
-          </Tooltip>
-          <Tooltip title="Xóa đơn khám">
-            <Button
-              icon={<DeleteOutlined />}
-              danger
-              onClick={() => handleDelete(record.id)}
             />
           </Tooltip>
         </Space>
@@ -402,12 +431,80 @@ export default function Examination() {
           </Space>
         </header>
 
-        {loading && examinations.length === 0 ? (
+        {loading && upcomingExaminations.length === 0 ? (
           renderLoadingState()
         ) : (
           <>
-            <Card className="mb-6 !rounded-lg !shadow-md !border !border-gray-200">
-              <div className="flex flex-wrap items-center gap-4">
+            <Row gutter={[16, 16]} className="mb-6">
+              <Col xs={24} lg={24}>
+                <Card
+                  title={
+                    <div className="flex items-center justify-between text-base">
+                      <span className="flex items-center gap-2 text-gray-800 font-medium">
+                        <FiCalendar className="text-green-600" />
+                        Khám sức khỏe sắp tới
+                      </span>
+                    </div>
+                  }
+                  className="!rounded-lg !shadow-md !border !border-gray-200 mt-4"
+                >
+                  {upcomingExaminations.length > 0 ? (
+                    <List
+                      itemLayout="horizontal"
+                      dataSource={upcomingExaminations}
+                      renderItem={(item) => (
+                        <List.Item
+                          actions={[
+                            <Button type="link" key="view-details">
+                              Xem chi tiết
+                            </Button>,
+                          ]}
+                        >
+                          <List.Item.Meta
+                            avatar={
+                              <div className="p-2 rounded-lg bg-green-100">
+                                <FiUserCheck className="text-green-600 text-xl" />
+                              </div>
+                            }
+                            title={
+                              <Text strong className="text-gray-900">
+                                {item.title}
+                              </Text>
+                            }
+                            description={
+                              <div className="text-gray-600">
+                                <p>
+                                  Ngày khám:{" "}
+                                  <Text className="font-semibold text-green-600">
+                                    {item.scheduled_date
+                                      ? `${format(
+                                          parseISO(item.scheduled_date),
+                                          "dd/MM/yyyy"
+                                        )} (${differenceInCalendarDays(
+                                          parseISO(item.scheduled_date),
+                                          new Date()
+                                        )} ngày nữa)`
+                                      : "N/A"}
+                                  </Text>
+                                </p>
+                              </div>
+                            }
+                          />
+                        </List.Item>
+                      )}
+                    />
+                  ) : (
+                    <Empty
+                      description="Không có lịch khám sức khỏe sắp tới"
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    />
+                  )}
+                </Card>
+              </Col>
+            </Row>
+
+            <Card className="!rounded-lg !shadow-md !border !border-gray-200">
+              <div className="flex flex-wrap items-center gap-4  mb-6">
                 <Input
                   placeholder="Tìm kiếm đơn khám (Tiêu đề, Mô tả...)"
                   prefix={<SearchOutlined className="text-gray-400" />}
@@ -429,9 +526,6 @@ export default function Examination() {
                 </Select>
                 {/* Select cho lớp áp dụng */}
               </div>
-            </Card>
-
-            <Card className="!rounded-lg !shadow-md !border !border-gray-200">
               <Table
                 columns={columns}
                 dataSource={examinations}
@@ -471,6 +565,7 @@ export default function Examination() {
           </>
         )}
 
+        {/* Modal tạo lịch khám sức khỏe */}
         <Modal
           title={
             currentExamination
@@ -558,6 +653,128 @@ export default function Examination() {
               </Button>
             </Form.Item>
           </Form>
+        </Modal>
+
+        {/* Modal hiển thị danh sách học sinh */}
+        <Modal
+          title={
+            <span className="flex items-center gap-2 text-lg font-semibold text-blue-600">
+              <TeamOutlined style={{ color: "#1677ff" }} />
+              Danh sách học sinh trong đơn khám sức khỏe
+            </span>
+          }
+          open={isStudentListModalVisible}
+          onCancel={() => setIsStudentListModalVisible(false)}
+          footer={[
+            <Button
+              key="close"
+              onClick={() => setIsStudentListModalVisible(false)}
+            >
+              Đóng
+            </Button>,
+          ]}
+          width={800}
+        >
+          {approvedStudent?.length === 0 ? (
+            <Empty description="Không có học sinh nào trong đơn khám này" />
+          ) : (
+            <Table
+              dataSource={approvedStudent}
+              rowKey="id"
+              pagination={false}
+              bordered
+              columns={[
+                {
+                  title: (
+                    <span className="flex items-center gap-1">
+                      <IdcardOutlined style={{ color: "#13c2c2" }} /> Mã học
+                      sinh
+                    </span>
+                  ),
+                  dataIndex: "student_code",
+                  key: "student_code",
+                  className: "!font-medium",
+                },
+                {
+                  title: (
+                    <span className="flex items-center gap-1">
+                      <UserOutlined style={{ color: "#722ed1" }} /> Họ và tên
+                    </span>
+                  ),
+                  dataIndex: "full_name",
+                  key: "full_name",
+                  className: "!font-medium",
+                },
+                {
+                  title: (
+                    <span className="flex items-center gap-1">
+                      <span className="flex gap-1">
+                        <ManOutlined style={{ color: "#1890ff" }} />
+                        /
+                        <WomanOutlined style={{ color: "#eb2f96" }} />
+                      </span>
+                      Giới tính
+                    </span>
+                  ),
+                  dataIndex: "gender",
+                  key: "gender",
+                  render: (gender) =>
+                    gender === "Nam" ? (
+                      <Tag color="blue" icon={<ManOutlined />}>
+                        Nam
+                      </Tag>
+                    ) : (
+                      <Tag color="magenta" icon={<WomanOutlined />}>
+                        Nữ
+                      </Tag>
+                    ),
+                },
+                {
+                  title: (
+                    <span className="flex items-center gap-1">
+                      <CalendarOutlined style={{ color: "#faad14" }} /> Ngày
+                      sinh
+                    </span>
+                  ),
+                  dataIndex: "date_of_birth",
+                  key: "dob",
+                  render: (dob) =>
+                    dob ? format(parseISO(dob), "dd/MM/yyyy") : "N/A",
+                },
+                {
+                  title: (
+                    <span className="flex items-center gap-1">
+                      <TeamOutlined style={{ color: "#52c41a" }} /> Lớp
+                    </span>
+                  ),
+                  dataIndex: "class_name",
+                  key: "class_name",
+                },
+                {
+                  title: (
+                    <span className="flex items-center gap-1">
+                      <EyeOutlined style={{ color: "#1677ff" }} /> Hành động
+                    </span>
+                  ),
+                  key: "action",
+                  align: "center",
+                  render: (_, record) => (
+                    <Tooltip title="Xem chi tiết học sinh">
+                      <Button
+                        shape="rectangle"
+                        icon={<EyeOutlined style={{ color: "#1677ff" }} />}
+                        onClick={() => {
+                          // TODO: mở modal hoặc console log thông tin học sinh
+                          console.log("Chi tiết học sinh:", record);
+                          // handleViewStudentDetail(record); <-- bạn có thể dùng modal ở đây
+                        }}
+                      />
+                    </Tooltip>
+                  ),
+                },
+              ]}
+            />
+          )}
         </Modal>
       </div>
     </div>

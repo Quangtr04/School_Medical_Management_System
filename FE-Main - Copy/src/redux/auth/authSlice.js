@@ -13,16 +13,57 @@ const initialState = {
   success: false,
 };
 
+<<<<<<< HEAD
+=======
+/*
+>>>>>>> 57eef22 (ud)
 export const loginUser = createAsyncThunk(
-  "loginUser",
+  "loginUser", // Tên type cho action(action.type)
   async (values, { rejectWithValue }) => {
     try {
+<<<<<<< HEAD
       const response = await api.post("/login", values);
       console.log("Login response data:", response.data);
+=======
+      // Giả lập cuộc gọi API đăng nhập
+      console.log("Value:", values);
 
-      // Flexible handling for different response structures
-      let token, user;
+      const response = await api.post("/login", values);
+      console.log("Response", response);
+      console.log(response.data);
 
+      // Giả sử API trả về user info và token
+      const { token, user } = response.data;
+      console.log(user);
+
+      // Lưu token vào localStorage (hoặc sessionStorage) để duy trì trạng thái đăng nhập
+      localStorage.setItem("accessToken", token);
+      localStorage.setItem("currentUser", JSON.stringify(user));
+
+      // Trả về dữ liệu cần thiết để cập nhật state
+      return { user, token };
+    } catch (error) {
+      // Xử lý lỗi từ API
+      let errorMessage = "Đăng nhập thất bại. Vui lòng thử lại.";
+      if (error.response && error.response.data && error.response.data.message) {
+        errorMessage = error.response.data.message;
+      }
+      // `rejectWithValue` sẽ gửi lỗi này vào action.payload khi trạng thái là `rejected`
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+ */
+export const loginUser = createAsyncThunk("loginUser", async (values, { rejectWithValue }) => {
+  try {
+    const response = await api.post("/login", values);
+    console.log("Response data:", response.data);
+>>>>>>> 57eef22 (ud)
+
+    // Flexible handling for different response structures
+    let token, user;
+
+<<<<<<< HEAD
       // Try different possible response structures
       if (response.data.token && response.data.user) {
         // Standard structure: { token, user }
@@ -80,39 +121,83 @@ export const loginUser = createAsyncThunk(
         errorMessage = error.response.data.message;
       }
       return rejectWithValue(errorMessage);
+=======
+    // Try different possible response structures
+    if (response.data.token && response.data.user) {
+      // Standard structure: { token, user }
+      token = response.data.token;
+      user = response.data.user;
+    } else if (response.data.accessToken && response.data.user) {
+      // Alternative structure: { accessToken, user }
+      token = response.data.accessToken;
+      user = response.data.user;
+    } else if (response.data.token && response.data.parent) {
+      // Parent specific structure: { token, parent }
+      token = response.data.token;
+      user = response.data.parent;
+    } else if (response.data.accessToken && response.data.parent) {
+      // Parent specific structure: { accessToken, parent }
+      token = response.data.accessToken;
+      user = response.data.parent;
+    } else if (response.data.token && response.data.data) {
+      // Generic structure: { token, data }
+      token = response.data.token;
+      user = response.data.data;
+    } else if (response.data.accessToken && response.data.data) {
+      // Generic structure: { accessToken, data }
+      token = response.data.accessToken;
+      user = response.data.data;
+    } else {
+      // Fallback: log the actual structure for debugging
+      console.error("Unexpected response structure:", response.data);
+      throw new Error("Invalid response structure from server");
+>>>>>>> 57eef22 (ud)
     }
-  }
-);
 
-export const sendOtp = createAsyncThunk(
-  "auth/sendOtp",
-  async (credentials, { rejectWithValue }) => {
-    try {
-      const response = await api.post("/auth/forgot-password", credentials);
-      return response.data;
-    } catch (error) {
-      let errorMessage = "Failed to send OTP. Please try again.";
-      if (
-        error.response &&
-        error.response.data &&
-        error.response.data.message
-      ) {
-        errorMessage = error.response.data.message;
-      }
-      return rejectWithValue(errorMessage);
+    console.log("Extracted token:", token);
+    console.log("Extracted user:", user);
+
+    if (!token || !user) {
+      throw new Error("Missing token or user data in response");
     }
+
+    localStorage.setItem("accessToken", token);
+    localStorage.setItem("currentUser", JSON.stringify(user));
+
+    return { user, accessToken: token };
+  } catch (error) {
+    console.log("Error status:", error.response?.status);
+    console.log("Error response:", error.response?.data);
+
+    let errorMessage = "Đăng nhập thất bại. Vui lòng thử lại.";
+    if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    }
+    return rejectWithValue(errorMessage);
   }
-);
+});
+
+export const sendOtp = createAsyncThunk("auth/sendOtp", async (credentials, { rejectWithValue }) => {
+  try {
+    const response = await api.post("/auth/forgot-password", credentials);
+    return response.data;
+  } catch (error) {
+    let errorMessage = "Failed to send OTP. Please try again.";
+    if (error.response && error.response.data && error.response.data.message) {
+      errorMessage = error.response.data.message;
+    }
+    return rejectWithValue(errorMessage);
+  }
+});
 
 // initializeAuth thunk của bạn
-export const initializeAuth = createAsyncThunk(
-  "auth/initializeAuth",
-  async (_, { dispatch, rejectWithValue }) => {
-    // Added rejectWithValue here
-    try {
-      const accessToken = localStorage.getItem("accessToken");
-      const currentUser = localStorage.getItem("currentUser");
+export const initializeAuth = createAsyncThunk("auth/initializeAuth", async (_, { dispatch, rejectWithValue }) => {
+  // Added rejectWithValue here
+  try {
+    const accessToken = localStorage.getItem("accessToken");
+    const currentUser = localStorage.getItem("currentUser");
 
+<<<<<<< HEAD
       console.log("Initializing auth from localStorage:", {
         hasAccessToken: !!accessToken,
         hasCurrentUser: !!currentUser,
@@ -145,8 +230,24 @@ export const initializeAuth = createAsyncThunk(
         "Không thể tải thông tin đăng nhập. Vui lòng đăng nhập lại."
       );
     }
+=======
+    console.log(currentUser);
+
+    if (accessToken && currentUser) {
+      const user = JSON.parse(currentUser);
+      dispatch(authSlice.actions.setAuth({ user, accessToken }));
+    }
+    dispatch(authSlice.actions.finishAuthInitialization());
+    return true; // Mark as fulfilled
+  } catch (error) {
+    console.error("Failed to initialize auth from localStorage", error);
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("currentUser");
+    dispatch(authSlice.actions.finishAuthInitialization());
+    return rejectWithValue("Không thể tải thông tin đăng nhập. Vui lòng đăng nhập lại.");
+>>>>>>> 57eef22 (ud)
   }
-);
+});
 
 const authSlice = createSlice({
   name: "auth",
@@ -229,8 +330,7 @@ const authSlice = createSlice({
       })
       .addCase(initializeAuth.rejected, (state, action) => {
         state.isAuthInitialized = true; // Mark as initialized even on rejection to prevent hanging UI
-        state.authInitializationError =
-          action.payload || "Lỗi khởi tạo xác thực không xác định.";
+        state.authInitializationError = action.payload || "Lỗi khởi tạo xác thực không xác định.";
       })
 
       .addCase(sendOtp.pending, (state) => {

@@ -27,7 +27,6 @@ export default function SchoolNurseLayOut() {
         <Content
           style={{
             margin: "", // Margin tổng thể từ các cạnh của Layout
-            padding: 10, // Padding bên trong Content
             background: "#f0f2f5", // Nền xám nhẹ cho Content
             minHeight: "",
             // CÓ THỂ CẦN ĐIỀU CHỈNH MINHEIGHT nếu layout bị tràn hoặc thiếu.
@@ -37,8 +36,6 @@ export default function SchoolNurseLayOut() {
         >
           <Outlet />
         </Content>
-        {/* Footer Admin (Nếu có) */}
-        {/* <Footer style={{ textAlign: 'center', color: '#888' }}>Ant Design Admin ©2023</Footer> */}
       </Layout>
     </Layout>
   );

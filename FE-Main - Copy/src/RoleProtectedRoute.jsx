@@ -26,7 +26,15 @@ const RoleProtectedRoute = ({ element, allowedRoles }) => {
     authInitializationError,
   });
 
+<<<<<<< HEAD
   // Nếu đang khởi tạo auth, hiển thị loading
+=======
+  console.log("isAuthenticated:", isAuthenticated);
+  console.log("user:", user);
+  console.log("role_id:", user?.role_id);
+  console.log("allowedRoles:", allowedRoles);
+  // Render logic
+>>>>>>> 57eef22 (ud)
   if (!isAuthInitialized) {
     return (
       <Box

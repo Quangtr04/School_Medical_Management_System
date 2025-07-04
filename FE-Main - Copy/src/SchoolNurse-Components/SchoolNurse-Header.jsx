@@ -12,7 +12,8 @@ import {
   MedicineBoxOutlined, // Icon cho sự cố y tế
   ScheduleOutlined, // Icon cho lịch khám
   CommentOutlined, // Icon cho phản hồi
-  FileTextOutlined, // Icon cho hồ sơ
+  FileTextOutlined,
+  ProfileOutlined, // Icon cho hồ sơ
 } from "@ant-design/icons";
 import {
   Layout,
@@ -30,7 +31,7 @@ import {
   Button, // Import Button
   Tag, // Import Tag
 } from "antd";
-import { useNavigate } from "react-router-dom"; // For navigation after logout
+import { Navigate, useNavigate } from "react-router-dom"; // For navigation after logout
 import { FaBell } from "react-icons/fa";
 
 const { Header } = Layout;
@@ -46,6 +47,7 @@ export default function SchoolNurseHeader() {
   const navigate = useNavigate();
   // State để lưu thông tin người dùng hiện tại
   const user = useSelector((state) => state.auth.user);
+  console.log(user);
 
   const dispatch = useDispatch();
 
@@ -265,6 +267,14 @@ export default function SchoolNurseHeader() {
   // Menu items for the user dropdown
   const userMenuItems = [
     {
+      key: "profile",
+      icon: <ProfileOutlined />,
+      label: "Xem hồ sơ",
+      primary: true,
+      onClick: <Navigate to={"/nurse/profile"} />,
+    },
+
+    {
       key: "logout",
       icon: <LogoutOutlined />,
       label: "Đăng xuất",
@@ -287,6 +297,7 @@ export default function SchoolNurseHeader() {
         justifyContent: "space-between",
         paddingLeft: "24px",
         paddingRight: "24px",
+        border: "none",
       }}
     >
       {/* Left side: Logo or Search Bar */}
@@ -378,7 +389,7 @@ export default function SchoolNurseHeader() {
                     type="secondary"
                     style={{ fontSize: "12px", display: "block" }}
                   >
-                    {user?.role_id === 3 ? "Y tá" : "Quản trị viên"}
+                    {user?.role_id === 3 ? "🧑‍⚕️Y tá" : "Quản trị viên"}
                   </Text>
                 </div>
 

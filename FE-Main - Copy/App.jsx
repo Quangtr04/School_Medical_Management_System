@@ -58,6 +58,7 @@ import MedicineRequestPage from "./pages/ParentPage/MedicineRequestPage";
 import UnauthorizedPage from "./src/pages/UnauthorizedPage";
 import Examination from "./src/pages/SchoolNursePage/Examinations";
 import { initializeAuth } from "./src/redux/auth/authSlice";
+import NurseProfile from "./src/pages/SchoolNursePage/NurseProfile";
 
 function App() {
   const dispatch = useDispatch();
@@ -69,6 +70,7 @@ function App() {
   useEffect(() => {
     dispatch(initializeAuth());
   }, [dispatch]);
+  // Lấy token nếu cần cho các API có xác thực
 
   // Effect to display notifications from Redux state using Ant Design's message
   useEffect(() => {
@@ -176,6 +178,7 @@ function App() {
             { path: "checkups", element: <Examination /> },
             { path: "notifications", element: <Notification /> },
             { path: "report", element: <ReportsPage /> },
+            { path: "profile", element: <NurseProfile /> },
           ],
         },
       ],

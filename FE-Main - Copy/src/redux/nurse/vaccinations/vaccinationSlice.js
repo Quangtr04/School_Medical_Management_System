@@ -136,6 +136,18 @@ export const updateStudentVaccineDetail = createAsyncThunk(
   }
 );
 
+export const fetchApprovedStudentsByCampaignId = createAsyncThunk(
+  "immunizations/fetchApprovedStudentsByCampaignId",
+  async (campaignId, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`/nurse/vaccine-campaigns-list-student/${campaignId}`);
+      return response.data.data; // Giả định API trả về mảng học sinh trong `data`
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || `Tải học sinh cho chiến dịch ID ${campaignId} thất bại.`);
+    }
+  }
+);
+
 const immunizationsSlice = createSlice({
   name: "immunizations",
   initialState,
@@ -278,6 +290,19 @@ const immunizationsSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
         state.success = false;
+      })
+      .addCase(fetchApprovedStudentsByCampaignId.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchApprovedStudentsByCampaignId.fulfilled, (state, action) => {
+        state.loading = false;
+        state.approvedStudents = action.payload;
+      })
+      .addCase(fetchApprovedStudentsByCampaignId.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        state.approvedStudents = [];
       });
   },
 });

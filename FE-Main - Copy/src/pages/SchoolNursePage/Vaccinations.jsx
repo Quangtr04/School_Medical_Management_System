@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Table,
   Input,
@@ -41,23 +41,30 @@ import {
   EyeOutlined,
 } from "@ant-design/icons";
 import { FiFeather, FiPlusCircle, FiCalendar, FiHeart } from "react-icons/fi";
-import { format, parseISO, isWithinInterval, isAfter, isToday } from "date-fns"; // Thêm isAfter, isToday
-import api from "../../configs/config-axios";
-import moment from "moment";
+import {
+  format,
+  parseISO,
+  isWithinInterval,
+  isAfter,
+  isToday,
+  startOfDay,
+  addDays,
+  differenceInCalendarDays,
+} from "date-fns";
+import api from "../../configs/config-axios"; // Đảm bảo đường dẫn đúng
+import moment from "moment"; // Có thể thay thế bằng dayjs hoặc date-fns nếu muốn nhất quán
 import dayjs from "dayjs";
 // Import Redux hooks và thunk
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchAllVaccineCampaigns,
   createVaccinationCampaign,
-  fetchApprovedStudentVaccineDetailById,
+  updateStudentVaccineDetail,
+  fetchApprovedStudentsByCampaignId,
   clearImmunizationsError,
   clearImmunizationsSuccess,
-  clearApprovedStudentDetail,
-  fetchApprovedStudentsForVaccineCampaigns,
-  updateStudentVaccineDetail,
+  // Không cần clearApprovedStudentDetail vì nó đã được fetch lại khi đóng modal hoặc cập nhật thành công
 } from "../../redux/nurse/vaccinations/vaccinationSlice"; // Đã sửa đường dẫn slice
-import { useForm } from "antd/es/form/Form";
 
 const { Option } = Select;
 const { Title, Text } = Typography;
@@ -65,59 +72,40 @@ const { RangePicker } = DatePicker;
 
 export default function Vaccination() {
   const dispatch = useDispatch();
-  const { campaigns, approvedStudentDetail, loading, error, success } =
-    useSelector((state) => state.vaccination); // Đã sửa tên state từ immunizations sang vaccination
+  // Lấy campaigns, loading, error, success từ Redux store
+  const { campaigns, loading, error, success } = useSelector(
+    (state) => state.vaccination
+  );
 
   const token = localStorage.getItem("accessToken");
 
-  const [upcomingVaccinations, setUpcomingVaccinations] = useState([]);
-  const [upcomingCheckups, setUpcomingCheckups] = useState([]);
-
+  // State cho phân trang và bộ lọc
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
     total: 0,
   });
   const [searchQuery, setSearchQuery] = useState("");
-  const [scheduleTypeFilter, setScheduleTypeFilter] = useState(null);
-  const [createdDateRange, setCreatedDateRange] = useState(null);
+  const [scheduleTypeFilter, setScheduleTypeFilter] = useState(null); // Có vẻ không được sử dụng với `campaigns` hiện tại
+
+  // State cho các Modal
   const [isCreateNewScheduleModalVisible, setCreateNewScheduleModal] =
     useState(false);
-  const [isUpdateStatusModalVisible, setIsUpdateStatusModalVisible] =
-    useState(false);
-
-  // Modal hiển thị danh sách học sinh đc chấp thuận tiêm chủng với status APPROVE
   const [isStudentListModalVisible, setIsStudentListModalVisible] =
     useState(false);
-  const [approvedStudents, setApprovedStudents] = useState([]);
-
-  const [currentStudentVaccinationId, setCurrentStudentVaccinationId] =
-    useState(null);
-
-  //Modal này hiển thị khi bấm xem chi tiết học sinh ở modal StudentListModal(danh sách học sinh đc chấp thuận)
   const [isViewStudentModalVisible, setIsViewStudentModalVisible] =
     useState(false);
-  const [selectedStudent, setSelectedStudent] = useState(null);
 
-  const handleViewStudentDetail = (student) => {
-    setSelectedStudent(student);
-    setIsViewStudentModalVisible(true);
-    setIsStudentListModalVisible(false);
-  };
+  // State cho dữ liệu Modal
+  const [approvedStudents, setApprovedStudents] = useState([]); // Danh sách học sinh được chấp thuận cho một campaign cụ thể
+  const [selectedStudent, setSelectedStudent] = useState(null); // Học sinh được chọn để xem/cập nhật chi tiết
 
-  const [formUpdateApprovedStudent] = Form.useForm();
-  const [createNewSchedule] = Form.useForm();
-  const [updateStatusForm] = Form.useForm();
+  // Ant Design Forms
+  const [formCreateNewSchedule] = Form.useForm();
+  const [formUpdateStudentDetail] = Form.useForm(); // Đổi tên để rõ ràng hơn
 
-  // KHÔNG CẦN HARDCODE VACCINE/CHECKUP TYPES NỮA, SẼ FETCH TỪ API NẾU CẦN
-  const [fetchedVaccineTypes, setFetchedVaccineTypes] = useState([
-    // Hardcode tạm thời hoặc fetch từ API riêng cho các loại vaccine
-    { id: "influenza", name: "Cúm" },
-    { id: "hepatitisB", name: "Viêm gan B" },
-    { id: "mmr", name: "Sởi, quai bị, rubella (MMR)" },
-  ]);
-
-  const fetchData = useCallback(async () => {
+  // --- FETCH DỮ LIỆU BAN ĐẦU ---
+  const fetchData = useCallback(() => {
     dispatch(fetchAllVaccineCampaigns());
   }, [dispatch]);
 
@@ -125,70 +113,20 @@ export default function Vaccination() {
     fetchData();
   }, [fetchData]);
 
-  useEffect(() => {
-    if (campaigns && campaigns.length > 0) {
-      const now = new Date();
-      const nextVaccinations = [];
-      const nextCheckups = [];
-
-      campaigns.forEach((campaign) => {
-        const scheduledDate = campaign.scheduled_date
-          ? parseISO(campaign.scheduled_date)
-          : null;
-
-        // Kiểm tra nếu ngày dự kiến hợp lệ và là ngày hiện tại hoặc trong tương lai
-        if (
-          scheduledDate &&
-          (isAfter(scheduledDate, now) || isToday(scheduledDate))
-        ) {
-          if (campaign.scheduleType === "vaccination") {
-            nextVaccinations.push({
-              id: campaign.campaign_id,
-              type: campaign.vaccineType || "Không xác định", // Sử dụng vaccineType
-              grade: campaign.targetClass,
-              class: "...", // Có thể cần thêm thông tin lớp cụ thể hơn từ API
-              students: "N/A", // Thông tin học sinh cần được tính toán hoặc lấy từ API khác
-              dueDate: campaign.scheduled_date,
-            });
-          } else if (campaign.scheduleType === "checkup") {
-            nextCheckups.push({
-              id: campaign.campaign_id,
-              type: campaign.checkupType || "Không xác định", // Sử dụng checkupType
-              grade: campaign.targetClass,
-              class: "...", // Có thể cần thêm thông tin lớp cụ thể hơn từ API
-              students: "N/A", // Thông tin học sinh cần được tính toán hoặc lấy từ API khác
-              dueDate: campaign.scheduled_date,
-            });
-          }
-        }
-      });
-
-      // Sắp xếp theo ngày dự kiến gần nhất
-      nextVaccinations.sort(
-        (a, b) => new Date(a.dueDate) - new Date(b.dueDate)
-      );
-      nextCheckups.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
-
-      setUpcomingVaccinations(nextVaccinations);
-      setUpcomingCheckups(nextCheckups);
-    } else {
-      setUpcomingVaccinations([]);
-      setUpcomingCheckups([]);
-    }
-  }, [campaigns]); // Chỉ chạy lại khi campaigns thay đổi
-
+  // --- XỬ LÝ THÔNG BÁO LỖI/THÀNH CÔNG TỪ REDUX ---
   useEffect(() => {
     if (error) {
       message.error(error);
-      dispatch(clearImmunizationsError());
+      dispatch(clearImmunizationsError()); // Xóa lỗi sau khi hiển thị
     }
     if (success) {
       message.success("Thao tác thành công!");
-      dispatch(clearImmunizationsSuccess());
-      fetchData(); // Fetch lại dữ liệu sau khi có thao tác thành công
+      dispatch(clearImmunizationsSuccess()); // Xóa thành công sau khi hiển thị
+      fetchData(); // Tải lại danh sách campaigns sau khi có thao tác thành công
     }
   }, [error, success, dispatch, fetchData]);
 
+  // --- CẬP NHẬT TỔNG SỐ TRANG CHO PHÂN TRANG ---
   useEffect(() => {
     setPagination((prev) => ({
       ...prev,
@@ -196,6 +134,33 @@ export default function Vaccination() {
     }));
   }, [campaigns]);
 
+  // --- LOGIC HIỂN THỊ LỊCH TIÊM CHỦNG SẮP TỚI (trong 7 ngày tới) ---
+  const upcomingVaccinations = useMemo(() => {
+    const today = startOfDay(new Date());
+
+    return campaigns.filter((item) => {
+      // Đảm bảo item tồn tại và có scheduled_date
+      if (
+        !item ||
+        !item.scheduled_date ||
+        item.approval_status !== "APPROVED"
+      ) {
+        return false;
+      }
+      const parsedDate = parseISO(item.scheduled_date);
+      // Kiểm tra xem ngày dự kiến có trong khoảng 7 ngày tới và lớn hơn hoặc bằng ngày hôm nay không
+      return (
+        isAfter(parsedDate, today) ||
+        isToday(parsedDate) ||
+        isWithinInterval(parsedDate, {
+          start: today,
+          end: addDays(today, 7),
+        })
+      );
+    });
+  }, [campaigns]);
+
+  // --- XỬ LÝ THAY ĐỔI TRANG BẢNG ---
   const handleTableChange = (newPagination) => {
     setPagination((prev) => ({
       ...prev,
@@ -204,25 +169,28 @@ export default function Vaccination() {
     }));
   };
 
+  // --- XỬ LÝ TÌM KIẾM BẢNG ---
   const handleSearch = (value) => {
     setSearchQuery(value);
-    setPagination((prev) => ({ ...prev, current: 1 }));
+    setPagination((prev) => ({ ...prev, current: 1 })); // Reset về trang 1 khi tìm kiếm
   };
 
+  // --- XỬ LÝ LỌC THEO LOẠI LỊCH TRÌNH (hiện tại không có trong data campaigns) ---
   const handleScheduleTypeFilterChange = (value) => {
     setScheduleTypeFilter(value);
-    setPagination((prev) => ({ ...prev, current: 1 }));
+    setPagination((prev) => ({ ...prev, current: 1 })); // Reset về trang 1 khi lọc
   };
 
+  // --- MODAL TẠO LỊCH TRÌNH MỚI ---
   const showNewScheduleModal = () => {
-    createNewSchedule.resetFields();
+    formCreateNewSchedule.resetFields();
     setCreateNewScheduleModal(true);
   };
 
   const handleCreateNewScheduleModalOk = async () => {
     try {
-      const values = await createNewSchedule.validateFields();
-      console.log(values);
+      const values = await formCreateNewSchedule.validateFields(); // Validate form
+      console.log("Creating new campaign with values:", values);
 
       const payload = {
         title: values.title,
@@ -231,7 +199,7 @@ export default function Vaccination() {
           ? values.scheduled_date.format("YYYY-MM-DD")
           : null,
         sponsor: values.sponsor,
-        className: values.className, // Updated to className
+        class_name: values.className, // Đảm bảo khớp với API backend (class_name thay vì className)
       };
 
       await dispatch(
@@ -239,42 +207,51 @@ export default function Vaccination() {
           token,
           campaignData: payload,
         })
-      ).unwrap();
-      setCreateNewScheduleModal(false);
+      ).unwrap(); // .unwrap() để bắt lỗi từ createAsyncThunk
+
+      setCreateNewScheduleModal(false); // Đóng modal sau khi thành công
+      formCreateNewSchedule.resetFields(); // Reset form
     } catch (err) {
       console.error("Lỗi khi tạo lịch trình mới:", err);
+      message.error(err.message || "Tạo lịch trình thất bại!"); // Hiển thị lỗi từ Redux thunk hoặc lỗi mặc định
     }
   };
 
   const handleCancelCreateNewScheduleModal = () => {
     setCreateNewScheduleModal(false);
-    createNewSchedule.resetFields();
+    formCreateNewSchedule.resetFields(); // Reset form khi hủy
   };
 
-  useEffect(() => {
-    if (approvedStudentDetail && isUpdateStatusModalVisible) {
-      updateStatusForm.resetFields();
-      const initialValues = {};
-      for (const vaccine of fetchedVaccineTypes || []) {
-        const vaccinationDate =
-          approvedStudentDetail.vaccinations?.[vaccine.id];
-        if (vaccinationDate && vaccinationDate !== "Not vaccinated") {
-          initialValues[vaccine.id] = moment(vaccinationDate);
-        }
+  // --- MODAL HIỂN THỊ DANH SÁCH HỌC SINH ĐƯỢC CHẤP THUẬN ---
+  const handleViewStudentList = useCallback(
+    async (campaignId) => {
+      try {
+        const result = await dispatch(
+          fetchApprovedStudentsByCampaignId(campaignId)
+        ).unwrap();
+        setApprovedStudents(result); // Lưu danh sách học sinh theo lịch tiêm cụ thể
+        setIsStudentListModalVisible(true); // Mở modal danh sách học sinh
+      } catch (err) {
+        message.error(err.message || "Tải danh sách học sinh thất bại.");
+        console.error("Lỗi khi tải danh sách học sinh:", err);
       }
-      updateStatusForm.setFieldsValue(initialValues);
-    }
-  }, [
-    approvedStudentDetail,
-    isUpdateStatusModalVisible,
-    updateStatusForm,
-    fetchedVaccineTypes,
-  ]);
+    },
+    [dispatch]
+  );
 
+  // --- MODAL HIỂN THỊ CHI TIẾT HỌC SINH (ĐỂ CẬP NHẬT) ---
+  const handleViewStudentDetail = useCallback((student) => {
+    setSelectedStudent(student);
+    setIsViewStudentModalVisible(true);
+    // Không đóng isStudentListModalVisible ở đây, có thể muốn quay lại danh sách
+    // setIsStudentListModalVisible(false); // Tùy thuộc vào UX mong muốn
+  }, []);
+
+  // Sync form với selectedStudent khi modal mở hoặc selectedStudent thay đổi
   useEffect(() => {
     if (selectedStudent && isViewStudentModalVisible) {
-      formUpdateApprovedStudent.resetFields(); // reset toàn bộ field
-      formUpdateApprovedStudent.setFieldsValue({
+      formUpdateStudentDetail.resetFields(); // Reset toàn bộ field trước khi set
+      formUpdateStudentDetail.setFieldsValue({
         full_name: selectedStudent.full_name,
         student_code: selectedStudent.student_code,
         class_name: selectedStudent.class_name,
@@ -289,69 +266,37 @@ export default function Vaccination() {
         dose_number: selectedStudent.dose_number
           ? Number(selectedStudent.dose_number)
           : null,
-        follow_up_required:
-          selectedStudent.follow_required === true
+        // follow_up_required cần được xử lý thành boolean cho payload, nhưng hiển thị "Có"/"Không"
+        follow_up_required_display:
+          selectedStudent.follow_up_required === true
             ? "Có"
-            : selectedStudent.follow_required === false
+            : selectedStudent.follow_up_required === false
             ? "Không"
             : undefined,
         reaction: selectedStudent.reaction,
         note: selectedStudent.note,
       });
     }
-  }, [selectedStudent, isViewStudentModalVisible, formUpdateApprovedStudent]);
+  }, [selectedStudent, isViewStudentModalVisible, formUpdateStudentDetail]);
 
-  const handleUpdateStatusModalOk = async () => {
-    try {
-      const values = await updateStatusForm.validateFields();
-      const updatedVaccinations = {};
-      for (const vaccine of fetchedVaccineTypes || []) {
-        updatedVaccinations[vaccine.id] = values[vaccine.id]
-          ? values[vaccine.id].format("YYYY-MM-DD")
-          : "Not vaccinated";
-      }
-
-      const payload = { vaccinations: updatedVaccinations };
-      await dispatch(
-        updateStudentVaccineDetail({
-          studentId: currentStudentVaccinationId,
-          resultData: payload,
-        })
-      ).unwrap();
-      setIsUpdateStatusModalVisible(false);
-      dispatch(clearApprovedStudentDetail());
-    } catch (err) {
-      console.error("Lỗi khi cập nhật trạng thái tiêm chủng:", err);
-      message.error(
-        "Cập nhật trạng thái thất bại: " + (err.message || "Lỗi không xác định")
-      );
-    }
-  };
-
-  const handleUpdateStatusModalCancel = () => {
-    setIsUpdateStatusModalVisible(false);
-    setCurrentStudentVaccinationId(null);
-    updateStatusForm.resetFields();
-    dispatch(clearApprovedStudentDetail());
-  };
-
-  const handleFinishUpdateApprovedStudent = async (values) => {
-    if (!selectedStudent?.student_id) {
-      message.error("Không tìm thấy học sinh.");
+  const handleFinishUpdateStudentDetail = async (values) => {
+    if (!selectedStudent?.id) {
+      // Sử dụng selectedStudent.id thay vì student_id
+      message.error("Không tìm thấy học sinh để cập nhật.");
       return;
     }
 
-    const studentId = selectedStudent.id;
-    console.log("studentId:", studentId);
+    const studentId = selectedStudent.id; // Lấy ID của học sinh từ selectedStudent
 
-    // Chuẩn bị dữ liệu gửi lên API
     const formData = {
       vaccinated_at: values.vaccinated_at
         ? values.vaccinated_at.format("YYYY-MM-DD")
         : null,
       vaccine_name: values.vaccine_name || "",
       dose_number: values.dose_number || null,
-      follow_up_required: values.follow_up_required || "Không", // giữ string
+      // Chuyển đổi "Có"/"Không" thành boolean cho follow_up_required nếu API yêu cầu boolean
+      follow_up_required:
+        values.follow_up_required_display === "Có" ? true : false,
       note: values.note || "",
       reaction: values.reaction || "",
     };
@@ -362,12 +307,23 @@ export default function Vaccination() {
       ).unwrap();
 
       message.success("Cập nhật thông tin học sinh thành công!");
-      setIsViewStudentModalVisible(false);
+      setIsViewStudentModalVisible(false); // Đóng modal sau khi cập nhật thành công
+
+      // Sau khi cập nhật thành công, cần refresh lại danh sách học sinh
+      // để dữ liệu trong bảng danh sách được cập nhật.
+      // Gọi lại hàm fetch danh sách học sinh của campaign hiện tại
+      if (selectedStudent.campaign_id) {
+        handleViewStudentList(selectedStudent.campaign_id);
+      }
     } catch (error) {
-      message.error("Cập nhật thất bại: " + error);
+      message.error(
+        "Cập nhật thất bại: " + (error.message || "Lỗi không xác định")
+      );
+      console.error("Lỗi cập nhật chi tiết học sinh:", error);
     }
   };
 
+  // --- ĐỊNH NGHĨA CÁC CỘT CHO BẢNG LỊCH TRÌNH ---
   const columns = [
     {
       title: (
@@ -495,19 +451,9 @@ export default function Vaccination() {
         <Tooltip title="Xem danh sách học sinh">
           <EyeOutlined
             className="text-blue-600 border border-black p-1 rounded cursor-pointer text-[18px]"
-            onClick={async () => {
+            onClick={() => {
               if (record.approval_status === "APPROVED") {
-                try {
-                  const result = await dispatch(
-                    fetchApprovedStudentsForVaccineCampaigns()
-                  ).unwrap();
-                  console.log(result);
-
-                  setApprovedStudents(result); // lưu danh sách học sinh
-                  setIsStudentListModalVisible(true); // hiển thị modal
-                } catch (err) {
-                  message.error(err || "Tải danh sách thất bại.");
-                }
+                handleViewStudentList(record.campaign_id); // Gọi hàm đã bọc trong useCallback
               } else {
                 message.warning("Lịch trình này chưa được duyệt.");
               }
@@ -519,6 +465,7 @@ export default function Vaccination() {
     },
   ];
 
+  // --- HÀM RENDER TRẠNG THÁI ĐANG TẢI ---
   const renderLoadingState = () => (
     <div className="text-center py-8 flex flex-col items-center justify-center gap-4">
       <Spin indicator={<LoadingOutlined style={{ fontSize: 30 }} spin />} />
@@ -526,37 +473,44 @@ export default function Vaccination() {
     </div>
   );
 
-  const filteredAndPaginatedCampaigns = (campaigns || [])
-    .filter(
-      (campaign) =>
-        (campaign.title &&
-          campaign.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (campaign.description &&
-          campaign.description
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase())) ||
-        (campaign.campaign_id &&
-          campaign.campaign_id
-            .toString()
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase())) ||
-        (campaign.sponsor &&
-          campaign.sponsor.toLowerCase().includes(searchQuery.toLowerCase()))
-    )
-    .filter((campaign) => {
-      if (scheduleTypeFilter && campaign.scheduleType !== scheduleTypeFilter) {
-        return false;
-      }
-      return true;
-    })
-    .slice(
-      (pagination.current - 1) * pagination.pageSize,
-      pagination.current * pagination.pageSize
-    );
+  // --- LỌC VÀ PHÂN TRANG DỮ LIỆU BẢNG ---
+  const filteredAndPaginatedCampaigns = useMemo(() => {
+    return (campaigns || [])
+      .filter(
+        (campaign) =>
+          (campaign.title &&
+            campaign.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (campaign.description &&
+            campaign.description
+              .toLowerCase()
+              .includes(searchQuery.toLowerCase())) ||
+          (campaign.campaign_id &&
+            campaign.campaign_id
+              .toString()
+              .toLowerCase()
+              .includes(searchQuery.toLowerCase())) ||
+          (campaign.sponsor &&
+            campaign.sponsor.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+      .filter((campaign) => {
+        // Lọc theo loại lịch trình (nếu có, hiện tại dữ liệu campaigns không có trường scheduleType)
+        if (
+          scheduleTypeFilter &&
+          campaign.scheduleType !== scheduleTypeFilter
+        ) {
+          return false;
+        }
+        return true;
+      })
+      .slice(
+        (pagination.current - 1) * pagination.pageSize,
+        pagination.current * pagination.pageSize
+      );
+  }, [campaigns, searchQuery, scheduleTypeFilter, pagination]);
 
   return (
     <div
-      className={`min-h-screen bg-white p-6 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc0MCcgaGVpZ2h0PSc0MCcgdmlld0JveD0nMCAwIDQwIDQwJz48ZyBmaWxsPSdyZ2JhKDEzLDExMCwyNTMsMC4xKScgZmlsbC1ydWxlPSdldmVub2RkJz48Y2lyY2xlIGN4PScyMCcgY3k9JzIwJyByPScyJy8+PC9zdmc+')] bg-fixed`}
+      className={`min-h-screen bg-white p-6 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc0MCcgaGVpZ2h0PSc0MCcgdmlld0JveD0nMCAwIDQwIDQwJz48ZyBmaWxsPSdyZ2JhKDEzLDExMCwyNTMsMC4xKScgZmlsbC1ydWxlPSdldmVubm9kZCc+PGNpcmNsZSBjeD0nMjAnIGN5PScyMCcgcmQ9JzInLz48L2c+PC9zdmc+')] bg-fixed`}
     >
       <div className="max-w-7xl mx-auto">
         <header
@@ -594,7 +548,7 @@ export default function Vaccination() {
           <>
             {/* chỗ hiện thị lịch tiêm chủng và khám sức khỏe sắp tới */}
             <Row gutter={[16, 16]} className="mb-6">
-              <Col xs={24} lg={12}>
+              <Col xs={24} lg={24}>
                 <Card
                   title={
                     <div className="flex items-center justify-between text-base">
@@ -602,12 +556,6 @@ export default function Vaccination() {
                         <FiCalendar className="text-blue-600" />
                         Tiêm chủng sắp tới
                       </span>
-                      <Button
-                        type="link"
-                        className="!text-blue-600 !p-0 !h-auto font-medium"
-                      >
-                        Xem tất cả lịch trình <RightOutlined />
-                      </Button>
                     </div>
                   }
                   className="!rounded-lg !shadow-md !border !border-gray-200"
@@ -619,8 +567,14 @@ export default function Vaccination() {
                       renderItem={(item) => (
                         <List.Item
                           actions={[
-                            <Button type="link" key="view-details">
-                              Xem chi tiết
+                            <Button
+                              type="link"
+                              key="view-details"
+                              onClick={() =>
+                                handleViewStudentList(item.campaign_id)
+                              }
+                            >
+                              Xem danh sách học sinh
                             </Button>,
                           ]}
                         >
@@ -632,28 +586,29 @@ export default function Vaccination() {
                             }
                             title={
                               <Text strong className="text-gray-900">
-                                {item.type} (Lớp {item.grade})
+                                {item.title} (Lớp {item.class}){" "}
+                                {/* Sử dụng item.title và item.class_name */}
                               </Text>
                             }
                             description={
                               <div className="text-gray-600">
                                 <p>
-                                  Ngày:{" "}
-                                  <Text className="font-semibold text-blue-600">
-                                    {item.dueDate
-                                      ? format(
-                                          parseISO(item.dueDate),
+                                  Ngày khám:{" "}
+                                  <Text className="font-semibold text-green-600">
+                                    {item.scheduled_date
+                                      ? `${format(
+                                          parseISO(item.scheduled_date),
                                           "dd/MM/yyyy"
-                                        )
+                                        )} (${differenceInCalendarDays(
+                                          parseISO(item.scheduled_date),
+                                          new Date()
+                                        )} ngày nữa)`
                                       : "N/A"}
                                   </Text>
                                 </p>
                               </div>
                             }
                           />
-                          <div className="text-right">
-                            {/* Bạn có thể thêm các thông tin khác ở đây nếu muốn */}
-                          </div>
                         </List.Item>
                       )}
                     />
@@ -665,82 +620,9 @@ export default function Vaccination() {
                   )}
                 </Card>
               </Col>
-
-              <Col xs={24} lg={12}>
-                <Card
-                  variant={false}
-                  title={
-                    <div className="flex items-center justify-between text-base">
-                      <span className="flex items-center gap-2 text-gray-800 font-medium">
-                        <FiCalendar className="text-green-600" />
-                        Lịch khám sức khỏe sắp tới
-                      </span>
-                      <Button
-                        type="link"
-                        className="!text-blue-600 !p-0 !h-auto font-medium"
-                      >
-                        Xem tất cả lịch khám sức khỏe <RightOutlined />
-                      </Button>
-                    </div>
-                  }
-                  className="!rounded-lg !shadow-md !border !border-gray-200"
-                >
-                  {upcomingCheckups.length > 0 ? (
-                    <List
-                      itemLayout="horizontal"
-                      dataSource={upcomingCheckups}
-                      renderItem={(item) => (
-                        <List.Item
-                          actions={[
-                            <Button type="link" key="view-details">
-                              Xem chi tiết
-                            </Button>,
-                          ]}
-                        >
-                          <List.Item.Meta
-                            avatar={
-                              <div className="p-2 rounded-lg bg-green-100">
-                                <FiHeart className="text-green-600 text-xl" />
-                              </div>
-                            }
-                            title={
-                              <Text strong className="text-gray-900">
-                                {item.type} (Lớp {item.grade})
-                              </Text>
-                            }
-                            description={
-                              <div className="text-gray-600">
-                                <p>
-                                  Ngày:{" "}
-                                  <Text className="font-semibold text-green-600">
-                                    {item.dueDate
-                                      ? format(
-                                          parseISO(item.dueDate),
-                                          "dd/MM/yyyy"
-                                        )
-                                      : "N/A"}
-                                  </Text>
-                                </p>
-                              </div>
-                            }
-                          />
-                          <div className="text-right">
-                            {/* Bạn có thể thêm các thông tin khác ở đây nếu muốn */}
-                          </div>
-                        </List.Item>
-                      )}
-                    />
-                  ) : (
-                    <Empty
-                      description="Không có lịch khám sức khỏe sắp tới"
-                      image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    />
-                  )}
-                </Card>
-              </Col>
             </Row>
 
-            {/* chỗ hiển thị dữ liệu về các lịch tiêm chủng */}
+            {/* Card hiển thị dữ liệu về các lịch tiêm chủng */}
             <Card className="!rounded-lg !shadow-md !border !border-gray-200">
               {/* thanh tìm kiếm */}
               <div
@@ -760,6 +642,7 @@ export default function Vaccination() {
                 >
                   Lọc
                 </Button>
+                {/* Loai lịch trình filter - giữ nguyên nhưng lưu ý nó không khớp với data hiện tại của campaigns */}
                 <Select
                   placeholder="Loại lịch trình"
                   onChange={handleScheduleTypeFilterChange}
@@ -820,12 +703,12 @@ export default function Vaccination() {
           confirmLoading={loading}
         >
           <Form
-            form={createNewSchedule}
+            form={formCreateNewSchedule}
             layout="vertical"
             name="new_schedule_form"
           >
             <Form.Item
-              name="title" // Thêm trường title
+              name="title"
               label="Tiêu đề"
               rules={[{ required: true, message: "Vui lòng nhập tiêu đề!" }]}
             >
@@ -836,7 +719,10 @@ export default function Vaccination() {
               label="Mô tả"
               rules={[{ required: true, message: "Vui lòng nhập mô tả!" }]}
             >
-              <Input placeholder="Mô tả nội dung lịch tiêm chủng" />
+              <Input.TextArea
+                rows={3}
+                placeholder="Mô tả nội dung lịch tiêm chủng"
+              />
             </Form.Item>
 
             <Form.Item
@@ -849,6 +735,7 @@ export default function Vaccination() {
               <DatePicker
                 placeholder="Chọn ngày tiêm chủng"
                 style={{ width: "100%" }}
+                format="YYYY-MM-DD" // Định dạng ngày tháng
               />
             </Form.Item>
 
@@ -878,68 +765,6 @@ export default function Vaccination() {
           </Form>
         </Modal>
 
-        {/* Modal Cập nhật trạng thái tiêm chủng */}
-        <Modal
-          title={`Cập nhật trạng thái tiêm chủng cho ${
-            approvedStudentDetail?.name || "học sinh"
-          }`}
-          open={isUpdateStatusModalVisible}
-          onOk={handleUpdateStatusModalOk}
-          onCancel={handleUpdateStatusModalCancel}
-          okText="Cập nhật trạng thái"
-          confirmLoading={loading}
-        >
-          {approvedStudentDetail ? (
-            <Form
-              form={updateStatusForm}
-              layout="vertical"
-              name="update_status_form"
-            >
-              <Form.Item label="Mã học sinh">
-                <Input value={approvedStudentDetail?.studentId} disabled />
-              </Form.Item>
-              <Form.Item label="Tên học sinh">
-                <Input value={approvedStudentDetail?.name} disabled />
-              </Form.Item>
-              <Form.Item label="Lớp">
-                <Input value={approvedStudentDetail?.class} disabled />
-              </Form.Item>
-
-              <Typography.Title level={5} className="mt-4 mb-2">
-                Ngày tiêm chủng
-              </Typography.Title>
-              {(fetchedVaccineTypes || []).map((v) => {
-                const vaccinationDate =
-                  approvedStudentDetail.vaccinations?.[v.id];
-                return (
-                  <Form.Item key={v.id} name={v.id} label={v.name}>
-                    <DatePicker
-                      style={{ width: "100%" }}
-                      format="YYYY-MM-DD"
-                      allowClear
-                      defaultValue={
-                        vaccinationDate && vaccinationDate !== "Not vaccinated"
-                          ? moment(vaccinationDate)
-                          : null
-                      }
-                    />
-                  </Form.Item>
-                );
-              })}
-              {fetchedVaccineTypes.length === 0 && (
-                <p className="text-red-500">
-                  (Không có loại vắc xin nào được tải. Vui lòng tải dữ liệu vắc
-                  xin.)
-                </p>
-              )}
-            </Form>
-          ) : (
-            <div className="text-center py-4">
-              <Spin /> <p>Đang tải chi tiết học sinh...</p>
-            </div>
-          )}
-        </Modal>
-
         {/* Modal hiển thị danh sách thông tin học sinh đc phê duyệt */}
         <Modal
           title={
@@ -954,9 +779,10 @@ export default function Vaccination() {
           maskClosable
           width={900}
           styles={{
-            backgroundColor: "#f9fafe",
-            padding: "24px",
-            borderRadius: "12px",
+            body: { backgroundColor: "#f9fafe", padding: "24px" },
+            header: { borderRadius: "12px 12px 0 0", padding: "16px 24px" },
+            footer: { borderRadius: "0 0 12px 12px", padding: "16px 24px" },
+            mask: { backdropFilter: "blur(5px)" },
           }}
           style={{
             borderRadius: 16,
@@ -966,7 +792,7 @@ export default function Vaccination() {
         >
           <Table
             dataSource={approvedStudents}
-            rowKey="student_id"
+            rowKey="id" // Đảm bảo sử dụng khóa đúng, có thể là 'id' hoặc 'student_id' tùy API
             pagination={{
               pageSize: 6,
               showSizeChanger: false,
@@ -988,7 +814,7 @@ export default function Vaccination() {
               {
                 title: "👤 Họ và tên học sinh",
                 dataIndex: "full_name",
-                key: "student_id",
+                key: "full_name", // Thay đổi key để tránh nhầm lẫn
               },
               {
                 title: "🏫 Lớp",
@@ -1010,7 +836,7 @@ export default function Vaccination() {
                   date ? format(parseISO(date), "dd/MM/yyyy") : "N/A",
               },
               {
-                title: "👁️ Hành động",
+                title: "👁️Hành động",
                 key: "action",
                 render: (_, record) => (
                   <Tooltip title="Xem chi tiết học sinh">
@@ -1020,32 +846,57 @@ export default function Vaccination() {
                       onClick={() => handleViewStudentDetail(record)}
                       className="!text-blue-600 hover:!text-blue-700"
                     >
-                      {/* Ẩn chữ, chỉ hiển thị tooltip khi hover */}
+                      {" "}
+                      {/* Giữ nút nhưng không hiển thị text */}
                     </Button>
                   </Tooltip>
                 ),
               },
             ]}
+            locale={{
+              emptyText: (
+                <Empty
+                  description="Không có học sinh nào trong lịch trình này."
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                />
+              ),
+            }}
           />
+          {loading && ( // Thêm loading indicator cho bảng học sinh
+            <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-10">
+              <Spin
+                indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />}
+              />
+            </div>
+          )}
         </Modal>
 
+        {/* Modal hiển thị cho phép nurse cập nhập Note và trạng thái của student*/}
         <Modal
           title="Chi tiết học sinh"
           open={isViewStudentModalVisible}
-          onCancel={() => setIsViewStudentModalVisible(false)} // 👈 Thêm dòng nàyp
+          onCancel={() => {
+            setIsViewStudentModalVisible(false);
+            // Có thể quay lại modal danh sách học sinh nếu muốn
+            setIsStudentListModalVisible(true);
+          }}
           centered
           width={600}
           footer={[
             <Button
               key="cancel"
-              onClick={() => setIsViewStudentModalVisible(false)}
+              onClick={() => {
+                setIsViewStudentModalVisible(false);
+                setIsStudentListModalVisible(true); // Quay lại modal danh sách
+              }}
             >
               Hủy
             </Button>,
             <Button
               key="submit"
               type="primary"
-              onClick={() => formUpdateApprovedStudent.submit()}
+              onClick={() => formUpdateStudentDetail.submit()}
+              loading={loading} // Hiển thị loading khi đang submit
             >
               Cập nhật
             </Button>,
@@ -1053,8 +904,8 @@ export default function Vaccination() {
         >
           <Form
             layout="vertical"
-            form={formUpdateApprovedStudent}
-            onFinish={handleFinishUpdateApprovedStudent}
+            form={formUpdateStudentDetail}
+            onFinish={handleFinishUpdateStudentDetail}
             initialValues={{
               full_name: selectedStudent?.full_name,
               student_code: selectedStudent?.student_code,
@@ -1070,86 +921,97 @@ export default function Vaccination() {
               dose_number: selectedStudent?.dose_number
                 ? Number(selectedStudent.dose_number)
                 : null,
-              follow_up_required:
-                selectedStudent?.follow_required === true
+              follow_up_required_display:
+                selectedStudent?.follow_up_required === true
                   ? "Có"
-                  : selectedStudent?.follow_required === false
+                  : selectedStudent?.follow_up_required === false
                   ? "Không"
-                  : undefined, // fallback nếu null
+                  : undefined,
               reaction: selectedStudent?.reaction,
               note: selectedStudent?.note,
             }}
           >
-            {/* Trường chỉ xem */}
-            <Form.Item label="👤 Họ và tên" name="full_name">
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item label="Họ và tên học sinh">
+                  <Input disabled />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label="Mã học sinh">
+                  <Input disabled />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label="Lớp">
+                  <Input disabled />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label="Ngày sinh">
+                  <DatePicker disabled style={{ width: "100%" }} />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Form.Item label="Mã lịch khám">
               <Input disabled />
-            </Form.Item>
-
-            <Form.Item label="🎓 Mã học sinh" name="student_code">
-              <Input disabled />
-            </Form.Item>
-
-            <Form.Item label="🏫 Lớp" name="class_name">
-              <Input disabled />
-            </Form.Item>
-
-            <Form.Item label="🎂 Ngày sinh" name="date_of_birth">
-              <DatePicker
-                disabled
-                format="DD/MM/YYYY"
-                style={{ width: "100%" }}
-              />
-            </Form.Item>
-
-            <Form.Item label="🧾 Mã lịch khám" name="campaign_id">
-              <Input disabled />
-            </Form.Item>
-
-            {/* Trường cho phép cập nhật */}
-            <Form.Item label="💉 Tiêm vào ngày" name="vaccinated_at">
-              <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
-            </Form.Item>
-
-            <Form.Item label="💊 Tên vắc xin" name="vaccine_name">
-              <Input placeholder="Nhập tên vắc xin..." />
             </Form.Item>
 
             <Form.Item
-              label="💉 Số mũi tiêm"
-              name="dose_number"
+              name="vaccinated_at"
+              label="Ngày tiêm chủng"
               rules={[
-                { required: true, message: "Vui lòng nhập số mũi tiêm!" },
+                { required: true, message: "Vui lòng chọn ngày tiêm chủng!" },
               ]}
+            >
+              <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
+            </Form.Item>
+
+            <Form.Item
+              name="vaccine_name"
+              label="Tên vắc xin"
+              rules={[
+                { required: true, message: "Vui lòng nhập tên vắc xin!" },
+              ]}
+            >
+              <Input placeholder="Tên vắc xin đã tiêm" />
+            </Form.Item>
+
+            <Form.Item
+              name="dose_number"
+              label="Số mũi"
+              rules={[{ required: true, message: "Vui lòng nhập số mũi!" }]}
             >
               <InputNumber
                 min={1}
                 style={{ width: "100%" }}
-                placeholder="Nhập số mũi tiêm..."
+                placeholder="Số mũi đã tiêm"
               />
             </Form.Item>
 
             <Form.Item
-              label="📋 Yêu cầu theo dõi sau tiêm"
-              name="follow_required"
+              name="follow_up_required_display" // Tên khác để tránh xung đột với boolean
+              label="Cần theo dõi thêm"
               rules={[
-                { required: true, message: "Vui lòng chọn yêu cầu theo dõi!" },
+                {
+                  required: true,
+                  message: "Vui lòng chọn trạng thái theo dõi!",
+                },
               ]}
             >
-              <Select placeholder="Chọn yêu cầu theo dõi">
-                <Select.Option value="Có">Có</Select.Option>
-                <Select.Option value="Không">Không</Select.Option>
+              <Select placeholder="Chọn trạng thái">
+                <Option value="Có">Có</Option>
+                <Option value="Không">Không</Option>
               </Select>
             </Form.Item>
 
-            <Form.Item label="🤔 Trạng thái sau tiêm" name="reaction">
-              <Input.TextArea
-                rows={3}
-                placeholder="Nhập phản ứng sau tiêm..."
-              />
+            <Form.Item name="reaction" label="Phản ứng sau tiêm">
+              <Input.TextArea rows={3} placeholder="Mô tả phản ứng (nếu có)" />
             </Form.Item>
 
-            <Form.Item label="🧑‍⚕️ Ghi chú của Y tá" name="note">
-              <Input.TextArea rows={4} placeholder="Nhập ghi chú..." />
+            <Form.Item name="note" label="Ghi chú">
+              <Input.TextArea rows={3} placeholder="Thêm ghi chú khác" />
             </Form.Item>
           </Form>
         </Modal>

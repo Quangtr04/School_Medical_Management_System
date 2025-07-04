@@ -26,7 +26,6 @@ import {
   SendOutlined,
   LinkOutlined,
 } from "@ant-design/icons";
-import { MdClass } from "react-icons/md";
 const { TextArea } = Input;
 const { Option } = Select;
 const AppointmentForm = () => {
@@ -35,20 +34,13 @@ const AppointmentForm = () => {
   const [priority, setPriority] = useState("normal");
   const [loading, setLoading] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
+
   const onFinish = (values) => {
     setLoading(true);
-    // Simulate API call with timeout
     setTimeout(() => {
-      console.log("Received values of form: ", values);
-      setLoading(false);
-      messageApi.success({
-        content: "Tin nhắn đã được gửi thành công!",
-        duration: 5,
-      });
-      form.resetFields();
-      setUserType("parent");
-      setPriority("normal");
-    }, 1500);
+      console.log(values);
+    }, 1000);
+    setLoading(false);
   };
   const onFinishFailed = (errorInfo) => {
     console.log("Failed:", errorInfo);
@@ -57,6 +49,7 @@ const AppointmentForm = () => {
       duration: 5,
     });
   };
+
   return (
     <>
       {contextHolder}
@@ -94,7 +87,7 @@ const AppointmentForm = () => {
                   <IdcardOutlined className="mr-2 text-blue-600" /> Bạn là:
                 </span>
               }
-              name="userType"
+              name="userType" //!chỉnh lại
               rules={[
                 {
                   required: true,
@@ -126,7 +119,7 @@ const AppointmentForm = () => {
                     và tên
                   </span>
                 }
-                name="fullName"
+                name="fullName" //!chỉnh lại
                 rules={[
                   {
                     required: true,
@@ -150,7 +143,7 @@ const AppointmentForm = () => {
                     Email
                   </span>
                 }
-                name="email"
+                name="email" //!chỉnh lại
                 rules={[
                   {
                     required: true,
@@ -180,7 +173,7 @@ const AppointmentForm = () => {
                     Số điện thoại
                   </span>
                 }
-                name="phoneNumber"
+                name="phoneNumber" //! chỉnh lại
                 rules={[
                   {
                     required: true,
@@ -197,20 +190,6 @@ const AppointmentForm = () => {
                   className="rounded-md hover:border-blue-400 focus:border-blue-500"
                 />
               </Form.Item>
-              <Form.Item
-                label={
-                  <span className="flex items-center text-gray-700 font-medium">
-                    <MdClass className="mr-2 text-purple-600" /> Lớp (nếu là học
-                    sinh)
-                  </span>
-                }
-                name="class"
-              >
-                <Input
-                  placeholder="VD: 8A, 9B"
-                  className="rounded-md hover:border-blue-400 focus:border-blue-500"
-                />
-              </Form.Item>
             </div>
             {/* Loại yêu cầu */}
             <Form.Item
@@ -223,7 +202,7 @@ const AppointmentForm = () => {
                   Loại yêu cầu
                 </span>
               }
-              name="requestType"
+              name="requestType" //! chỉnh lại
               rules={[
                 {
                   required: true,
@@ -315,6 +294,7 @@ const AppointmentForm = () => {
                 className="rounded-md hover:border-blue-400 focus:border-blue-500"
               />
             </Form.Item>
+
             {/* Mức độ ưu tiên */}
             <Form.Item
               label={
@@ -322,7 +302,7 @@ const AppointmentForm = () => {
                   <FlagOutlined className="mr-2 text-rose-600" /> Mức độ ưu tiên
                 </span>
               }
-              name="priority"
+              name="priority" //! chỉnh lại
               rules={[
                 {
                   required: true,

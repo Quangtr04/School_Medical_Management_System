@@ -13,7 +13,7 @@ import {
   NotificationOutlined,
   LogoutOutlined,
 } from "@ant-design/icons";
-import { Layout, Menu, Typography } from "antd";
+import { Button, Layout, Menu, Typography } from "antd";
 import { ArrowBigLeft } from "lucide-react";
 import React from "react";
 import { Link } from "react-router-dom";
@@ -22,11 +22,13 @@ import { PiStudent } from "react-icons/pi";
 import { MdVaccines } from "react-icons/md";
 import { FaSchool, FaUserNurse } from "react-icons/fa";
 import { TbReportSearch } from "react-icons/tb";
+import { logout } from "../redux/auth/authSlice";
 
 const { Sider } = Layout;
 const { Title, Text } = Typography;
 
 export default function SchoolNurseSideBar() {
+  const user = localStorage.getItem("currentUser");
   const menuItems = [
     {
       key: "/nurse",
@@ -79,11 +81,6 @@ export default function SchoolNurseSideBar() {
       key: "/",
       icon: <ArrowLeftOutlined />,
       label: <Link to="/">Quay về trang chủ</Link>,
-    },
-    {
-      key: "/logout",
-      icon: <LogoutOutlined />,
-      label: <Link to="/logout">Logout</Link>,
     },
   ];
   return (
