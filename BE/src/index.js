@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const os = require("os");
 const parentRouter = require("../routers/parent.routers");
 const loginRouter = require("../routers/login.routers");
 const adminRouter = require("../routers/admin.routers");
@@ -12,7 +13,13 @@ const port = 3000;
 // require("dotenv").config();
 
 const corsOptions = {
-  origin: ["http://localhost:5173", "http://192.168.1.65:5173", "http://192.168.1.168:5173"],
+  origin: [
+    "http://localhost:5173",
+    "http://192.168.1.72:5173",
+    "http://192.168.1.65:5173",
+    "http://172.20.10.4:5173",
+    "http://172.20.10.2:5173",
+  ],
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   optionsSuccessStatus: 204,
   credentials: false,
@@ -38,30 +45,14 @@ app.listen(port, "0.0.0.0", () => {
   // Thay đổi dòng này để hiển thị đúng hơn
   console.log(`Server is running on http://0.0.0.0:${port}`);
 
-  // Hoặc, để hiển thị địa chỉ IP thực tế của máy (cần lấy IP động)
-  // Lưu ý: Lấy IP động trong Node.js có thể hơi phức tạp hơn một chút,
-  // nhưng nếu bạn chỉ muốn in ra để dễ kiểm tra, bạn có thể hardcode IP tĩnh của máy Backend (nếu có)
-  // hoặc sử dụng một module để lấy IP.
-
-  // Ví dụ đơn giản nếu bạn biết IP của máy Backend (ví dụ: 10.87.15.148)
-  console.log(`FE should connect to : http://10.87.15.148:${port}`);
-  // Hoặc, nếu muốn tự động lấy IP (cần cài thêm 'os' module nếu chưa có)
-  /*
-  const os = require('os');
   const networkInterfaces = os.networkInterfaces();
-  let ipAddress = 'localhost'; // Fallback
-  for (const interfaceName in networkInterfaces) {
-    const networkInterface = networkInterfaces[interfaceName];
-    for (const config of networkInterface) {
-      if (config.family === 'IPv4' && !config.internal) {
-        ipAddress = config.address;
-        break;
+  Object.values(networkInterfaces)
+    .flat()
+    .forEach((iface) => {
+      if (iface.family === "IPv4" && !iface.internal) {
+        console.log(`🌐 Server may be accessible via: http://${iface.address}:${port}`);
       }
-    }
-    if (ipAddress !== 'localhost') break;
-  }
-  console.log(`Server is accessible at http://${ipAddress}:${port}`);
-  */
+    });
 
   console.log(`FE can connect from : ${corsOptions.origin.join(", ")}`);
   console.log("Swagger docs at http://localhost:3000/api-docs");

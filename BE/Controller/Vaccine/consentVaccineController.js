@@ -99,7 +99,7 @@ const getConsentVaccineByIdAndParentId = async (req, res, next) => {
       .request()
       .input("parentId", sql.Int, parentId)
       .input("id", sql.Int, id)
-      .query(`SELECT * FROM Vaccination_Consent_Form WHERE parent_id = @parentId AND consent_id = @id`);
+      .query(`SELECT * FROM Vaccination_Consent_Form WHERE parent_id = @parentId AND form_id = @id`);
     if (consentVaccine.recordset.length === 0) {
       return res.status(404).json({ message: "Consent form not found for this parent" });
     }

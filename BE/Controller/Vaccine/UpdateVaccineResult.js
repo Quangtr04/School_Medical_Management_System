@@ -4,7 +4,7 @@ const sendNotification = require("../../Utils/sendNotification");
 
 const updateResultVaccine = async (req, res, next) => {
   try {
-    const id = req.params.id;
+    const vaccine_id = req.params.vaccine_id;
     const { vaccinated_at, vaccine_name, dose_number, reaction, follow_up_required, note } = req.body;
 
     const pool = await sqlServerPool;
@@ -12,7 +12,7 @@ const updateResultVaccine = async (req, res, next) => {
     // 🔍 Kiểm tra bản ghi tồn tại
     const checkExist = await pool
       .request()
-      .input("id", sql.Int, id)
+      .input("id", sql.Int, vaccine_id)
       .query(`SELECT student_id FROM Vaccination_Result WHERE id = @id`);
 
     if (checkExist.recordset.length === 0) {
@@ -24,7 +24,7 @@ const updateResultVaccine = async (req, res, next) => {
     // ✅ Cập nhật bản ghi
     await pool
       .request()
-      .input("id", sql.Int, id)
+      .input("id", sql.Int, vaccine_id)
       .input("vaccinated_at", sql.DateTime, vaccinated_at || null)
       .input("vaccine_name", sql.VarChar(255), vaccine_name || null)
       .input("dose_number", sql.Int, dose_number || null)
@@ -69,11 +69,15 @@ const updateResultVaccine = async (req, res, next) => {
 
 const getStudentVaccineList = async (req, res, next) => {
   try {
+    const campaign_id = req.params.campaign_id;
     const pool = await sqlServerPool;
     const result = await pool
       .request()
+      .input("id", sql.Int, campaign_id)
       .query(
-        "SELECT VR.*, SI.full_name, SI.address, SI.class_name, SI.student_code, SI.gender, SI.date_of_birth FROM Vaccination_Result VR JOIN Student_Information SI ON VR.student_id = SI.student_id"
+        `SELECT VR.*, SI.full_name, SI.address, SI.class_name, SI.student_code, SI.gender, SI.date_of_birth 
+        FROM Vaccination_Result VR JOIN Student_Information SI ON VR.student_id = SI.student_id
+        WHERE VR.campaign_id = @id`
       );
     res.status(200).json({
       status: "success",
@@ -86,14 +90,15 @@ const getStudentVaccineList = async (req, res, next) => {
 };
 
 const getStudentVaccineListById = async (req, res, next) => {
-  const { id } = req.params;
+  const { vaccine_id, campaing_id } = req.params;
   try {
     const pool = await sqlServerPool;
     const result = await pool
       .request()
-      .input("id", sql.Int, id)
+      .input("campaign_id", sql.Int, campaing_id)
+      .input("id", sql.Int, vaccine_id)
       .query(
-        "SELECT VR.*, SI.full_name, SI.address, SI.class_name, SI.student_code, SI.gender, SI.date_of_birth FROM Vaccination_Result VR JOIN Student_Information SI ON VR.student_id = SI.student_id WHERE VR.id = @id"
+        "SELECT VR.*, SI.full_name, SI.address, SI.class_name, SI.student_code, SI.gender, SI.date_of_birth FROM Vaccination_Result VR JOIN Student_Information SI ON VR.student_id = SI.student_id WHERE VR.id = @id AND VR.campaign_id = @campaign_id"
       );
     res.status(200).json({
       status: "success",

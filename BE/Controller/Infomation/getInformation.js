@@ -82,19 +82,20 @@ const getStudentInfoById = async (req, res, next) => {
   const result = await pool.request().input("student_id", sql.Int, student_id).query(`
         SELECT * FROM [SWP391].[dbo].[Student_Information] WHERE student_id = @student_id`);
   if (result.recordset.length > 0) {
+    const student_id = parseInt(result.recordset[0].student_id, 10);
     const resultList = [];
     const healthResult = await pool
       .request()
-      .input("student_id", sql.Int, result.student_id)
+      .input("student_id", sql.Int, student_id)
       .query(`SELECT * FROM Student_Health WHERE student_id = @student_id`);
 
     resultList.push({
-      ...student,
-      health: healthResult.recordset[0] || null,
+      ...result.recordset[0],
+      health: healthResult.recordset[0],
     });
     res.status(200).json({
       status: "success",
-      data: resultList,
+      data: resultList[0],
     });
   } else {
     res.status(404).json({

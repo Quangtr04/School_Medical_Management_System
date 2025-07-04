@@ -48,7 +48,7 @@ const getHealthDeclarationOfStudentById = async (req, res, next) => {
 };
 
 const updateHealthDeclarationByStudentId = async (req, res, next) => {
-  const studentId = req.params.studentId;
+  const { studentId } = req.params;
   const healthDeclarationData = req.body;
   const pool = await sqlServerPool;
 

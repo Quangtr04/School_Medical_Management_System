@@ -18,8 +18,16 @@ const {
 } = require("../Controller/Vaccine/getVaccineCampaign");
 const { deleteVaccinationCampaign, responseVaccinationCampaign } = require("../Controller/Vaccine/VaccineController");
 const { UpdateResponseByManager } = require("../Controller/Vaccine/UpdateResponseVaccine");
+const { getProfileByUserId } = require("../Controller/Infomation/getUser");
+const { parentUpdateUserById } = require("../Controller/Login/account_status");
 
 const managerRouter = express.Router();
+
+// Lấy thông tin cá nhân
+managerRouter.get("/profile", authenticateToken, getProfileByUserId);
+
+// Cập nhật thông tin
+managerRouter.patch("/profile", authenticateToken, parentUpdateUserById);
 
 // 📌 Lấy danh sách lịch khám đang chờ duyệt
 managerRouter.get("/checkups/pending", getPending);

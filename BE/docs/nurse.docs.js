@@ -385,6 +385,101 @@
 
 /**
  * @swagger
+ * components:
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
+ *
+ *   schemas:
+ *     Checkup_Result:
+ *       type: object
+ *       required:
+ *         - height_cm
+ *         - weight_kg
+ *         - vision_left
+ *         - vision_right
+ *         - hearing_left
+ *         - hearing_right
+ *         - blood_pressure
+ *       properties:
+ *         height_cm:
+ *           type: number
+ *         weight_kg:
+ *           type: number
+ *         vision_left:
+ *           type: string
+ *         vision_right:
+ *           type: string
+ *         hearing_left:
+ *           type: string
+ *         hearing_right:
+ *           type: string
+ *         blood_pressure:
+ *           type: string
+ *         notes:
+ *           type: string
+ *
+ *     MedicalIncidentSchema:
+ *       type: object
+ *       required:
+ *         - student_id
+ *         - incident_type
+ *         - description
+ *         - date
+ *       properties:
+ *         student_id:
+ *           type: integer
+ *         incident_type:
+ *           type: string
+ *         description:
+ *           type: string
+ *         date:
+ *           type: string
+ *           format: date
+ *         action_taken:
+ *           type: string
+ *         status:
+ *           type: string
+ *
+ *     HealthDeclaration:
+ *       type: object
+ *       required:
+ *         - temperature
+ *         - symptoms
+ *         - contact_with_infected
+ *         - travel_history
+ *       properties:
+ *         temperature:
+ *           type: number
+ *         symptoms:
+ *           type: string
+ *         contact_with_infected:
+ *           type: boolean
+ *         travel_history:
+ *           type: string
+ *
+ *     StudentHealthInfo:
+ *       type: object
+ *       properties:
+ *         student_id:
+ *           type: integer
+ *         full_name:
+ *           type: string
+ *         class_name:
+ *           type: string
+ *         gender:
+ *           type: string
+ *         date_of_birth:
+ *           type: string
+ *           format: date
+ *         health_declaration:
+ *           $ref: '#/components/schemas/HealthDeclaration'
+ */
+
+/**
+ * @swagger
  * /notifications:
  *   get:
  *     tags: [Nurse]
