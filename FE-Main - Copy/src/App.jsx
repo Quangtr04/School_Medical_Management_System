@@ -1,11 +1,8 @@
-/* eslint-disable no-unused-vars */
 // src/App.jsx
 import React, { useEffect } from "react";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom"; // Removed unused useNavigate import
 import { useSelector, useDispatch } from "react-redux";
 import { message } from "antd"; // Import Ant Design message for notifications
-
-// Import actions from authSlice for notification and initial auth check
 
 // Import Role Protected Route
 
@@ -58,11 +55,7 @@ import ParentProfilePage from "./pages/ParentPage/ParentProfilePage";
 import ParentNotificationsPage from "./pages/ParentPage/ParentNotificationsPage";
 import MedicalIncidentsPage from "./pages/ParentPage/MedicalIncidentsPage";
 import RoleProtectedRoute from "./RoleProtectedRoute";
-import {
-  setNotification,
-  clearNotification,
-  initializeAuth,
-} from "./redux/auth/authSlice";
+import { clearNotification, initializeAuth } from "./redux/auth/authSlice";
 
 function App() {
   const dispatch = useDispatch();
