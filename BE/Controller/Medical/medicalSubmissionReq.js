@@ -58,6 +58,41 @@ const medicationSubmissionReq = async (req, res, next) => {
   }
 };
 
+//API hủy đơn yêu cầu uống thuốc từ phụ huynh 
+const cancelMedicationSubmissionReq = async (req, res, next) => {
+  const ReqId = req.params.ReqId; // Lấy ID từ URL param
+  const pool = await sqlServerPool;
+  try {
+    // Xóa bản ghi yêu cầu uống thuốc theo ID
+    const result = await pool 
+      .request()
+      .input("id_req", sql.Int, ReqId)
+      .query("DELETE FROM Medication_Submisstion_Request WHERE id_req = @id_req");
+    if (result.rowsAffected[0] > 0) {
+      // Nếu xóa thành công, trả về thông báo thành công
+      return res.status(200).json({
+        status: "success",
+
+        message: "medicationSubmissionReq cancelled successfully",
+      });
+    } else {  
+      // Nếu không tìm thấy bản ghi để xóa
+      return res.status(404).json({
+        status: "fail",
+        message: "medicationSubmissionReq not found",
+      });
+    }
+  } catch (error) {
+    console.error("Error cancelling medicationSubmissionReq:", error);
+    // Lỗi server khi xóa yêu cầu
+    res.status(500).json({
+      status: "error",
+      message: "Server error while cancelling medicationSubmissionReq",
+    });
+  }
+};
+
+
 // API lấy tất cả yêu cầu uống thuốc
 const getAllMedicationSubmissionReq = async (req, res, next) => {
   const pool = await sqlServerPool;
@@ -216,4 +251,5 @@ module.exports = {
   getAllMedicationSubmissionReq,
   getMedicationSubmissionReqByID,
   updateMedicationSubmissionReqByNurse,
+  cancelMedicationSubmissionReq,
 };
