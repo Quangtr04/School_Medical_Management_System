@@ -48,6 +48,11 @@ const { getAllStudentInfo, getStudentInfoById } = require("../Controller/Infomat
 const { updateHealthDeclarationByStudentId } = require("../Controller/Health/healthDeclaration");
 const { getProfileByUserId } = require("../Controller/Infomation/getUser");
 const { parentUpdateUserById } = require("../Controller/Login/account_status");
+const {
+  getAllMedicationSubmissionReq,
+  getMedicationSubmissionReqByID,
+  updateMedicationSubmissionReqByNurse,
+} = require("../Controller/Medical/medicalSubmissionReq");
 
 const nurseRouter = express.Router();
 
@@ -159,6 +164,15 @@ nurseRouter.patch(
   validateInput(Schemas, "HealthDeclaration"),
   updateHealthDeclarationByStudentId
 );
+
+// Lấy danh sách đơn thuốc được gửi
+nurseRouter.get("/medication-submissions", getAllMedicationSubmissionReq);
+
+// Lấy danh sách đơn thuốc được gửi theo id
+nurseRouter.get("/medication-submissions/:ReqId", getMedicationSubmissionReqByID);
+
+// Cập nhật trạng thái đơn thuốc được gửi
+nurseRouter.patch("/medication-submissions/:ReqId/update", updateMedicationSubmissionReqByNurse);
 
 //lấy thông báo
 nurseRouter.get("/notifications", authenticateToken, getNotifications);

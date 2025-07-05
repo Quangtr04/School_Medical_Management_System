@@ -15,6 +15,7 @@ const {
   getVaccinationCampaignById,
   getVaccinationCampaignPending,
   getVaccinationCampaignApprove,
+  getVaccinationCampaignDeclined,
 } = require("../Controller/Vaccine/getVaccineCampaign");
 const { deleteVaccinationCampaign, responseVaccinationCampaign } = require("../Controller/Vaccine/VaccineController");
 const { UpdateResponseByManager } = require("../Controller/Vaccine/UpdateResponseVaccine");
@@ -59,8 +60,11 @@ managerRouter.get("/vaccine-campaigns", getVaccinationCampaign);
 // Lấy chi tiết một lịch tiêm chủng theo ID
 managerRouter.get("/vaccine-campaigns/:id", getVaccinationCampaignById);
 
-// Lấy danh sách lịch tiêm chủng đã bị từ chối
-managerRouter.get("/vaccine-campaigns-declined", getVaccinationCampaignPending);
+// Lấy danh sách lịch tiêm chủng chưa xét duyệt
+managerRouter.get("/vaccine-campaigns-pending", getVaccinationCampaignPending);
+
+// Lấy danh sách lịch tiêm chủng bị từ chôi
+managerRouter.get("/vaccine-campaigns-declined", getVaccinationCampaignDeclined);
 
 // Lấy danh sách lịch tiêm chủng đã chấp thuận
 managerRouter.get("/vaccine-campaigns-approved", getVaccinationCampaignApprove);

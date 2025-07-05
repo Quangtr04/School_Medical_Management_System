@@ -9,6 +9,15 @@ const createSchedule = async (req, res, next) => {
     const created_by = req.user.user_id;
     const pool = await sqlServerPool;
 
+    // Kiểm tra scheduled_date có phải Thứ 7 hoặc Chủ nhật không
+    const day = new Date(scheduled_date).getDay(); // 0 = Chủ nhật, 6 = Thứ 7
+    if (day === 0 || day === 6) {
+      return res.status(400).json({
+        status: "fail",
+        message: "Ngày khám không được rơi vào Thứ 7 hoặc Chủ Nhật",
+      });
+    }
+
     const result = await pool
       .request()
       .input("title", sql.NVarChar, title)

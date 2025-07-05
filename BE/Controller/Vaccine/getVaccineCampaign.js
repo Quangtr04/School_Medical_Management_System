@@ -57,7 +57,6 @@ const getVaccinationCampaignPending = async (req, res) => {
   }
 };
 
-
 const getVaccinationCampaignApprove = async (req, res) => {
   try {
     const pool = await sqlServerPool;
@@ -77,9 +76,29 @@ const getVaccinationCampaignApprove = async (req, res) => {
   }
 };
 
+const getVaccinationCampaignDeclined = async (req, res) => {
+  try {
+    const pool = await sqlServerPool;
+    // Check if the campaign exists
+    const check = await pool.request().query(`
+            SELECT * FROM Vaccination_Campaign WHERE approval_status = 'DECLINED'
+        `);
+    // If the campaign does not exist, return 404
+    if (check.recordset.length === 0) {
+      return res.status(404).json({ message: "No pending vaccination campaigns found" });
+    }
+    // Return the pending campaigns
+    res.status(200).json(check.recordset);
+  } catch (error) {
+    console.error("Error getting vaccination campaign:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 module.exports = {
   getVaccinationCampaign,
   getVaccinationCampaignById,
   getVaccinationCampaignPending,
   getVaccinationCampaignApprove,
+  getVaccinationCampaignDeclined,
 };
