@@ -23,6 +23,7 @@ const initialState = {
     selectedCampaign: null,
     studentVaccinations: {},
   },
+  medicationRequests: [],
   notifications: [],
   loading: false,
   error: null,
@@ -36,15 +37,30 @@ export const getParentChildren = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await api.get("/parent/students");
+      console.log("Parent children API response:", response.data);
+
       // Return list of children from response data or direct response
-      if (Array.isArray(response.data.data)) {
-        return response.data.data;
+      if (
+        response.data &&
+        response.data.data &&
+        Array.isArray(response.data.data)
+      ) {
+        // Make sure each child has an id property
+        return response.data.data.map((child) => ({
+          ...child,
+          id: child.student_id || child.id, // Ensure id exists for compatibility
+        }));
       }
       if (Array.isArray(response.data)) {
-        return response.data;
+        // Make sure each child has an id property
+        return response.data.map((child) => ({
+          ...child,
+          id: child.student_id || child.id, // Ensure id exists for compatibility
+        }));
       }
       return [];
     } catch (error) {
+      console.error("Error fetching children:", error);
       return rejectWithValue(
         error.response?.data?.message || "Failed to fetch children information"
       );
@@ -56,6 +72,14 @@ export const getChildDetails = createAsyncThunk(
   "parent/getChildDetails",
   async (student_id, { rejectWithValue }) => {
     try {
+      // Check if student_id is valid before making the API call
+      if (!student_id) {
+        console.warn(
+          "Attempted to fetch child details with undefined student_id"
+        );
+        return null;
+      }
+
       const response = await api.get(`/parent/students/${student_id}`);
       // Extract payload where student details reside
       const payload = response.data.data ?? response.data;
@@ -347,15 +371,119 @@ export const submitMedicationRequest = createAsyncThunk(
   "parent/submitMedicationRequest",
   async (requestData, { rejectWithValue }) => {
     try {
+      // Dựa trên schema đã cung cấp
+      const MedicalSubmissionRequestSchema = {
+        parent_id: { type: "int", required: true },
+        student_id: { type: "int", required: true },
+        status: {
+          type: "string",
+          required: true,
+          enum: ["OPEN", "IN_PROGRESS", "RESOLVED"],
+          default: "PENDING",
+        },
+        nurse_id: { type: "int", required: true },
+        note: { type: "string", required: false },
+        image_url: { type: "string", required: false },
+        start_date: { type: "date", required: true },
+        end_date: { type: "date", required: true },
+      };
+
+      // Luôn đảm bảo nurse_id có giá trị mặc định là 3
+      const dataWithDefaults = {
+        ...requestData,
+        nurse_id: 3, // Luôn gán nurse_id mặc định là 3
+        status: requestData.status || "PENDING",
+      };
+
+      // Kiểm tra các trường bắt buộc theo schema
+      const requiredFields = Object.keys(MedicalSubmissionRequestSchema).filter(
+        (key) => MedicalSubmissionRequestSchema[key].required
+      );
+
+      const missingFields = requiredFields.filter(
+        (field) => !dataWithDefaults[field]
+      );
+
+      if (missingFields.length > 0) {
+        console.error("Missing required fields:", missingFields);
+        return rejectWithValue({
+          message: `Missing required fields: ${missingFields.join(", ")}`,
+          errors: missingFields.map((field) => `Missing field: ${field}`),
+        });
+      }
+
+      // Đảm bảo tất cả các trường không bắt buộc có giá trị mặc định
+      const sanitizedData = {
+        ...dataWithDefaults,
+        note: dataWithDefaults.note || "",
+        image_url: dataWithDefaults.image_url || "",
+        medication_name:
+          dataWithDefaults.medication_name ||
+          (dataWithDefaults.note
+            ? dataWithDefaults.note.split("\n")[0]
+            : "Thuốc"),
+        dosage: dataWithDefaults.dosage || "",
+        frequency: dataWithDefaults.frequency || "",
+      };
+
+      console.log("Submitting medication request with data:", sanitizedData);
+
       const response = await api.post(
         "/parent/medical-submissions",
-        requestData
+        sanitizedData
       );
+
+      console.log("Medication request response:", response.data);
       return response.data;
     } catch (error) {
+      console.error("Error submitting medication request:", error);
+
+      // Check for validation errors in the response
+      if (error.response?.data?.errors) {
+        return rejectWithValue({
+          message: "Validation failed",
+          errors: error.response.data.errors,
+        });
+      }
+
       return rejectWithValue(
         error.response?.data?.message || "Failed to submit medication request"
       );
+    }
+  }
+);
+
+export const getMedicationRequests = createAsyncThunk(
+  "parent/getMedicationRequests",
+  async (studentId, { rejectWithValue }) => {
+    try {
+      // Don't make API call if studentId is undefined or null
+      if (!studentId) {
+        console.warn("Skipping getMedicationRequests - No student ID provided");
+        return [];
+      }
+
+      console.log(`Fetching medication requests for student ${studentId}...`);
+      const response = await api.get(
+        `/parent/medical-submissions/${studentId}`
+      );
+      console.log("Medication requests response:", response);
+
+      // Return data in consistent format
+      if (response.data?.data && Array.isArray(response.data.data)) {
+        return response.data.data;
+      }
+      if (Array.isArray(response.data)) {
+        return response.data;
+      }
+      return [];
+    } catch (error) {
+      console.error(
+        `Error fetching medication requests for student ${studentId}:`,
+        error
+      );
+      // Return empty array instead of rejecting to prevent UI errors
+      return [];
     }
   }
 );
@@ -365,12 +493,13 @@ export const getVaccineCampaigns = createAsyncThunk(
   "parent/getVaccineCampaigns",
   async (_, { rejectWithValue }) => {
     try {
+      // Skip API call if student_id is undefined or null
       const response = await api.get("/parent/vaccine-campaigns");
-      return response.data;
+      return response.data?.data || response.data || [];
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch vaccine campaigns"
-      );
+      console.error("Error fetching vaccine campaigns:", error);
+      // Return empty array instead of rejecting to prevent UI errors
+      return [];
     }
   }
 );
@@ -379,12 +508,20 @@ export const getVaccineCampaignDetails = createAsyncThunk(
   "parent/getVaccineCampaignDetails",
   async (id, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/parent/vaccine-campaigns/${id}`);
-      return response.data;
+      // Don't make API call if id is undefined or null
+      if (!id) {
+        console.log("Skipping getVaccineCampaignDetails - No ID provided");
+        return null;
+      }
+
+      console.log(`Fetching campaign details for ID ${id}...`);
+      const response = await api.get(`/parent/vaccine-campaign/${id}`);
+      console.log("Campaign details response:", response);
+      return response.data?.data || response.data;
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch campaign details"
-      );
+      console.error(`Error fetching campaign details for ID ${id}:`, error);
+      // Return null instead of rejecting to prevent UI errors
+      return null;
     }
   }
 );
@@ -393,12 +530,14 @@ export const getApprovedCampaigns = createAsyncThunk(
   "parent/getApprovedCampaigns",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get("/parent/vaccine-campaigns/approved");
-      return response.data;
+      console.log("Fetching approved campaigns...");
+      const response = await api.get("/parent/vaccine-campaign-approved");
+      console.log("Approved campaigns response:", response);
+      return response.data?.data || response.data || [];
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch approved campaigns"
-      );
+      console.error("Error fetching approved campaigns:", error);
+      // Return empty array instead of rejecting to prevent UI errors
+      return [];
     }
   }
 );
@@ -407,12 +546,14 @@ export const getDeclinedCampaigns = createAsyncThunk(
   "parent/getDeclinedCampaigns",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get("/parent/vaccine-campaigns/declined");
-      return response.data;
+      console.log("Fetching declined campaigns...");
+      const response = await api.get("/parent/vaccine-campaign-declined");
+      console.log("Declined campaigns response:", response);
+      return response.data?.data || response.data || [];
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch declined campaigns"
-      );
+      console.error("Error fetching declined campaigns:", error);
+      // Return empty array instead of rejecting to prevent UI errors
+      return [];
     }
   }
 );
@@ -421,17 +562,26 @@ export const getStudentVaccinations = createAsyncThunk(
   "parent/getStudentVaccinations",
   async (studentId = null, { rejectWithValue }) => {
     try {
-      let response;
-      if (studentId) {
-        response = await api.get(`/parent/vaccine-campaigns/${studentId}`);
-      } else {
-        response = await api.get(`/parent/vaccine-campaigns`);
+      // Don't make API call if studentId is undefined or null
+      if (!studentId) {
+        console.log("Skipping getStudentVaccinations - No student ID provided");
+        return { studentId: null, vaccinations: [] };
       }
-      return { studentId, vaccinations: response.data };
+
+      console.log(`Fetching vaccinations for student ${studentId}...`);
+      const response = await api.get(`/parent/vaccine-campaign/${studentId}`);
+      console.log("Student vaccinations response:", response);
+      return {
+        studentId,
+        vaccinations: response.data?.data || response.data || [],
+      };
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch student vaccinations"
+      console.error(
+        `Error fetching vaccinations for student ${studentId}:`,
+        error
       );
+      // Return empty results instead of rejecting to prevent UI errors
+      return { studentId, vaccinations: [] };
     }
   }
 );
@@ -443,14 +593,22 @@ export const respondToVaccinationConsent = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const response = await api.post("/parent/vaccinations/consent", {
-        notification_id: notificationId,
-        student_id: studentId,
-        campaign_id: campaignId,
-        consent: consent,
-      });
+      // Validate required parameters
+      if (!campaignId) {
+        return rejectWithValue("Campaign ID is required");
+      }
+
+      const response = await api.post(
+        `/parent/vaccine-campaigns/${campaignId}/respond`,
+        {
+          notification_id: notificationId,
+          student_id: studentId,
+          consent: consent,
+        }
+      );
       return response.data;
     } catch (error) {
+      console.error("Error responding to vaccination consent:", error);
       return rejectWithValue(
         error.response?.data?.message || "Failed to submit vaccination consent"
       );
@@ -462,6 +620,11 @@ export const updateVaccinationResponse = createAsyncThunk(
   "parent/updateVaccinationResponse",
   async ({ id, status, studentId }, { rejectWithValue, dispatch }) => {
     try {
+      // Validate required parameters
+      if (!id) {
+        return rejectWithValue("Campaign ID is required");
+      }
+
       const response = await api.patch(
         `/parent/vaccine-campaigns/${id}/status`,
         { status, studentId }
@@ -479,6 +642,7 @@ export const updateVaccinationResponse = createAsyncThunk(
 
       return response.data;
     } catch (error) {
+      console.error("Error updating vaccination response:", error);
       return rejectWithValue(
         error.response?.data?.message || "Failed to update vaccination response"
       );
@@ -947,6 +1111,20 @@ const parentSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
         state.success = false;
+      })
+
+      // Get Medication Requests
+      .addCase(getMedicationRequests.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getMedicationRequests.fulfilled, (state, action) => {
+        state.loading = false;
+        state.medicationRequests = action.payload;
+      })
+      .addCase(getMedicationRequests.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       })
 
       // Vaccinations

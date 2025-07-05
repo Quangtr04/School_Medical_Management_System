@@ -14,14 +14,14 @@ const initialState = {
 };
 
 export const loginUser = createAsyncThunk(
-  "loginUser", // Tên type cho action(action.type)
+  "loginUser",
   async (values, { rejectWithValue }) => {
     try {
       const response = await api.post("/login", values);
       console.log("Login response data:", response.data);
 
-    // Flexible handling for different response structures
-    let token, user;
+      // Flexible handling for different response structures
+      let token, user;
 
       // Try different possible response structures
       if (response.data.token && response.data.user) {
@@ -81,51 +81,38 @@ export const loginUser = createAsyncThunk(
       }
       return rejectWithValue(errorMessage);
     }
-
-    console.log("Extracted token:", token);
-    console.log("Extracted user:", user);
-
-    if (!token || !user) {
-      throw new Error("Missing token or user data in response");
-    }
-
-    localStorage.setItem("accessToken", token);
-    localStorage.setItem("currentUser", JSON.stringify(user));
-
-    return { user, accessToken: token };
-  } catch (error) {
-    console.log("Error status:", error.response?.status);
-    console.log("Error response:", error.response?.data);
-
-    let errorMessage = "Đăng nhập thất bại. Vui lòng thử lại.";
-    if (error.response?.data?.message) {
-      errorMessage = error.response.data.message;
-    }
-    return rejectWithValue(errorMessage);
   }
-});
+);
 
-export const sendOtp = createAsyncThunk("auth/sendOtp", async (credentials, { rejectWithValue }) => {
-  try {
-    const response = await api.post("/auth/forgot-password", credentials);
-    return response.data;
-  } catch (error) {
-    let errorMessage = "Failed to send OTP. Please try again.";
-    if (error.response && error.response.data && error.response.data.message) {
-      errorMessage = error.response.data.message;
+export const sendOtp = createAsyncThunk(
+  "auth/sendOtp",
+  async (credentials, { rejectWithValue }) => {
+    try {
+      const response = await api.post("/auth/forgot-password", credentials);
+      return response.data;
+    } catch (error) {
+      let errorMessage = "Failed to send OTP. Please try again.";
+      if (
+        error.response &&
+        error.response.data &&
+        error.response.data.message
+      ) {
+        errorMessage = error.response.data.message;
+      }
+      return rejectWithValue(errorMessage);
     }
-    return rejectWithValue(errorMessage);
   }
-});
+);
 
 // initializeAuth thunk của bạn
-export const initializeAuth = createAsyncThunk("auth/initializeAuth", async (_, { dispatch, rejectWithValue }) => {
-  // Added rejectWithValue here
-  try {
-    const accessToken = localStorage.getItem("accessToken");
-    const currentUser = localStorage.getItem("currentUser");
+export const initializeAuth = createAsyncThunk(
+  "auth/initializeAuth",
+  async (_, { dispatch, rejectWithValue }) => {
+    // Added rejectWithValue here
+    try {
+      const accessToken = localStorage.getItem("accessToken");
+      const currentUser = localStorage.getItem("currentUser");
 
-<<<<<<< HEAD
       console.log("Initializing auth from localStorage:", {
         hasAccessToken: !!accessToken,
         hasCurrentUser: !!currentUser,
@@ -158,24 +145,8 @@ export const initializeAuth = createAsyncThunk("auth/initializeAuth", async (_, 
         "Không thể tải thông tin đăng nhập. Vui lòng đăng nhập lại."
       );
     }
-=======
-    console.log(currentUser);
-
-    if (accessToken && currentUser) {
-      const user = JSON.parse(currentUser);
-      dispatch(authSlice.actions.setAuth({ user, accessToken }));
-    }
-    dispatch(authSlice.actions.finishAuthInitialization());
-    return true; // Mark as fulfilled
-  } catch (error) {
-    console.error("Failed to initialize auth from localStorage", error);
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("currentUser");
-    dispatch(authSlice.actions.finishAuthInitialization());
-    return rejectWithValue("Không thể tải thông tin đăng nhập. Vui lòng đăng nhập lại.");
->>>>>>> 57eef22 (ud)
   }
-});
+);
 
 const authSlice = createSlice({
   name: "auth",
@@ -258,7 +229,8 @@ const authSlice = createSlice({
       })
       .addCase(initializeAuth.rejected, (state, action) => {
         state.isAuthInitialized = true; // Mark as initialized even on rejection to prevent hanging UI
-        state.authInitializationError = action.payload || "Lỗi khởi tạo xác thực không xác định.";
+        state.authInitializationError =
+          action.payload || "Lỗi khởi tạo xác thực không xác định.";
       })
 
       .addCase(sendOtp.pending, (state) => {

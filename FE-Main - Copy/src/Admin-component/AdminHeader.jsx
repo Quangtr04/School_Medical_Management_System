@@ -71,7 +71,6 @@ export default function AdminHeader() {
         justifyContent: "space-between",
         paddingLeft: "24px",
         paddingRight: "24px",
-        border: "none",
       }}
     >
       {/* Left side: Search Bar */}
