@@ -9,6 +9,15 @@ const createSchedule = async (req, res, next) => {
     const created_by = req.user.user_id;
     const pool = await sqlServerPool;
 
+    // Kiểm tra scheduled_date có phải Thứ 7 hoặc Chủ nhật không
+    const day = new Date(scheduled_date).getDay(); // 0 = Chủ nhật, 6 = Thứ 7
+    if (day === 0 || day === 6) {
+      return res.status(400).json({
+        status: "fail",
+        message: "Ngày khám không được rơi vào Thứ 7 hoặc Chủ Nhật",
+      });
+    }
+
     const result = await pool
       .request()
       .input("title", sql.NVarChar, title)
@@ -119,9 +128,9 @@ const deleteSchedule = async (req, res, next) => {
 const getPending = async (req, res, next) => {
   try {
     const pool = await sqlServerPool;
-    const schedules = await pool
-      .request()
-      .query("SELECT * FROM Medical_Checkup_Schedule WHERE approval_status = 'PENDING'");
+    const schedules = await pool.request()
+      .query(`SELECT MS.*, U.fullname FROM Medical_Checkup_Schedule MS JOIN Users U ON MS.created_by = U.user_id 
+              WHERE approval_status = 'PENDING' `);
     res.status(200).json({ data: schedules.recordset });
   } catch (err) {
     next(err);

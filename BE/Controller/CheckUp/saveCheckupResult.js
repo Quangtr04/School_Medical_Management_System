@@ -185,8 +185,12 @@ const updateCheckup = async (req, res) => {
 
 const getCheckupParticipation = async (req, res, next) => {
   try {
+    const { checkup_id } = req.params;
     const pool = await sqlServerPool;
-    const checkupList = await pool.request().query(`SELECT * FROM Checkup_Participation`);
+    const checkupList = await pool.request().input("checkup_id", sql.Int, checkup_id)
+      .query(`SELECT CP.*, SI.full_name, SI.student_code, SI.date_of_birth, SI.class_name
+              FROM Checkup_Participation CP JOIN Student_Information SI ON CP.student_id = SI.student_id
+              WHERE checkup_id = @checkup_id`);
     res.status(200).json({ checkups: checkupList.recordset });
   } catch (error) {
     console.error("Error fetching checkup list:", error);
@@ -195,12 +199,15 @@ const getCheckupParticipation = async (req, res, next) => {
 };
 
 const getCheckupParticipationById = async (req, res, next) => {
-  const { checkup_id } = req.params;
+  const { id, student_id } = req.params;
   try {
     const pool = await sqlServerPool;
-    const checkupList = await pool.request().input("id", sql.Int, checkup_id).query(`
-        SELECT CP.*, SI.full_name FROM Checkup_Participation CP JOIN Student_Information SI ON CP.student_id = SI.student_id
-        WHERE CP.id = @id`);
+    const checkupList = await pool.request().input("id", sql.Int, id).input("student_id", sql.Int, student_id).query(`
+        SELECT CP.checkup_id, CP.id, CP.consent_form_id, CP.checked_at, CP.blood_pressure, CP.notes, CP.abnormal_signs, CP.needs_counseling,
+        ld.* FROM Checkup_Participation CP JOIN 
+        (SELECT SI.full_name, SI.student_code, SI.class_name, SI.date_of_birth, SI.gender, SH.* FROM Student_Information SI JOIN Student_Health SH ON SI.student_id = SH.student_id) as ld ON CP.student_id = ld.student_id
+        WHERE CP.checkup_id = @id AND CP.student_id = @student_id
+      `);
     res.status(200).json({ checkups: checkupList.recordset });
   } catch (error) {
     console.error("Error fetching checkup list:", error);

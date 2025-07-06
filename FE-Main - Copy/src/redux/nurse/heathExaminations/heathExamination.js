@@ -39,8 +39,6 @@ export const fetchAllHealthExaminations = createAsyncThunk(
       // Đảm bảo endpoint này khớp với backend của bạn
       const response = await api.get("/nurse/checkups", { params }); // Bỏ /api/ nếu config-axios đã có base URL
       // API của bạn cần trả về tổng số lượng và data trong 1 object để pagination hoạt động đúng
-      console.log(response.data);
-
       return response.data; // Giả định response.data có { checkups: [], total: N }
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || "Tải danh sách lịch khám thất bại.");
@@ -53,10 +51,8 @@ export const fetchHealthExaminationById = createAsyncThunk(
   "healthExaminations/fetchById",
   async (id, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/nurse/checkups-approved/students/${id}`);
-      console.log(response.data.checkups);
-
-      return response.data.checkups;
+      const response = await api.get(`/nurse/checkups/${id}`); // Bỏ /api/ nếu config-axios đã có base URL
+      return response.data.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || `Tải chi tiết lịch khám ID ${id} thất bại.`);
     }

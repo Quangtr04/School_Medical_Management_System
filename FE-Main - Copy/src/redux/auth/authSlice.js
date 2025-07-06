@@ -13,35 +13,32 @@ const initialState = {
   success: false,
 };
 
-export const loginUser = createAsyncThunk(
-  "loginUser", // Tên type cho action(action.type)
-  async (values, { rejectWithValue }) => {
-    try {
-      // Giả lập cuộc gọi API đăng nhập
-      console.log("Value:", values);
+export const loginUser = createAsyncThunk("loginUser", async (values, { rejectWithValue }) => {
+  try {
+    // Giả lập cuộc gọi API đăng nhập
+    console.log("Value:", values);
 
-      const response = await api.post("/login", values);
+    const response = await api.post("/login", values);
 
-      // Giả sử API trả về user info và token
-      const { token, user } = response.data;
+    // Giả sử API trả về user info và token
+    const { token, user } = response.data;
 
-      // Lưu token vào localStorage (hoặc sessionStorage) để duy trì trạng thái đăng nhập
-      localStorage.setItem("accessToken", token);
-      localStorage.setItem("currentUser", JSON.stringify(user));
+    // Lưu token vào localStorage (hoặc sessionStorage) để duy trì trạng thái đăng nhập
+    localStorage.setItem("accessToken", token);
+    localStorage.setItem("currentUser", JSON.stringify(user));
 
-      // Trả về dữ liệu cần thiết để cập nhật state
-      return { user, token };
-    } catch (error) {
-      // Xử lý lỗi từ API
-      let errorMessage = "Đăng nhập thất bại. Vui lòng thử lại.";
-      if (error.response && error.response.data && error.response.data.message) {
-        errorMessage = error.response.data.message;
-      }
-      // `rejectWithValue` sẽ gửi lỗi này vào action.payload khi trạng thái là `rejected`
-      return rejectWithValue(errorMessage);
+    // Trả về dữ liệu cần thiết để cập nhật state
+    return { user, token };
+  } catch (error) {
+    // Xử lý lỗi từ API
+    let errorMessage = "Đăng nhập thất bại. Vui lòng thử lại.";
+    if (error.response && error.response.data && error.response.data.message) {
+      errorMessage = error.response.data.message;
     }
+    // `rejectWithValue` sẽ gửi lỗi này vào action.payload khi trạng thái là `rejected`
+    return rejectWithValue(errorMessage);
   }
-);
+});
 
 export const sendOtp = createAsyncThunk("auth/sendOtp", async (credentials, { rejectWithValue }) => {
   try {

@@ -1,10 +1,40 @@
 /**
  * @swagger
+ * components:
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
+ *   schemas:
+ *     HealthDeclaration:
+ *       type: object
+ *       properties:
+ *         student_id:
+ *           type: integer
+ *         temperature:
+ *           type: number
+ *         symptoms:
+ *           type: string
+ *         date:
+ *           type: string
+ *           format: date
+ *     MedicalSubmissionRequest:
+ *       type: object
+ *       properties:
+ *         student_id:
+ *           type: integer
+ *         medicine_name:
+ *           type: string
+ *         dosage:
+ *           type: string
+ *         note:
+ *           type: string
+
  * tags:
  *   - name: Parent
  *     description: API dành cho phụ huynh
- *
- * # === STUDENTS ===
+
  * /students:
  *   get:
  *     tags: [Parent]
@@ -14,7 +44,7 @@
  *     responses:
  *       200:
  *         description: Danh sách học sinh
- *
+
  * /students/{student_id}:
  *   get:
  *     tags: [Parent]
@@ -30,32 +60,19 @@
  *     responses:
  *       200:
  *         description: Thông tin học sinh
- *
- * /profile/{user_id}:
+
+ * /profile:
  *   get:
  *     tags: [Parent]
  *     summary: Lấy thông tin cá nhân của phụ huynh
- *     parameters:
- *       - in: path
- *         name: user_id
- *         required: true
- *         schema:
- *           type: integer
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Thông tin cá nhân
- *
  *   patch:
  *     tags: [Parent]
  *     summary: Cập nhật thông tin cá nhân của phụ huynh
- *     parameters:
- *       - in: path
- *         name: user_id
- *         required: true
- *         schema:
- *           type: integer
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -68,8 +85,6 @@
  *       200:
  *         description: Cập nhật thành công
 
- *
- * # === CHECKUPS ===
  * /checkups/approved:
  *   get:
  *     tags: [Parent]
@@ -79,7 +94,7 @@
  *     responses:
  *       200:
  *         description: Danh sách đã duyệt
- *
+
  * /consents-checkups/approved:
  *   get:
  *     tags: [Parent]
@@ -89,7 +104,7 @@
  *     responses:
  *       200:
  *         description: Danh sách phiếu khám
- *
+
  * /consents-checkups/{id}:
  *   get:
  *     tags: [Parent]
@@ -105,7 +120,7 @@
  *     responses:
  *       200:
  *         description: Chi tiết phiếu khám
- *
+
  * /consents-checkups/pending:
  *   get:
  *     tags: [Parent]
@@ -115,7 +130,7 @@
  *     responses:
  *       200:
  *         description: Danh sách phiếu pending
- *
+
  * /consents-checkups/{form_id}/respond:
  *   post:
  *     tags: [Parent]
@@ -141,7 +156,7 @@
  *     responses:
  *       200:
  *         description: Phản hồi thành công
- *
+
  * /checkups/{checkup_id}/consent:
  *   patch:
  *     tags: [Parent]
@@ -167,8 +182,7 @@
  *     responses:
  *       200:
  *         description: Cập nhật trạng thái thành công
- *
- * # === HEALTH DECLARATION ===
+
  * /students/{student_id}/health-declaration:
  *   get:
  *     tags: [Parent]
@@ -184,8 +198,6 @@
  *     responses:
  *       200:
  *         description: Khai báo y tế
- *
-*
  *   patch:
  *     tags: [Parent]
  *     summary: Phụ huynh cập nhật khai báo sức khỏe của học sinh
@@ -193,11 +205,10 @@
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: studentId
+ *         name: student_id
  *         required: true
  *         schema:
  *           type: integer
- *         description: ID của học sinh
  *     requestBody:
  *       required: true
  *       content:
@@ -207,31 +218,17 @@
  *     responses:
  *       200:
  *         description: Cập nhật khai báo sức khỏe thành công
- *       400:
- *         description: Dữ liệu không hợp lệ
- *       401:
- *         description: Không có quyền truy cập
- *       404:
- *         description: Không tìm thấy học sinh hoặc khai báo sức khỏe
- *
 
- * # === INCIDENTS ===
- * /incidents/{user_id}:
+ * /incidents:
  *   get:
  *     tags: [Parent]
- *     summary: Lấy sự cố y tế theo user ID
- *     parameters:
- *       - in: path
- *         name: user_id
- *         required: true
- *         schema:
- *           type: integer
+ *     summary: Lấy danh sách sự cố y tế của phụ huynh
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Danh sách sự cố
- *
+
  * /incidents/{incident_id}:
  *   get:
  *     tags: [Parent]
@@ -247,8 +244,7 @@
  *     responses:
  *       200:
  *         description: Chi tiết sự cố
- *
- * # === MEDICAL SUBMISSIONS ===
+
  * /medical-submissions:
  *   post:
  *     tags: [Parent]
@@ -264,8 +260,7 @@
  *     responses:
  *       200:
  *         description: Gửi yêu cầu thành công
- *
- * # === VACCINATION CAMPAIGNS ===
+
  * /vaccine-campaigns:
  *   get:
  *     tags: [Parent]
@@ -275,7 +270,7 @@
  *     responses:
  *       200:
  *         description: Danh sách lịch tiêm chủng
- *
+
  * /vaccine-campaigns/{id}:
  *   get:
  *     tags: [Parent]
@@ -291,7 +286,7 @@
  *     responses:
  *       200:
  *         description: Chi tiết chiến dịch tiêm
- *
+
  * /vaccine-campaigns/approved:
  *   get:
  *     tags: [Parent]
@@ -301,7 +296,7 @@
  *     responses:
  *       200:
  *         description: Danh sách đã duyệt
- *
+
  * /vaccine-campaigns/declined:
  *   get:
  *     tags: [Parent]
@@ -311,7 +306,7 @@
  *     responses:
  *       200:
  *         description: Danh sách bị từ chối
- *
+
  * /vaccine-campaigns/{id}/respond:
  *   post:
  *     tags: [Parent]
@@ -322,24 +317,6 @@
  *         required: true
  *         schema:
  *           type: integer
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Gửi phản hồi thành công
- *
- * /vaccine-campaigns/{id}/status:
- *   patch:
- *     tags: [Parent]
- *     summary: Cập nhật trạng thái lịch tiêm chủng
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     security:
- *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -350,11 +327,38 @@
  *               status:
  *                 type: string
  *                 enum: [APPROVED, DECLINED]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Gửi phản hồi thành công
+
+ * /vaccine-campaigns/{id}/status:
+ *   patch:
+ *     tags: [Parent]
+ *     summary: Cập nhật trạng thái lịch tiêm chủng
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [APPROVED, DECLINED]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Cập nhật trạng thái thành công
- *
- * # === NOTIFICATIONS ===
+
  * /notifications:
  *   get:
  *     tags: [Parent]

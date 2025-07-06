@@ -1,69 +1,55 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  Box,
-  Typography,
-  Paper,
-  Tabs,
-  Tab,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  CircularProgress,
-  Grid,
   Card,
-  CardContent,
-  CardHeader,
+  Row,
+  Col,
+  Typography,
+  Button,
+  Table,
+  Tag,
+  Space,
   Divider,
-  IconButton,
-  Chip,
-  Stack,
-} from "@mui/material";
+  Spin,
+  Empty,
+  Form,
+  Input,
+  DatePicker,
+  Select,
+  Upload,
+  Modal,
+  message,
+  Tabs,
+  Radio,
+  Alert,
+} from "antd";
 import {
-  MedicalServices,
-  CalendarToday,
-  AccessTime,
-  LocationOn,
-  Person,
-  Description,
-  LocalHospital,
-  Warning,
-  Visibility as VisibilityIcon,
-  Add as AddIcon,
-} from "@mui/icons-material";
+  PlusOutlined,
+  CalendarOutlined,
+  MedicineBoxOutlined,
+  FileImageOutlined,
+  ClockCircleOutlined,
+  UserOutlined,
+  InfoCircleOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  ExclamationCircleOutlined,
+  ClockCircleFilled,
+} from "@ant-design/icons";
 import {
   getParentChildren,
   getChildDetails,
   submitMedicationRequest,
-  setSelectedIncident,
+  getMedicationRequests,
   setSelectedChild,
 } from "../../redux/parent/parentSlice";
 import moment from "moment";
-import {
-  Form,
-  Modal,
-  message,
-  Input as AntInput,
-  Upload,
-  DatePicker,
-  TimePicker,
-  Divider as AntDivider,
-} from "antd";
+import api from "../../configs/config-axios";
 
-const { TextArea } = AntInput;
+const { TextArea } = Input;
+const { TabPane } = Tabs;
+const { RangePicker } = DatePicker;
+const { Title, Text } = Typography;
 
 function MedicineRequestPage() {
   const dispatch = useDispatch();
@@ -71,678 +57,753 @@ function MedicineRequestPage() {
   const {
     children,
     selectedChild,
-    incidents,
-    selectedIncident,
-    loading,
-    error,
+    medicationRequests,
+    loading: childrenLoading,
     success,
+    error,
   } = useSelector((state) => state.parent);
 
   const [form] = Form.useForm();
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [tabValue, setTabValue] = useState(0);
-  const [openIncidentDialog, setOpenIncidentDialog] = useState(false);
-  const [medicineRequests, setMedicineRequests] = useState([]);
-  const [requestsLoading, setRequestsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("1");
+  const [fileList, setFileList] = useState([]);
+  const [previewImage, setPreviewImage] = useState("");
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewTitle, setPreviewTitle] = useState("");
+  const [dateType, setDateType] = useState("single"); // "single" or "multiple"
+  const [submitting, setSubmitting] = useState(false);
 
-  // Fetch children data
+  // Fetch children data on mount
   useEffect(() => {
-    dispatch(getParentChildren());
+    console.log("Fetching children data...");
+    dispatch(getParentChildren())
+      .unwrap()
+      .then((data) => {
+        console.log("Children data fetched successfully:", data);
+      })
+      .catch((error) => {
+        console.error("Error fetching children data:", error);
+        message.error(
+          "Không thể tải danh sách học sinh. Vui lòng thử lại sau."
+        );
+      });
   }, [dispatch]);
+
+  // Log children data when it changes
+  useEffect(() => {
+    console.log("Children data in Redux:", children);
+  }, [children]);
 
   // Select first child if none selected
   useEffect(() => {
     if (children && children.length > 0 && !selectedChild) {
-      dispatch(getChildDetails(children[0].id));
+      // Make sure we have a valid ID before dispatching
+      const childId = children[0].id || children[0].student_id;
+      if (childId) {
+        console.log("Selecting first child:", children[0]);
+        dispatch(getChildDetails(childId));
+      } else {
+        console.error("No valid ID found for child:", children[0]);
+      }
     }
   }, [dispatch, children, selectedChild]);
 
-  // Fetch incidents when child is selected
+  // Fetch medication requests when child is selected
   useEffect(() => {
-    if (selectedChild) {
-      dispatch(getIncidentsByUser(selectedChild.id));
-      fetchMedicineRequests(selectedChild.id);
+    if (selectedChild?.student_id) {
+      dispatch(getMedicationRequests(selectedChild.student_id));
+    } else if (selectedChild) {
+      // If selectedChild exists but doesn't have student_id, log warning
+      console.warn("Selected child doesn't have a student_id:", selectedChild);
     }
   }, [dispatch, selectedChild]);
 
   // Handle success from API
   useEffect(() => {
-    if (success) {
+    if (success && submitting) {
       message.success("Gửi yêu cầu thuốc thành công!");
       setIsModalVisible(false);
       form.resetFields();
+      setFileList([]);
+      setSubmitting(false);
 
       // Refresh medicine requests
-      if (selectedChild) {
-        fetchMedicineRequests(selectedChild.id);
+      if (selectedChild?.student_id) {
+        dispatch(getMedicationRequests(selectedChild.student_id));
       }
     }
-  }, [success, form, selectedChild]);
+  }, [success, form, selectedChild, submitting, dispatch]);
 
-  // Mock function to fetch medicine requests - in a real app, this would be a Redux action
-  const fetchMedicineRequests = (childId) => {
-    setRequestsLoading(true);
-    // Simulating API call
-    setTimeout(() => {
-      const mockRequests = [
-        {
-          id: 1,
-          childId: childId,
-          childName: selectedChild?.name || "Học sinh",
-          medicineName: "Paracetamol",
-          dosage: "5ml",
-          frequency: "3 lần/ngày",
-          duration: "3 ngày",
-          time: "8:00, 12:00, 18:00",
-          notes: "Uống sau ăn",
-          status: "pending",
-          requestDate: moment().subtract(2, "days").format("YYYY-MM-DD"),
-          prescription: null,
-        },
-        {
-          id: 2,
-          childId: childId,
-          childName: selectedChild?.name || "Học sinh",
-          medicineName: "Vitamin C",
-          dosage: "1 viên",
-          frequency: "1 lần/ngày",
-          duration: "7 ngày",
-          time: "8:00",
-          notes: "Uống sau bữa sáng",
-          status: "approved",
-          requestDate: moment().subtract(5, "days").format("YYYY-MM-DD"),
-          prescription: null,
-        },
-      ];
-      setMedicineRequests(mockRequests);
-      setRequestsLoading(false);
-    }, 1000);
+  // Handle errors from API
+  useEffect(() => {
+    if (error && submitting) {
+      if (error.errors && Array.isArray(error.errors)) {
+        // Display specific validation errors
+        message.error(`Lỗi: ${error.errors.join(", ")}`);
+      } else {
+        message.error(
+          "Không thể gửi yêu cầu thuốc: " +
+            (error.message || "Vui lòng thử lại sau.")
+        );
+      }
+      setSubmitting(false);
+    }
+  }, [error, submitting]);
+
+  const handleTabChange = (key) => {
+    setActiveTab(key);
   };
 
-  const handleSubmit = (values) => {
-    if (!selectedChild) {
-      message.error("Vui lòng chọn con em");
+  const showModal = () => {
+    form.resetFields();
+
+    // Nếu có học sinh đã chọn, thiết lập giá trị mặc định cho trường học sinh
+    if (selectedChild?.student_id) {
+      form.setFieldsValue({
+        student: selectedChild.student_id,
+      });
+    } else if (children.length > 0) {
+      // Nếu chưa có học sinh được chọn nhưng có danh sách học sinh, chọn học sinh đầu tiên
+      form.setFieldsValue({
+        student: children[0].student_id,
+      });
+      // Cập nhật selectedChild trong Redux store
+      dispatch(setSelectedChild(children[0]));
+    }
+
+    setFileList([]);
+    setDateType("single");
+    setIsModalVisible(true);
+  };
+
+  const handleCancel = () => {
+    setIsModalVisible(false);
+  };
+
+  const handlePreview = async (file) => {
+    if (!file.url && !file.preview) {
+      file.preview = await getBase64(file.originFileObj);
+    }
+
+    setPreviewImage(file.url || file.preview);
+    setPreviewVisible(true);
+    setPreviewTitle(
+      file.name || file.url.substring(file.url.lastIndexOf("/") + 1)
+    );
+  };
+
+  const handlePreviewCancel = () => setPreviewVisible(false);
+
+  const handleChangeUpload = ({ fileList: newFileList }) =>
+    setFileList(newFileList);
+
+  // Date disabler function - disables weekends and past dates
+  const disabledDate = (current) => {
+    // Can't select days before today
+    const today = moment().startOf("day");
+
+    // Can't select weekends (Saturday is 6, Sunday is 0)
+    const isWeekend = current.day() === 0 || current.day() === 6;
+
+    return current && (current < today || isWeekend);
+  };
+
+  // End date disabler - also prevents selecting date before start date
+  const disabledEndDate = (current, startDate) => {
+    // Can't select days before start date
+    const isBeforeStartDate = startDate && current < startDate.startOf("day");
+
+    // Can't select weekends (Saturday is 6, Sunday is 0)
+    const isWeekend = current.day() === 0 || current.day() === 6;
+
+    return current && (isBeforeStartDate || isWeekend);
+  };
+
+  const handleDateTypeChange = (e) => {
+    const newDateType = e.target.value;
+    setDateType(newDateType);
+
+    // Clear the date fields when switching between single and multiple
+    form.setFieldsValue({
+      singleDate: undefined,
+      startDate: undefined,
+      endDate: undefined,
+    });
+  };
+
+  const handleSubmit = async (values) => {
+    // Prepare start and end dates based on date type
+    let startDate, endDate;
+
+    if (dateType === "single") {
+      // For single date, both start and end are the same
+      startDate = values.singleDate;
+      endDate = values.singleDate;
+    } else {
+      // For multiple dates
+      startDate = values.startDate;
+      endDate = values.endDate;
+    }
+
+    // Get student_id from form values
+    const student_id = values.student;
+
+    // Find the selected child from the children array
+    const selectedStudentFromForm = children.find(
+      (child) => child.student_id === student_id
+    );
+
+    // Check if student_id exists
+    if (!student_id) {
+      message.error("Vui lòng chọn học sinh.");
       return;
     }
 
-    // Format the time values into a string if they're array of moments
-    let formattedTime = values.time;
-    if (
-      Array.isArray(values.time) &&
-      values.time.every((t) => moment.isMoment(t))
-    ) {
-      formattedTime = values.time.map((t) => t.format("HH:mm")).join(", ");
+    // Check if parent_id exists
+    if (!user?.user_id) {
+      message.error(
+        "Không thể xác định thông tin phụ huynh. Vui lòng đăng nhập lại."
+      );
+      return;
     }
 
-    const requestData = {
-      childId: selectedChild.id,
-      childName: selectedChild.name,
-      ...values,
-      time: formattedTime,
-      requestDate: moment().format("YYYY-MM-DD"),
-      status: "pending",
+    // Prepare the image if available
+    let imageUrl = "";
+    if (fileList.length > 0 && fileList[0].originFileObj) {
+      try {
+        const formData = new FormData();
+        formData.append("file", fileList[0].originFileObj);
+
+        // For now we'll use a placeholder until image upload is implemented
+        imageUrl = "https://example.com/uploaded-prescription.jpg";
+
+        // In a real implementation with actual file upload:
+        // const uploadResponse = await api.post('/parent/upload-image', formData);
+        // imageUrl = uploadResponse.data.url;
+      } catch (uploadError) {
+        console.error("Lỗi khi tải ảnh lên:", uploadError);
+        message.warning(
+          "Không thể tải ảnh lên, tiếp tục gửi yêu cầu không có ảnh."
+        );
+      }
+    }
+
+    // Create medication request data with all required fields
+    const medicationRequestData = {
+      parent_id: user.user_id,
+      student_id: student_id,
+      note: values.note,
+      image_url: imageUrl,
+      start_date: startDate.format("YYYY-MM-DD"),
+      end_date: endDate.format("YYYY-MM-DD"),
+      medication_name: values.note.split("\n")[0] || "Thuốc",
+      dosage: values.dosage || "",
+      frequency: values.frequency || "",
+      status: "PENDING",
+      nurse_id: 3, // Luôn gán nurse_id mặc định là 3
     };
 
-    // Dispatch action to submit the request
-    dispatch(submitMedicationRequest(requestData));
+    console.log("Sending medication request data:", medicationRequestData);
+    setSubmitting(true);
+
+    // Use the Redux action instead of direct API call
+    dispatch(submitMedicationRequest(medicationRequestData));
   };
 
-  const handleEdit = (record) => {
-    const childToEdit = children.find((child) => child.id === record.childId);
-    if (childToEdit) {
-      dispatch(setSelectedChild(childToEdit));
+  const getStatusTag = (status) => {
+    switch (status.toUpperCase()) {
+      case "PENDING":
+        return (
+          <Tag icon={<ClockCircleFilled />} color="warning">
+            Đang chờ duyệt
+          </Tag>
+        );
+      case "APPROVED":
+        return (
+          <Tag icon={<CheckCircleOutlined />} color="success">
+            Đã duyệt
+          </Tag>
+        );
+      case "REJECTED":
+        return (
+          <Tag icon={<CloseCircleOutlined />} color="error">
+            Từ chối
+          </Tag>
+        );
+      case "IN_REVIEW":
+        return (
+          <Tag icon={<ExclamationCircleOutlined />} color="processing">
+            Đang xem xét
+          </Tag>
+        );
+      case "DELIVERED":
+        return (
+          <Tag icon={<MedicineBoxOutlined />} color="blue">
+            Đã giao thuốc
+          </Tag>
+        );
+      default:
+        return <Tag color="default">{status}</Tag>;
     }
+  };
 
-    // Parse times from string to array of moments if needed
-    let timeValues = record.time;
-    if (typeof record.time === "string") {
-      timeValues = record.time.split(", ").map((t) => moment(t, "HH:mm"));
-    }
-
-    form.setFieldsValue({
-      ...record,
-      time: timeValues,
+  const getBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
     });
-    setIsModalVisible(true);
   };
 
-  const handleDelete = (id) => {
-    Modal.confirm({
-      title: "Xác nhận xóa",
-      content: "Bạn có chắc chắn muốn xóa yêu cầu này?",
-      onOk: () => {
-        setMedicineRequests(medicineRequests.filter((req) => req.id !== id));
-        message.success("Đã xóa yêu cầu thuốc");
-      },
-    });
-  };
+  const uploadButton = (
+    <div>
+      <PlusOutlined />
+      <div style={{ marginTop: 8 }}>Tải lên</div>
+    </div>
+  );
 
-  const handleTabChange = (event, newValue) => {
-    setTabValue(newValue);
-  };
-
-  const handleOpenIncidentDialog = (incident) => {
-    dispatch(setSelectedIncident(incident));
-    setOpenIncidentDialog(true);
-  };
-
-  const handleCloseIncidentDialog = () => {
-    setOpenIncidentDialog(false);
-  };
-
-  const handleOpenMedicineModal = () => {
-    form.resetFields();
-    setIsModalVisible(true);
-  };
-
-  const getSeverityColor = (severity) => {
-    switch (severity?.toLowerCase()) {
-      case "nhẹ":
-        return "success";
-      case "trung bình":
-        return "warning";
-      case "nặng":
-        return "error";
-      default:
-        return "default";
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "resolved":
-        return "success";
-      case "ongoing":
-        return "warning";
-      case "pending":
-        return "info";
-      default:
-        return "default";
-    }
-  };
-
-  const getStatusText = (status) => {
-    switch (status) {
-      case "resolved":
-        return "Đã giải quyết";
-      case "ongoing":
-        return "Đang xử lý";
-      case "pending":
-        return "Chờ xử lý";
-      default:
-        return "Không xác định";
-    }
-  };
-
-  const renderMedicineRequests = () => {
-    if (requestsLoading || loading) {
-      return (
-        <Box display="flex" justifyContent="center" mt={3}>
-          <CircularProgress />
-        </Box>
-      );
-    }
-
-    if (!selectedChild) {
-      return (
-        <Typography variant="body1" align="center" mt={3}>
-          Vui lòng chọn học sinh để xem yêu cầu thuốc
-        </Typography>
-      );
-    }
-
-    return (
-      <>
-        <Box display="flex" justifyContent="flex-end" mb={2}>
+  const columns = [
+    {
+      title: "Mã YC",
+      dataIndex: "id_req",
+      key: "id_req",
+      width: 80,
+    },
+    {
+      title: "Thời gian yêu cầu",
+      dataIndex: "created_at",
+      key: "created_at",
+      render: (text) => moment(text).format("DD/MM/YYYY HH:mm"),
+    },
+    {
+      title: "Thời gian sử dụng",
+      key: "period",
+      render: (_, record) => (
+        <span>
+          {moment(record.start_date).format("DD/MM/YYYY")} -{" "}
+          {moment(record.end_date).format("DD/MM/YYYY")}
+        </span>
+      ),
+    },
+    {
+      title: "Ghi chú",
+      dataIndex: "note",
+      key: "note",
+      ellipsis: true,
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      render: (status) => getStatusTag(status),
+    },
+    {
+      title: "Thao tác",
+      key: "action",
+      width: 120,
+      render: (_, record) => (
+        <Space size="small">
           <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={handleOpenMedicineModal}
+            type="primary"
+            size="small"
+            icon={<InfoCircleOutlined />}
+            onClick={() => viewMedicationDetails(record)}
           >
-            Gửi yêu cầu thuốc mới
+            Chi tiết
           </Button>
-        </Box>
+        </Space>
+      ),
+    },
+  ];
 
-        {medicineRequests.length === 0 ? (
-          <Typography variant="body1" align="center" mt={3}>
-            Không có yêu cầu thuốc nào
-          </Typography>
-        ) : (
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Ngày yêu cầu</TableCell>
-                  <TableCell>Tên thuốc</TableCell>
-                  <TableCell>Liều lượng</TableCell>
-                  <TableCell>Tần suất</TableCell>
-                  <TableCell>Thời gian</TableCell>
-                  <TableCell>Trạng thái</TableCell>
-                  <TableCell>Hành động</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {medicineRequests.map((request) => (
-                  <TableRow key={request.id}>
-                    <TableCell>{request.requestDate}</TableCell>
-                    <TableCell>{request.medicineName}</TableCell>
-                    <TableCell>{request.dosage}</TableCell>
-                    <TableCell>{request.frequency}</TableCell>
-                    <TableCell>{request.time}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={
-                          request.status === "pending"
-                            ? "Chờ xử lý"
-                            : request.status === "approved"
-                            ? "Đã duyệt"
-                            : "Từ chối"
-                        }
-                        color={
-                          request.status === "pending"
-                            ? "warning"
-                            : request.status === "approved"
-                            ? "success"
-                            : "error"
-                        }
-                        size="small"
+  const viewMedicationDetails = (record) => {
+    Modal.info({
+      title: "Chi tiết yêu cầu gửi thuốc",
+      width: 600,
+      content: (
+        <div style={{ marginTop: 16 }}>
+          <Row gutter={[16, 16]}>
+            <Col span={24}>
+              <Card>
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <p>
+                      <strong>Mã yêu cầu:</strong> #{record.id_req}
+                    </p>
+                    <p>
+                      <strong>Ngày yêu cầu:</strong>{" "}
+                      {moment(record.created_at).format("DD/MM/YYYY HH:mm")}
+                    </p>
+                    <p>
+                      <strong>Thời gian sử dụng:</strong>{" "}
+                      {moment(record.start_date).format("DD/MM/YYYY")} -{" "}
+                      {moment(record.end_date).format("DD/MM/YYYY")}
+                    </p>
+                    <p>
+                      <strong>Trạng thái:</strong> {getStatusTag(record.status)}
+                    </p>
+                  </Col>
+                  <Col span={12}>
+                    <p>
+                      <strong>Học sinh:</strong> {selectedChild?.full_name}
+                    </p>
+                    <p>
+                      <strong>Lớp:</strong> {selectedChild?.class_name}
+                    </p>
+                    <p>
+                      <strong>Y tá phụ trách:</strong> ID: {record.nurse_id}
+                    </p>
+                  </Col>
+                </Row>
+                <Divider />
+                <div>
+                  <strong>Ghi chú:</strong>
+                  <p>{record.note || "Không có ghi chú"}</p>
+                </div>
+                {record.image_url && (
+                  <div style={{ marginTop: 16 }}>
+                    <strong>Hình ảnh đơn thuốc:</strong>
+                    <div style={{ marginTop: 8 }}>
+                      <img
+                        src={record.image_url}
+                        alt="Đơn thuốc"
+                        style={{ maxWidth: "100%", maxHeight: 200 }}
                       />
-                    </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={1}>
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => handleEdit(request)}
-                        >
-                          <VisibilityIcon fontSize="small" />
-                        </IconButton>
-                        {request.status === "pending" && (
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleDelete(request.id)}
-                          >
-                            <Warning fontSize="small" />
-                          </IconButton>
-                        )}
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
-      </>
-    );
+                    </div>
+                  </div>
+                )}
+              </Card>
+            </Col>
+          </Row>
+        </div>
+      ),
+      onOk() {},
+    });
   };
 
-  const renderActiveIncidents = () => {
-    const activeIncidents = incidents.filter(
-      (inc) => inc.status !== "resolved"
-    );
-
-    if (loading) {
-      return (
-        <Box display="flex" justifyContent="center" mt={3}>
-          <CircularProgress />
-        </Box>
-      );
-    }
-
-    if (!selectedChild) {
-      return (
-        <Typography variant="body1" align="center" mt={3}>
-          Vui lòng chọn học sinh để xem sự cố y tế
-        </Typography>
-      );
-    }
-
-    if (activeIncidents.length === 0) {
-      return (
-        <Typography variant="body1" align="center" mt={3}>
-          Không có sự cố y tế đang xử lý
-        </Typography>
-      );
-    }
+  const renderActiveMedications = () => {
+    const activeRequests =
+      medicationRequests?.filter((req) =>
+        ["PENDING", "APPROVED", "IN_REVIEW"].includes(
+          (req.status || "").toUpperCase()
+        )
+      ) || [];
 
     return (
-      <Grid container spacing={2} mt={1}>
-        {activeIncidents.map((incident) => (
-          <Grid item xs={12} md={6} key={incident.id}>
-            <Card>
-              <CardHeader
-                title={incident.type}
-                subheader={
-                  <Stack direction="row" spacing={1} mt={0.5}>
-                    <Chip
-                      label={getStatusText(incident.status)}
-                      color={getStatusColor(incident.status)}
-                      size="small"
-                    />
-                    <Chip
-                      label={incident.severity}
-                      color={getSeverityColor(incident.severity)}
-                      size="small"
-                    />
-                  </Stack>
-                }
-                action={
-                  <IconButton
-                    color="primary"
-                    onClick={() => handleOpenIncidentDialog(incident)}
-                  >
-                    <VisibilityIcon />
-                  </IconButton>
-                }
-              />
-              <Divider />
-              <CardContent>
-                <Box display="flex" alignItems="center" mb={1}>
-                  <CalendarToday fontSize="small" sx={{ mr: 1 }} />
-                  <Typography variant="body2">Ngày: {incident.date}</Typography>
-                </Box>
-                <Box display="flex" alignItems="center" mb={1}>
-                  <AccessTime fontSize="small" sx={{ mr: 1 }} />
-                  <Typography variant="body2">Giờ: {incident.time}</Typography>
-                </Box>
-                <Box display="flex" alignItems="center" mb={1}>
-                  <LocationOn fontSize="small" sx={{ mr: 1 }} />
-                  <Typography variant="body2">
-                    Địa điểm: {incident.location}
-                  </Typography>
-                </Box>
-                <Box display="flex" alignItems="flex-start" mb={1}>
-                  <Description fontSize="small" sx={{ mr: 1, mt: 0.5 }} />
-                  <Typography variant="body2">
-                    Mô tả: {incident.description}
-                  </Typography>
-                </Box>
-                <Box display="flex" alignItems="center" mb={1}>
-                  <LocalHospital fontSize="small" sx={{ mr: 1 }} />
-                  <Typography variant="body2">
-                    Xử lý: {incident.treatment}
-                  </Typography>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+      <Table
+        columns={columns}
+        dataSource={activeRequests}
+        rowKey={(record) => record.id_req || record.id}
+        loading={childrenLoading}
+        pagination={{ pageSize: 5 }}
+        locale={{
+          emptyText: (
+            <Empty description="Không có yêu cầu thuốc nào đang hoạt động" />
+          ),
+        }}
+      />
     );
   };
 
-  const renderIncidentHistory = () => {
-    const resolvedIncidents = incidents.filter(
-      (inc) => inc.status === "resolved"
-    );
-
-    if (loading) {
-      return (
-        <Box display="flex" justifyContent="center" mt={3}>
-          <CircularProgress />
-        </Box>
-      );
-    }
-
-    if (!selectedChild) {
-      return (
-        <Typography variant="body1" align="center" mt={3}>
-          Vui lòng chọn học sinh để xem lịch sử sự cố y tế
-        </Typography>
-      );
-    }
-
-    if (resolvedIncidents.length === 0) {
-      return (
-        <Typography variant="body1" align="center" mt={3}>
-          Không có lịch sử sự cố y tế
-        </Typography>
-      );
-    }
+  const renderHistoryMedications = () => {
+    const historyRequests =
+      medicationRequests?.filter((req) =>
+        ["DELIVERED", "REJECTED"].includes((req.status || "").toUpperCase())
+      ) || [];
 
     return (
-      <TableContainer component={Paper} sx={{ mt: 2 }}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Ngày</TableCell>
-              <TableCell>Loại sự cố</TableCell>
-              <TableCell>Mức độ</TableCell>
-              <TableCell>Xử lý</TableCell>
-              <TableCell>Chi tiết</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {resolvedIncidents.map((incident) => (
-              <TableRow key={incident.id}>
-                <TableCell>{incident.date}</TableCell>
-                <TableCell>{incident.type}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={incident.severity}
-                    color={getSeverityColor(incident.severity)}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>{incident.treatment}</TableCell>
-                <TableCell>
-                  <IconButton
-                    color="primary"
-                    onClick={() => handleOpenIncidentDialog(incident)}
-                  >
-                    <VisibilityIcon />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      <Table
+        columns={columns}
+        dataSource={historyRequests}
+        rowKey={(record) => record.id_req || record.id}
+        loading={childrenLoading}
+        pagination={{ pageSize: 5 }}
+        locale={{
+          emptyText: <Empty description="Không có lịch sử gửi thuốc" />,
+        }}
+      />
     );
   };
 
-  const renderIncidentDetails = () => {
-    const incident = selectedIncident;
-
-    if (!incident) return null;
-
+  if (childrenLoading) {
     return (
-      <Box>
-        <Box display="flex" alignItems="center" mb={1}>
-          <Typography variant="h6" component="span" mr={1}>
-            {incident.type}
-          </Typography>
-          <Chip
-            label={incident.severity}
-            color={getSeverityColor(incident.severity)}
-            size="small"
-          />
-          <Chip
-            label={getStatusText(incident.status)}
-            color={getStatusColor(incident.status)}
-            size="small"
-            sx={{ ml: 1 }}
-          />
-        </Box>
-        <Divider sx={{ mb: 2 }} />
-
-        <Grid container spacing={2}>
-          <Grid item xs={6}>
-            <Typography variant="subtitle2">Ngày:</Typography>
-            <Typography variant="body2">{incident.date}</Typography>
-          </Grid>
-          <Grid item xs={6}>
-            <Typography variant="subtitle2">Giờ:</Typography>
-            <Typography variant="body2">{incident.time}</Typography>
-          </Grid>
-          <Grid item xs={12}>
-            <Typography variant="subtitle2">Địa điểm:</Typography>
-            <Typography variant="body2">{incident.location}</Typography>
-          </Grid>
-          <Grid item xs={12}>
-            <Typography variant="subtitle2">Mô tả sự cố:</Typography>
-            <Typography variant="body2">{incident.description}</Typography>
-          </Grid>
-          <Grid item xs={12}>
-            <Typography variant="subtitle2">Xử lý:</Typography>
-            <Typography variant="body2">{incident.treatment}</Typography>
-          </Grid>
-          <Grid item xs={12}>
-            <Typography variant="subtitle2">Người báo cáo:</Typography>
-            <Typography variant="body2">{incident.reportedBy}</Typography>
-          </Grid>
-          {incident.nurseNotes && (
-            <Grid item xs={12}>
-              <Typography variant="subtitle2">Ghi chú của y tá:</Typography>
-              <Typography variant="body2">{incident.nurseNotes}</Typography>
-            </Grid>
-          )}
-          {incident.followUpRequired && (
-            <Grid item xs={12}>
-              <Typography variant="subtitle2">Theo dõi thêm:</Typography>
-              <Typography variant="body2">
-                Cần theo dõi thêm{" "}
-                {incident.followUpDate
-                  ? `đến ngày ${incident.followUpDate}`
-                  : ""}
-              </Typography>
-            </Grid>
-          )}
-        </Grid>
-      </Box>
+      <div style={{ textAlign: "center", padding: 50 }}>
+        <Spin size="large" />
+        <p style={{ marginTop: 16 }}>Đang tải thông tin...</p>
+      </div>
     );
-  };
+  }
 
   return (
-    <Box p={3}>
-      <Typography variant="h5" gutterBottom>
-        Quản lý thuốc và sự cố y tế
-      </Typography>
+    <div className="medication-submission-page">
+      <Card style={{ marginBottom: 24 }}>
+        <Row gutter={[16, 16]} align="middle" justify="space-between">
+          <Col>
+            <Title level={4} style={{ margin: 0 }}>
+              <MedicineBoxOutlined style={{ marginRight: 8 }} />
+              Gửi thuốc
+            </Title>
+            <Text type="secondary">
+              Gửi yêu cầu thuốc cho con em và theo dõi tình trạng
+            </Text>
+          </Col>
+          <Col>
+            <Button type="primary" icon={<PlusOutlined />} onClick={showModal}>
+              Gửi yêu cầu mới
+            </Button>
+          </Col>
+        </Row>
+      </Card>
 
-      <Paper sx={{ mt: 2 }}>
-        <Tabs
-          value={tabValue}
-          onChange={handleTabChange}
-          indicatorColor="primary"
-          textColor="primary"
-          variant="fullWidth"
-        >
-          <Tab label="Yêu cầu thuốc" />
-          <Tab label="Sự cố đang xử lý" />
-          <Tab label="Lịch sử sự cố" />
+      <Card>
+        <Tabs activeKey={activeTab} onChange={handleTabChange}>
+          <TabPane
+            tab={
+              <span>
+                <ClockCircleOutlined /> Yêu cầu đang xử lý
+              </span>
+            }
+            key="1"
+          >
+            {renderActiveMedications()}
+          </TabPane>
+          <TabPane
+            tab={
+              <span>
+                <CheckCircleOutlined /> Lịch sử gửi thuốc
+              </span>
+            }
+            key="2"
+          >
+            {renderHistoryMedications()}
+          </TabPane>
         </Tabs>
-
-        <Box p={2}>
-          {tabValue === 0 && renderMedicineRequests()}
-          {tabValue === 1 && renderActiveIncidents()}
-          {tabValue === 2 && renderIncidentHistory()}
-        </Box>
-      </Paper>
+      </Card>
 
       {/* Modal gửi yêu cầu thuốc */}
       <Modal
         title="Gửi yêu cầu thuốc cho con"
-        visible={isModalVisible}
+        open={isModalVisible}
         onCancel={() => setIsModalVisible(false)}
         footer={null}
         width={700}
       >
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item
-            name="medicineName"
-            label="Tên thuốc"
-            rules={[{ required: true, message: "Vui lòng nhập tên thuốc" }]}
-          >
-            <AntInput placeholder="Nhập tên thuốc" />
-          </Form.Item>
-
-          <Form.Item
-            name="dosage"
-            label="Liều lượng"
-            rules={[{ required: true, message: "Vui lòng nhập liều lượng" }]}
-          >
-            <AntInput placeholder="VD: 5ml, 1 viên, 1 gói..." />
-          </Form.Item>
-
-          <Form.Item
-            name="frequency"
-            label="Tần suất"
-            rules={[{ required: true, message: "Vui lòng nhập tần suất" }]}
-          >
-            <AntInput placeholder="VD: 3 lần/ngày, 1 lần/ngày..." />
-          </Form.Item>
-
-          <Form.Item
-            name="duration"
-            label="Thời gian dùng"
+            name="student"
+            label="Học sinh"
+            initialValue={selectedChild?.student_id}
             rules={[
-              { required: true, message: "Vui lòng nhập thời gian dùng" },
+              {
+                required: true,
+                message: "Vui lòng chọn học sinh",
+              },
             ]}
           >
-            <AntInput placeholder="VD: 3 ngày, 1 tuần..." />
+            <Select
+              onChange={(value) => {
+                const selected = children.find(
+                  (child) => child.student_id === value
+                );
+                if (selected) {
+                  dispatch(setSelectedChild(selected));
+                }
+              }}
+              notFoundContent={
+                children.length === 0 ? (
+                  <Spin size="small" />
+                ) : (
+                  <Empty description="Không có dữ liệu" />
+                )
+              }
+              loading={childrenLoading}
+              placeholder="Chọn học sinh"
+            >
+              {children && children.length > 0 ? (
+                children.map((child) => (
+                  <Select.Option
+                    key={child.student_id}
+                    value={child.student_id}
+                  >
+                    {child.full_name ||
+                      child.name ||
+                      `Học sinh ${child.student_id}`}{" "}
+                    {child.class_name ? `- ${child.class_name}` : ""}
+                  </Select.Option>
+                ))
+              ) : (
+                <Select.Option value="" disabled>
+                  Không có dữ liệu học sinh
+                </Select.Option>
+              )}
+            </Select>
           </Form.Item>
+
+          <Alert
+            message="Lưu ý về thời gian gửi thuốc"
+            description="Không thể chọn ngày cuối tuần (Thứ 7, Chủ Nhật) và ngày trong quá khứ."
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+
+          <Form.Item label="Loại thời gian sử dụng thuốc">
+            <Radio.Group value={dateType} onChange={handleDateTypeChange}>
+              <Radio value="single">Một ngày duy nhất</Radio>
+              <Radio value="multiple">Nhiều ngày</Radio>
+            </Radio.Group>
+          </Form.Item>
+
+          {dateType === "single" ? (
+            <Form.Item
+              name="singleDate"
+              label="Ngày sử dụng thuốc"
+              rules={[
+                {
+                  required: true,
+                  message: "Vui lòng chọn ngày sử dụng thuốc",
+                },
+              ]}
+            >
+              <DatePicker
+                style={{ width: "100%" }}
+                format="DD/MM/YYYY"
+                placeholder="Chọn ngày"
+                disabledDate={disabledDate}
+              />
+            </Form.Item>
+          ) : (
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="startDate"
+                  label="Ngày bắt đầu"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Vui lòng chọn ngày bắt đầu",
+                    },
+                  ]}
+                >
+                  <DatePicker
+                    style={{ width: "100%" }}
+                    format="DD/MM/YYYY"
+                    placeholder="Ngày bắt đầu"
+                    disabledDate={disabledDate}
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="endDate"
+                  label="Ngày kết thúc"
+                  dependencies={["startDate"]}
+                  rules={[
+                    {
+                      required: true,
+                      message: "Vui lòng chọn ngày kết thúc",
+                    },
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        const startDate = getFieldValue("startDate");
+                        if (!value || !startDate) {
+                          return Promise.resolve();
+                        }
+                        // Use standard moment.js comparison
+                        if (
+                          value.isSame(startDate) ||
+                          value.isAfter(startDate)
+                        ) {
+                          return Promise.resolve();
+                        }
+                        return Promise.reject(
+                          new Error(
+                            "Ngày kết thúc phải sau hoặc bằng ngày bắt đầu"
+                          )
+                        );
+                      },
+                    }),
+                  ]}
+                >
+                  <DatePicker
+                    style={{ width: "100%" }}
+                    format="DD/MM/YYYY"
+                    placeholder="Ngày kết thúc"
+                    disabledDate={(current) => {
+                      const startDate = form.getFieldValue("startDate");
+                      return disabledEndDate(current, startDate);
+                    }}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+          )}
 
           <Form.Item
-            name="time"
-            label="Thời điểm uống thuốc"
+            name="note"
+            label="Ghi chú về thuốc"
             rules={[
-              { required: true, message: "Vui lòng nhập thời điểm uống thuốc" },
+              { required: true, message: "Vui lòng nhập thông tin về thuốc" },
             ]}
           >
-            <AntInput placeholder="VD: 8:00, 12:00, 18:00" />
-          </Form.Item>
-
-          <Form.Item name="notes" label="Ghi chú">
             <TextArea
               rows={4}
-              placeholder="Thêm ghi chú về cách dùng thuốc (nếu có)"
+              placeholder="Nhập tên thuốc, liều lượng, cách dùng và các hướng dẫn cần thiết khác"
             />
           </Form.Item>
 
-          <Form.Item name="prescription" label="Đơn thuốc (nếu có)">
-            <Upload>
-              <Button icon={<UploadOutlined />}>Tải lên đơn thuốc</Button>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="dosage" label="Liều lượng">
+                <Input placeholder="Ví dụ: 1 viên/lần" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="frequency" label="Tần suất sử dụng">
+                <Input placeholder="Ví dụ: 3 lần/ngày sau bữa ăn" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item name="prescription" label="Hình ảnh đơn thuốc (nếu có)">
+            <Upload
+              listType="picture-card"
+              fileList={fileList}
+              onPreview={handlePreview}
+              onChange={handleChangeUpload}
+              beforeUpload={() => false} // Prevent auto upload
+              maxCount={1}
+            >
+              {fileList.length >= 1 ? null : uploadButton}
             </Upload>
           </Form.Item>
 
-          <AntDivider />
-
-          <Form.Item>
-            <Button type="primary" htmlType="submit" loading={loading}>
-              Gửi yêu cầu
-            </Button>
+          <Form.Item style={{ textAlign: "right", marginBottom: 0 }}>
             <Button
-              style={{ marginLeft: 8 }}
+              style={{ marginRight: 8 }}
               onClick={() => setIsModalVisible(false)}
+              disabled={submitting}
             >
               Hủy
+            </Button>
+            <Button type="primary" htmlType="submit" loading={submitting}>
+              Gửi yêu cầu
             </Button>
           </Form.Item>
         </Form>
       </Modal>
 
-      {/* Dialog chi tiết sự cố */}
-      <Dialog
-        open={openIncidentDialog}
-        onClose={handleCloseIncidentDialog}
-        maxWidth="md"
-        fullWidth
+      <Modal
+        open={previewVisible}
+        title={previewTitle}
+        footer={null}
+        onCancel={handlePreviewCancel}
       >
-        <DialogTitle>
-          <Box display="flex" alignItems="center">
-            <Warning sx={{ mr: 1, color: "warning.main" }} />
-            Chi tiết sự cố y tế
-          </Box>
-        </DialogTitle>
-        <DialogContent dividers>{renderIncidentDetails()}</DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseIncidentDialog}>Đóng</Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+        <img alt="example" style={{ width: "100%" }} src={previewImage} />
+      </Modal>
+    </div>
   );
 }
 

@@ -7,6 +7,40 @@
 
 /**
  * @swagger
+ * /profile:
+ *   get:
+ *     tags: [Manager]
+ *     summary: Lấy thông tin hồ sơ người quản lý
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Thông tin hồ sơ người dùng
+ *   patch:
+ *     tags: [Manager]
+ *     summary: Cập nhật thông tin hồ sơ người quản lý
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               full_name:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Hồ sơ đã được cập nhật
+ */
+
+/**
+ * @swagger
  * /checkups/pending:
  *   get:
  *     tags: [Manager]

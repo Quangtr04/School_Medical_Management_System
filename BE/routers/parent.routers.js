@@ -18,7 +18,6 @@ const {
 
 // Khai báo y tế
 const {
-  createHealthDeclarationById,
   getHealthDeclarationOfStudentById,
   updateHealthDeclarationByStudentId,
 } = require("../Controller/Health/healthDeclaration");
@@ -27,7 +26,10 @@ const {
 const { getIncidentsByUserId, getIncidentById } = require("../Controller/Medical/medical_Incident");
 
 // Yêu cầu gửi thuốc
-const { medicationSubmissionReq } = require("../Controller/Medical/medicalSubmissionReq");
+const {
+  medicationSubmissionReq,
+  cancelMedicationSubmissionReq,
+} = require("../Controller/Medical/medicalSubmissionReq");
 
 // Thông báo
 const { getNotifications } = require("../Controller/Notification/getNotification");
@@ -37,10 +39,13 @@ const {
   getConsentVaccineDeclineByParentId,
   getConsentVaccineByIdAndParentId,
   getResponseConsentVaccineParent,
+  getConsentVaccinePendingByParentId,
 } = require("../Controller/Vaccine/consentVaccineController");
 const { UpdateResponseByParent } = require("../Controller/Vaccine/UpdateResponseVaccine");
-const { getUserByUserId } = require("../Controller/Infomation/getUser");
+const { getProfileByUserId } = require("../Controller/Infomation/getUser");
 const { parentUpdateUserById } = require("../Controller/Login/account_status");
+const { getStudentVaccineList, getStudentVaccineListById } = require("../Controller/Vaccine/UpdateVaccineResult");
+const { getCheckupParticipation, getCheckupParticipationById } = require("../Controller/CheckUp/saveCheckupResult");
 
 const parentRouter = express.Router();
 
@@ -51,10 +56,10 @@ const parentRouter = express.Router();
 parentRouter.get("/students", authenticateToken, getAllStudentByParentId); //done
 
 // Lấy thông tin cá nhân
-parentRouter.get("/profile/:user_id", authenticateToken, getUserByUserId);
+parentRouter.get("/profile", authenticateToken, getProfileByUserId);
 
 // Cập nhật thông tin
-parentRouter.patch("/profile/:user_id", authenticateToken, parentUpdateUserById);
+parentRouter.patch("/profile", authenticateToken, parentUpdateUserById);
 
 /**
  * 🔍 Xem thông tin chi tiết của 1 học sinh
@@ -87,6 +92,10 @@ parentRouter.post("/consents-checkups/:form_id/respond", authenticateToken, resp
  */
 parentRouter.patch("/checkups/:checkup_id/consent", authenticateToken, UpdateStatusCheckupParent); //done
 
+parentRouter.get("/consents-checkups/:id/students", getCheckupParticipation);
+
+parentRouter.get("/consents-checkups/:id/students/:student_id", getCheckupParticipationById);
+
 // --- Nhóm các API liên quan đến Khai báo y tế (Health Declarations) ---
 /**
  * 📄 Lấy thông tin khai báo y tế của học sinh
@@ -105,10 +114,10 @@ parentRouter.patch(
 
 // --- Nhóm các API liên quan đến Sự cố y tế (Medical Incidents) ---
 // Lấy tất cả sự cố y tế liên quan đến một user
-parentRouter.get("/incidents/:user_id", authenticateToken, getIncidentsByUserId);
+parentRouter.get("/incidents", authenticateToken, getIncidentsByUserId);
 
 // Lấy sự cố y tế của học sinh theo ID (Lưu ý: "view incedent" có vẻ là lỗi chính tả, nên đổi thành /:incident_id)
-parentRouter.get("/incidents/:incident_id", authenticateToken, getIncidentById); // Thêm authenticateToken nếu cần, và đổi tên parameter cho rõ ràng
+parentRouter.get("/incidents/:event_id", authenticateToken, getIncidentById); // Thêm authenticateToken nếu cần, và đổi tên parameter cho rõ ràng
 
 // --- Nhóm các API liên quan đến Yêu cầu gửi thuốc (Medical Submissions) ---
 /**
@@ -127,6 +136,9 @@ parentRouter.get("/vaccine-campaigns", authenticateToken, getConsentVaccineByPar
 // Lấy lịch tiêm chủng dựa trên id
 parentRouter.get("/vaccine-campaigns/:id", authenticateToken, getConsentVaccineByIdAndParentId);
 
+// Lấy tất cả lịch tiêm chủng đã đang chờ duyệt
+parentRouter.get("/vaccine-campaign-pending", authenticateToken, getConsentVaccinePendingByParentId);
+
 // Lấy tất cả lịch tiêm chủng đã được chấp thuận
 parentRouter.get("/vaccine-campaign-approved", authenticateToken, getConsentVaccineApproveByParentId);
 
@@ -137,7 +149,13 @@ parentRouter.get("/vaccine-campaign-declined", authenticateToken, getConsentVacc
 parentRouter.post("/vaccine-campaigns/:id/respond", authenticateToken, getResponseConsentVaccineParent);
 
 // Cập nhật về trạng thái lịch tiêm chủng
-parentRouter.patch("/vaccine-campaigns/:id/status", authenticateToken, UpdateResponseByParent);
+parentRouter.patch("/vaccine-campaigns/:form_id/status", authenticateToken, UpdateResponseByParent);
+
+// Lấy danh sách con có tham gia tiêm chủng
+parentRouter.get("/vaccine-campaigns/:campaign_id/students", getStudentVaccineList);
+
+// Lấy danh sách con có tham gia tiêm chủng theo id
+parentRouter.get("/vaccine-campaigns/:campaing_id/students/:vaccine_id", getStudentVaccineListById);
 
 // --- Nhóm các API liên quan đến Thông báo (Notifications) ---
 /**
@@ -145,5 +163,7 @@ parentRouter.patch("/vaccine-campaigns/:id/status", authenticateToken, UpdateRes
  * /notifications?page=1&limit=10
  */
 parentRouter.get("/notifications", authenticateToken, getNotifications);
+
+parentRouter.delete("/medical-submissions/:id_req", authenticateToken, cancelMedicationSubmissionReq);
 
 module.exports = parentRouter;

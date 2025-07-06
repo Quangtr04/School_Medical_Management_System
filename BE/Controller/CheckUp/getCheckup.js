@@ -6,7 +6,9 @@ const getCheckupList = async (req, res, next) => {
     const pool = await sqlServerPool;
 
     // Lấy danh sách lịch khám sức khỏe
-    const checkupList = await pool.request().query(`SELECT * FROM Medical_Checkup_Schedule`);
+    const checkupList = await pool
+      .request()
+      .query(`SELECT MS.*, U.fullname FROM Medical_Checkup_Schedule MS JOIN Users U ON MS.created_by = U.user_id`);
 
     res.status(200).json({ checkups: checkupList.recordset });
   } catch (error) {
@@ -21,10 +23,9 @@ const getCheckupById = async (req, res, next) => {
     const pool = await sqlServerPool;
 
     // Lấy danh sách lịch khám sức khỏe
-    const checkupList = await pool
-      .request()
-      .input("id", sql.Int, id)
-      .query(`SELECT * FROM Medical_Checkup_Schedule WHERE checkup_id = @id`);
+    const checkupList = await pool.request().input("id", sql.Int, id)
+      .query(`SELECT MS.*, U.fullname FROM Medical_Checkup_Schedule MS JOIN Users U ON MS.created_by = U.user_id 
+               WHERE MS.checkup_id = @id`);
 
     res.status(200).json({ checkups: checkupList.recordset });
   } catch (error) {
@@ -39,11 +40,9 @@ const getCheckupListByIdAndParentId = async (req, res, next) => {
   try {
     const pool = await sqlServerPool;
     // Lấy danh sách lịch khám sức khỏe theo id và parentId
-    const checkupList = await pool
-      .request()
-      .input("id", sql.Int, id)
-      .input("parentId", sql.Int, parentId)
-      .query(`SELECT * FROM Medical_Checkup_Schedule WHERE checkup_id = @id AND parent_id = @parentId`);
+    const checkupList = await pool.request().input("id", sql.Int, id).input("parentId", sql.Int, parentId)
+      .query(`SELECT MS.*, U.fullname FROM Medical_Checkup_Schedule MS JOIN Users U ON MS.created_by = U.user_id 
+              WHERE MS.checkup_id = @id AND MS.parent_id = @parentId`);
     if (checkupList.recordset.length === 0) {
       return res.status(404).json({ message: "Checkup not found for this parent" });
     }
@@ -59,10 +58,9 @@ const getCheckupListByParentId = async (req, res, next) => {
   try {
     const pool = await sqlServerPool;
     // Lấy danh sách lịch khám sức khỏe theo parentId
-    const checkupList = await pool
-      .request()
-      .input("parentId", sql.Int, parentId)
-      .query(`SELECT * FROM Medical_Checkup_Schedule WHERE parent_id = @parentId`);
+    const checkupList = await pool.request().input("parentId", sql.Int, parentId)
+      .query(`SELECT MS.*, U.fullname FROM Medical_Checkup_Schedule MS JOIN Users U ON MS.created_by = U.user_id 
+              WHERE MS.parent_id = @parentId`);
     if (checkupList.recordset.length === 0) {
       return res.status(404).json({ message: "No checkups found for this parent" });
     }
@@ -78,9 +76,9 @@ const getCheckupListApproved = async (req, res, next) => {
     const pool = await sqlServerPool;
 
     // Lấy danh sách lịch khám sức khỏe
-    const checkupList = await pool
-      .request()
-      .query(`SELECT * FROM Medical_Checkup_Schedule WHERE approval_status = 'APPROVED'`);
+    const checkupList = await pool.request()
+      .query(`SELECT MS.*, U.fullname FROM Medical_Checkup_Schedule MS JOIN Users U ON MS.created_by = U.user_id 
+              WHERE approval_status = 'APPROVED' `);
 
     res.status(200).json({ checkups: checkupList.recordset });
   } catch (error) {
@@ -94,9 +92,9 @@ const getCheckupListDeclined = async (req, res, next) => {
     const pool = await sqlServerPool;
 
     // Lấy danh sách lịch khám sức khỏe
-    const checkupList = await pool
-      .request()
-      .query(`SELECT * FROM Medical_Checkup_Schedule WHERE approval_status = 'DECLINED'`);
+    const checkupList = await pool.request()
+      .query(`SELECT MS.*, U.fullname FROM Medical_Checkup_Schedule MS JOIN Users U ON MS.created_by = U.user_id 
+              WHERE approval_status = 'DECLINED' `);
 
     res.status(200).json({ checkups: checkupList.recordset });
   } catch (error) {
@@ -110,9 +108,9 @@ const getCheckupListPending = async (req, res, next) => {
     const pool = await sqlServerPool;
 
     // Lấy danh sách lịch khám sức khỏe
-    const checkupList = await pool
-      .request()
-      .query(`SELECT * FROM Medical_Checkup_Schedule WHERE approval_status = 'PENDING'`);
+    const checkupList = await pool.request()
+      .query(`SELECT MS.*, U.fullname FROM Medical_Checkup_Schedule MS JOIN Users U ON MS.created_by = U.user_id 
+              WHERE approval_status = 'PENDING' `);
 
     res.status(200).json({ checkups: checkupList.recordset });
   } catch (error) {

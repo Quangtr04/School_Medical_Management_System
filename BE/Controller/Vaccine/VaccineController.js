@@ -8,6 +8,19 @@ const createVaccinationCampaign = async (req, res) => {
     const { title, description, scheduled_date, sponsor, className } = req.body;
     const pool = await sqlServerPool;
 
+    if (className === null) {
+      return res.status(400).json({ message: "Class name is required" });
+    }
+
+    // Kiểm tra scheduled_date có phải Thứ 7 hoặc Chủ nhật không
+    const day = new Date(scheduled_date).getDay(); // 0 = Chủ nhật, 6 = Thứ 7
+    if (day === 0 || day === 6) {
+      return res.status(400).json({
+        status: "fail",
+        message: "Ngày khám không được rơi vào Thứ 7 hoặc Chủ Nhật",
+      });
+    }
+
     // Insert the vaccination campaign into the database
     const result = await pool
       .request()

@@ -229,7 +229,6 @@ export default function SchoolNurseHeader() {
         justifyContent: "space-between",
         paddingLeft: "24px",
         paddingRight: "24px",
-        border: "none",
       }}
     >
       <Col></Col>
@@ -298,7 +297,7 @@ export default function SchoolNurseHeader() {
                     type="secondary"
                     style={{ fontSize: "12px", display: "block" }}
                   >
-                    {user?.role_id === 3 ? "🧑‍⚕️Y tá" : "Quản trị viên"}
+                    {user?.role_id === 3 ? "Y tá" : "Quản trị viên"}
                   </Text>
                 </div>
                 <DownOutlined style={{ fontSize: "10px", color: "#888" }} />

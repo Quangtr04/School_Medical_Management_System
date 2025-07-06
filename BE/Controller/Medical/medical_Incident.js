@@ -96,6 +96,13 @@ const createMedicalIncident = async (req, res) => {
           SET quantity = @quantity
           WHERE supply_id = @supply_id;
         `);
+      if (remaining === 0) {
+        await pool.request().input("supply_id", sql.Int, supply_id).query(`
+          UPDATE Medical_Supply
+          SET is_active = 0
+          WHERE supply_id = @supply_id;
+        `);
+      }
     }
 
     // Gửi thông báo cho phụ huynh
@@ -343,7 +350,7 @@ const getIncidentByStudentId = async (req, res) => {
         LEFT JOIN Users N ON MI.nurse_id = N.user_id
 
         WHERE 
-          S.student_id = @user_id 
+          P.user_id = @user_id 
 
         ORDER BY MI.reported_at DESC
       `);
@@ -360,11 +367,12 @@ const getIncidentByStudentId = async (req, res) => {
 
 const getIncidentById = async (req, res) => {
   const { event_id } = req.params;
+  const user_id = req.user?.user_id;
 
   try {
     const pool = await sqlServerPool;
 
-    const result = await pool.request().input("event_id", sql.Int, event_id).query(`
+    const result = await pool.request().input("event_id", sql.Int, event_id).input("user_id", sql.Int, user_id).query(`
         SELECT 
           MI.event_id,
 
@@ -409,7 +417,7 @@ const getIncidentById = async (req, res) => {
         JOIN Users P ON MI.subject_info_id = P.user_id
         LEFT JOIN Users N ON MI.nurse_id = N.user_id
 
-        WHERE MI.event_id = @event_id
+        WHERE MI.event_id = @event_id AND MI.subject_info_id = @user_id
       `);
 
     if (result.recordset.length === 0) {

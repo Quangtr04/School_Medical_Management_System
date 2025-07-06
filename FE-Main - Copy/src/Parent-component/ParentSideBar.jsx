@@ -2,7 +2,6 @@ import {
   HomeOutlined,
   UserOutlined,
   FileTextOutlined,
-  CalendarOutlined,
   HeartOutlined,
   BellOutlined,
   QuestionCircleOutlined,
@@ -42,21 +41,6 @@ export default function ParentSideBar() {
         {
           key: "/parent/medical-incidents",
           label: <Link to="/parent/medical-incidents">Sự cố y tế</Link>,
-        },
-      ],
-    },
-    {
-      key: "sub_appointments",
-      icon: <CalendarOutlined />,
-      label: "Lịch hẹn",
-      children: [
-        {
-          key: "/parent/appointments",
-          label: <Link to="/parent/appointments">Đặt lịch khám</Link>,
-        },
-        {
-          key: "/parent/appointment-history",
-          label: <Link to="/parent/appointment-history">Lịch sử khám</Link>,
         },
       ],
     },
