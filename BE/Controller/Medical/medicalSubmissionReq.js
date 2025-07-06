@@ -26,7 +26,9 @@ const medicationSubmissionReq = async (req, res, next) => {
 
     if (result.rowsAffected[0] > 0) {
       // Nếu thêm thành công => gửi thông báo đến tất cả y tá (role_id = 3)
-      const nurses = await pool.request().query("SELECT user_id FROM Users WHERE role_id = 3");
+      const nurses = await pool
+        .request()
+        .query("SELECT user_id FROM Users WHERE role_id = 3");
 
       for (const nurse of nurses.recordset) {
         await sendNotification(
@@ -58,33 +60,66 @@ const medicationSubmissionReq = async (req, res, next) => {
   }
 };
 
-//API hủy đơn yêu cầu uống thuốc từ phụ huynh 
+//API hủy đơn yêu cầu gửi thuốc từ phụ huynh
 const cancelMedicationSubmissionReq = async (req, res, next) => {
-  const ReqId = req.params.ReqId; // Lấy ID từ URL param
+  const ReqId = req.params.ReqId;
   const pool = await sqlServerPool;
-  try {
-    // Xóa bản ghi yêu cầu uống thuốc theo ID
-    const result = await pool 
-      .request()
-      .input("id_req", sql.Int, ReqId)
-      .query("DELETE FROM Medication_Submisstion_Request WHERE id_req = @id_req");
-    if (result.rowsAffected[0] > 0) {
-      // Nếu xóa thành công, trả về thông báo thành công
-      return res.status(200).json({
-        status: "success",
 
-        message: "medicationSubmissionReq cancelled successfully",
-      });
-    } else {  
-      // Nếu không tìm thấy bản ghi để xóa
+  try {
+    //  Kiểm tra trạng thái hiện tại
+    const checkStatus = await pool.request().input("id_req", sql.Int, ReqId)
+      .query(`
+        SELECT status
+        FROM Medication_Submisstion_Request 
+        WHERE id_req = @id_req
+      `);
+
+    if (checkStatus.recordset.length === 0) {
       return res.status(404).json({
         status: "fail",
         message: "medicationSubmissionReq not found",
       });
     }
+
+    const { status: currentStatus } = checkStatus.recordset[0];
+
+    if (currentStatus !== "PENDING") {
+      return res.status(400).json({
+        status: "fail",
+        message: "Only pending requests can be cancelled",
+      });
+    }
+
+    //  Cập nhật trạng thái thành "CANCELLED"
+    await pool
+      .request()
+      .input("id_req", sql.Int, ReqId)
+      .input("updated_at", sql.DateTime, new Date()).query(`
+        UPDATE Medication_Submisstion_Request
+        SET status = 'CANCELLED', updated_at = @updated_at
+        WHERE id_req = @id_req
+      `);
+
+    //  Gửi thông báo đến tất cả y tá (role_id = 3)
+    const nurses = await pool
+      .request()
+      .query("SELECT user_id FROM Users WHERE role_id = 3");
+
+    for (const nurse of nurses.recordset) {
+      await sendNotification(
+        pool,
+        nurse.user_id,
+        "Yêu cầu bị hủy",
+        `Phụ huynh đã hủy yêu cầu uống thuốc cho học sinh có ID: ${student_id}`
+      );
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "medicationSubmissionReq cancelled successfully",
+    });
   } catch (error) {
     console.error("Error cancelling medicationSubmissionReq:", error);
-    // Lỗi server khi xóa yêu cầu
     res.status(500).json({
       status: "error",
       message: "Server error while cancelling medicationSubmissionReq",
@@ -92,11 +127,12 @@ const cancelMedicationSubmissionReq = async (req, res, next) => {
   }
 };
 
-
 // API lấy tất cả yêu cầu uống thuốc
 const getAllMedicationSubmissionReq = async (req, res, next) => {
   const pool = await sqlServerPool;
-  const result = await pool.request().query("SELECT * FROM Medication_Submisstion_Request");
+  const result = await pool
+    .request()
+    .query("SELECT * FROM Medication_Submisstion_Request");
 
   if (result.recordset.length > 0) {
     // Trả về danh sách các yêu cầu nếu có
@@ -120,7 +156,9 @@ const getMedicationSubmissionReqByID = async (req, res, next) => {
   const result = await pool
     .request()
     .input("id_req", sql.Int, ReqId)
-    .query("SELECT * FROM Medication_Submisstion_Request WHERE id_req = @id_req");
+    .query(
+      "SELECT * FROM Medication_Submisstion_Request WHERE id_req = @id_req"
+    );
 
   if (result.recordset.length > 0) {
     // Trả về bản ghi nếu tìm thấy
@@ -145,7 +183,10 @@ const updateMedicationSubmissionReqByNurse = async (req, res, next) => {
 
   try {
     // Cập nhật trạng thái cho bản ghi
-    const result = await pool.request().input("id_req", sql.Int, ReqId).input("status", sql.NVarChar, status).query(`
+    const result = await pool
+      .request()
+      .input("id_req", sql.Int, ReqId)
+      .input("status", sql.NVarChar, status).query(`
         UPDATE Medication_Submisstion_Request
         SET status = @status
         WHERE id_req = @id_req
@@ -155,7 +196,9 @@ const updateMedicationSubmissionReqByNurse = async (req, res, next) => {
       const parentResult = await pool
         .request()
         .input("id_req", sql.Int, ReqId)
-        .query("SELECT parent_id FROM Medication_Submisstion_Request WHERE id_req = @id_req");
+        .query(
+          "SELECT parent_id FROM Medication_Submisstion_Request WHERE id_req = @id_req"
+        );
 
       const parentId = parentResult.recordset[0]?.parent_id;
       if (status === "APPROVED") {
@@ -163,7 +206,9 @@ const updateMedicationSubmissionReqByNurse = async (req, res, next) => {
         const medicationReqResult = await pool
           .request()
           .input("id_req", sql.Int, ReqId)
-          .query(`SELECT * FROM Medication_Submisstion_Request WHERE id_req = @id_req`);
+          .query(
+            `SELECT * FROM Medication_Submisstion_Request WHERE id_req = @id_req`
+          );
 
         const reqData = medicationReqResult.recordset[0];
         if (!reqData) {
