@@ -66,9 +66,11 @@ INSERT INTO Severity_Of_Incident (serverity) VALUES
 (N'Nguy kịch');
 
 --Medical Supply
-INSERT INTO Medical_Supply (name, type, unit, quantity, description, expired_date, is_active, nurse_id, usage_note) VALUES
-('Paracetamol', 'Medication', 'Tablets', 100, 'Pain reliever', '2026-12-31', 1, 3, 'Take as needed'),
-('Bandage', 'Supply', 'Pieces', 200, 'For wound dressing', NULL, 1, 3, 'Apply on wounds');
+INSERT INTO Medical_Supply (name, type, unit, quantity, description, expired_date, is_active, usage_note)
+VALUES
+('Paracetamol', 'Medication', 'Tablets', 100, 'Pain reliever', '2026-12-31', 1, 'Take as needed'),
+('Bandage', 'Supply', 'Pieces', 200, 'For wound dressing', NULL, 1, 'Apply on wounds');
+
 
 -- Vaccination Campaign
 INSERT INTO Vaccination_Campaign (title, description, scheduled_date, created_by, approved_by, approval_status, sponsor, class) VALUES
@@ -76,19 +78,19 @@ INSERT INTO Vaccination_Campaign (title, description, scheduled_date, created_by
 
 -- Medical_Checkup_Schedule
 INSERT INTO Medical_Checkup_Schedule (title, description, scheduled_date, created_by, approved_by, approval_status, sponsor, class) VALUES
-('Annual Checkup 2025', 'General health checkup for all students', '2025-11-01', 3, null, 'APPROVED', N'Department of Education', NULL);
+('Annual Checkup 2025', 'General health checkup for all students', '2025-11-01', 3, null, 'APPROVED', N'Department of Education', 5);
 
 
 -- Checkup_Consent_Form
 INSERT INTO Checkup_Consent_Form (checkup_id, student_id, parent_id, status, submitted_at, note) VALUES
-(1, 1, 2, 'APPROVED', GETDATE(), N'Confirmed for checkup'),
-(1, 2, 3, 'APPROVED', GETDATE(), N'Available for checkup');
+(2, 1, 2, 'APPROVED', GETDATE(), N'Confirmed for checkup'),
+(2, 2, 3, 'APPROVED', GETDATE(), N'Available for checkup');
 
 -- Checkup_Participation
 INSERT INTO Checkup_Participation (checkup_id, student_id, consent_form_id, checked_at, height_cm, weight_kg,
-vision_left, vision_right, hearing_left, hearing_right, blood_pressure, notes, abnormal_signs, needs_counseling, note) VALUES
-(1, 1, 1, GETDATE(), 145, 38, 1.0, 1.0, 'Normal', 'Normal', '110/70', N'All normal', NULL, 0, NULL),
-(1, 2, 2, GETDATE(), 142, 36, 0.9, 1.0, 'Normal', 'Normal', '105/68', N'Slight myopia', N'Vision check recommended', 1, N'Follow-up needed');
+vision_left, vision_right, hearing_left, hearing_right, blood_pressure, notes, abnormal_signs, needs_counseling) VALUES
+(2, 1, 3, GETDATE(), 145, 38, 1.0, 1.0, 'Normal', 'Normal', '110/70', N'All normal', NULL, 0),
+(2, 2, 4, GETDATE(), 142, 36, 0.9, 1.0, 'Normal', 'Normal', '105/68', N'Slight myopia', N'Vision check recommended', 1);
 
 -- Incident_Medication_Log
 INSERT INTO Incident_Medication_Log (event_id, supply_id, quantity_used) VALUES

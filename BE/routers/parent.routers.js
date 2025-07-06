@@ -29,6 +29,8 @@ const { getIncidentsByUserId, getIncidentById } = require("../Controller/Medical
 const {
   medicationSubmissionReq,
   cancelMedicationSubmissionReq,
+  getAllMedicationSubmissionReqByParentId,
+  getAllMedicationSubmissionReqByParentIdAndId,
 } = require("../Controller/Medical/medicalSubmissionReq");
 
 // Thông báo
@@ -130,6 +132,15 @@ parentRouter.post(
   medicationSubmissionReq
 );
 
+// Lấy danh sách đơn yêu cầu gửi thuốc
+parentRouter.get("/medical-submissions", authenticateToken, getAllMedicationSubmissionReqByParentId)
+
+// Xem chi tiết đơn yêu cầu gửi thuốc
+parentRouter.get("/medical-submissions/:id_req", authenticateToken, getAllMedicationSubmissionReqByParentIdAndId)
+
+// Xóa đơn đã gửi
+parentRouter.delete("/medical-submissions/:id_req", authenticateToken, cancelMedicationSubmissionReq); // đang sai
+
 // Lấy tất cả lịch tiêm chủng về
 parentRouter.get("/vaccine-campaigns", authenticateToken, getConsentVaccineByParentId);
 
@@ -163,7 +174,5 @@ parentRouter.get("/vaccine-campaigns/:campaing_id/students/:vaccine_id", getStud
  * /notifications?page=1&limit=10
  */
 parentRouter.get("/notifications", authenticateToken, getNotifications);
-
-parentRouter.delete("/medical-submissions/:id_req", authenticateToken, cancelMedicationSubmissionReq);
 
 module.exports = parentRouter;
