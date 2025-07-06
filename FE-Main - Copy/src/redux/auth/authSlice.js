@@ -21,12 +21,9 @@ export const loginUser = createAsyncThunk(
       console.log("Value:", values);
 
       const response = await api.post("/login", values);
-      console.log("Response", response);
-      console.log(response.data);
 
       // Giả sử API trả về user info và token
       const { token, user } = response.data;
-      console.log(user);
 
       // Lưu token vào localStorage (hoặc sessionStorage) để duy trì trạng thái đăng nhập
       localStorage.setItem("accessToken", token);

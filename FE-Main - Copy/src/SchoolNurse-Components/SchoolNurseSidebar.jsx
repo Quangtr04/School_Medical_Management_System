@@ -18,6 +18,7 @@ const { Title, Text } = Typography;
 
 export default function SchoolNurseSideBar() {
   const currentPath = location.pathname;
+
   const menuItems = [
     {
       key: "/nurse",
