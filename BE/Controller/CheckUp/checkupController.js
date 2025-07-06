@@ -128,9 +128,9 @@ const deleteSchedule = async (req, res, next) => {
 const getPending = async (req, res, next) => {
   try {
     const pool = await sqlServerPool;
-    const schedules = await pool
-      .request()
-      .query("SELECT * FROM Medical_Checkup_Schedule WHERE approval_status = 'PENDING'");
+    const schedules = await pool.request()
+      .query(`SELECT MS.*, U.fullname FROM Medical_Checkup_Schedule MS JOIN Users U ON MS.created_by = U.user_id 
+              WHERE approval_status = 'PENDING' `);
     res.status(200).json({ data: schedules.recordset });
   } catch (err) {
     next(err);

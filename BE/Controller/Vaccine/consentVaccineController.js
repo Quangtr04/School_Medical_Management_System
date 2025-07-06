@@ -36,12 +36,42 @@ const getConsentVaccineApproveByParentId = async (req, res, next) => {
     if (!parentId) {
       return res.status(400).json({ message: "Parent ID is required" });
     }
+
     const pool = await sqlServerPool;
     // Fetch all students associated with the parent
     const ListVaccineConsent = await pool
       .request()
       .input("parentId", sql.Int, parentId)
-      .query(`SELECT * FROM Vaccination_Consent_Form WHERE parent_id = @parentId AND status = 'APPROVED'`);
+      .query(`SELECT * FROM Vaccination_Consent_Form WHERE parent_id = @parentId AND status = 'AGREED'`);
+
+    if (ListVaccineConsent.recordset.length === 0) {
+      return res.status(404).json({ message: "No students found for this parent" });
+    }
+
+    // Fetch the latest consent form for each student
+    res.status(200).json({
+      status: "success",
+      data: ListVaccineConsent.recordset,
+    });
+  } catch (error) {
+    console.error("Error in getConsentVaccineByParentId:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+const getConsentVaccinePendingByParentId = async (req, res, next) => {
+  try {
+    const parentId = req.user?.user_id;
+    if (!parentId) {
+      return res.status(400).json({ message: "Parent ID is required" });
+    }
+
+    const pool = await sqlServerPool;
+    // Fetch all students associated with the parent
+    const ListVaccineConsent = await pool
+      .request()
+      .input("parentId", sql.Int, parentId)
+      .query(`SELECT * FROM Vaccination_Consent_Form WHERE parent_id = @parentId AND status = 'Pending'`);
 
     if (ListVaccineConsent.recordset.length === 0) {
       return res.status(404).json({ message: "No students found for this parent" });
@@ -220,4 +250,5 @@ module.exports = {
   getConsentVaccineDeclineByParentId,
   getConsentVaccineByIdAndParentId,
   getResponseConsentVaccineParent,
+  getConsentVaccinePendingByParentId,
 };

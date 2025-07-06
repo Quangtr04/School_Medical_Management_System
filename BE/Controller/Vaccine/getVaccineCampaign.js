@@ -5,7 +5,9 @@ const getVaccinationCampaign = async (req, res) => {
   try {
     const pool = await sqlServerPool;
     // Check if the campaign exists
-    const check = await pool.request().query(`SELECT * FROM Vaccination_Campaign`);
+    const check = await pool
+      .request()
+      .query(`SELECT VC.*, U.fullname FROM Vaccination_Campaign VC JOIN Users U ON VC.created_by = U.user_id `);
     // If the campaign does not exist, return 404
     if (check.recordset.length === 0) {
       return res.status(404).json({ message: "Vaccination campaign not found" });
@@ -24,7 +26,8 @@ const getVaccinationCampaignById = async (req, res) => {
     const pool = await sqlServerPool;
     // Check if the campaign exists
     const check = await pool.request().input("id", sql.Int, id).query(`
-            SELECT * FROM Vaccination_Campaign WHERE campaign_id = @id
+            SELECT VC.*, U.fullname FROM Vaccination_Campaign VC JOIN Users U ON VC.created_by = U.user_id
+            WHERE VC.campaign_id = @id
         `);
     // If the campaign does not exist, return 404
     if (check.recordset.length === 0) {
@@ -43,7 +46,8 @@ const getVaccinationCampaignPending = async (req, res) => {
     const pool = await sqlServerPool;
     // Check if the campaign exists
     const check = await pool.request().query(`
-            SELECT * FROM Vaccination_Campaign WHERE approval_status = 'PENDING'
+            SELECT VC.*, U.fullname FROM Vaccination_Campaign VC JOIN Users U ON VC.created_by = U.user_id 
+            WHERE VC.approval_status = 'PENDING'
         `);
     // If the campaign does not exist, return 404
     if (check.recordset.length === 0) {
@@ -62,7 +66,8 @@ const getVaccinationCampaignApprove = async (req, res) => {
     const pool = await sqlServerPool;
     // Check if the campaign exists
     const check = await pool.request().query(`
-            SELECT * FROM Vaccination_Campaign WHERE approval_status = 'APPROVED'
+            SELECT VC.*, U.fullname FROM Vaccination_Campaign VC JOIN Users U ON VC.created_by = U.user_id 
+            WHERE VC.approval_status = 'APPROVED'
         `);
     // If the campaign does not exist, return 404
     if (check.recordset.length === 0) {
@@ -81,7 +86,8 @@ const getVaccinationCampaignDeclined = async (req, res) => {
     const pool = await sqlServerPool;
     // Check if the campaign exists
     const check = await pool.request().query(`
-            SELECT * FROM Vaccination_Campaign WHERE approval_status = 'DECLINED'
+            SELECT VC.*, U.fullname FROM Vaccination_Campaign VC JOIN Users U ON VC.created_by = U.user_id 
+            WHERE VC.approval_status = 'DECLINED'
         `);
     // If the campaign does not exist, return 404
     if (check.recordset.length === 0) {

@@ -37,6 +37,7 @@ const {
   getVaccinationCampaignById,
   getVaccinationCampaignPending,
   getVaccinationCampaignApprove,
+  getVaccinationCampaignDeclined,
 } = require("../Controller/Vaccine/getVaccineCampaign");
 const { createVaccinationCampaign } = require("../Controller/Vaccine/VaccineController");
 const {
@@ -134,8 +135,11 @@ nurseRouter.get("/vaccine-campaigns", getVaccinationCampaign);
 // Lấy chi tiết một lịch tiêm chủng theo ID
 nurseRouter.get("/vaccine-campaigns/:id", getVaccinationCampaignById);
 
+// Lấy danh sách lịch tiêm chủng đang duyệt
+nurseRouter.get("/vaccine-campaigns-pending", getVaccinationCampaignPending);
+
 // Lấy danh sách lịch tiêm chủng đã bị từ chối
-nurseRouter.get("/vaccine-campaigns-declined", getVaccinationCampaignPending);
+nurseRouter.get("/vaccine-campaigns-declined", getVaccinationCampaignDeclined);
 
 // Lấy danh sách lịch tiêm chủng đã chấp thuận
 nurseRouter.get("/vaccine-campaigns-approved", getVaccinationCampaignApprove);
@@ -149,8 +153,8 @@ nurseRouter.get("/vaccine-campaigns-list-student/:campaign_id", getStudentVaccin
 // Lấy thông tin chi tiết học sinh được duyệt
 nurseRouter.get("/vaccine-campaigns-students/:campaign_id/students/:vaccine_id", getStudentVaccineListById);
 
-// Cập nhật thÔng tin của học sinh
-nurseRouter.patch("/vaccine-campaigns-students/students/:vaccine_id", updateResultVaccine);
+// Cập nhật thÔng tin vaccine của học sinh
+nurseRouter.patch("/vaccine-campaigns-students/students/:vaccine_id/update", updateResultVaccine);
 
 // Lấy danh sách sức khỏe học sinh
 nurseRouter.get("/students/health-declaration", getAllStudentInfo);
@@ -172,7 +176,7 @@ nurseRouter.get("/medication-submissions", getAllMedicationSubmissionReq);
 nurseRouter.get("/medication-submissions/:ReqId", getMedicationSubmissionReqByID);
 
 // Cập nhật trạng thái đơn thuốc được gửi
-nurseRouter.patch("/medication-submissions/:ReqId/update", updateMedicationSubmissionReqByNurse);
+nurseRouter.patch("/medication-submissions/:ReqId/update", authenticateToken, updateMedicationSubmissionReqByNurse);
 
 //lấy thông báo
 nurseRouter.get("/notifications", authenticateToken, getNotifications);
