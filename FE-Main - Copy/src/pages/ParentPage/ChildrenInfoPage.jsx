@@ -76,7 +76,6 @@ export default function ChildrenInfoPage() {
   };
 
   const handleSubmit = (values) => {
-    console.log("Form values:", values);
     // Here you would dispatch an action to update or add a child
     // For example: dispatch(updateChildInfo(values)) or dispatch(addChildInfo(values))
     message.success(

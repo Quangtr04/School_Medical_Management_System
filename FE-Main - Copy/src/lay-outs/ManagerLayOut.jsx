@@ -25,6 +25,7 @@ export default function ManagerLayOut() {
         <Content
           style={{
             margin: "", // Margin tổng thể từ các cạnh của Layout
+            padding: 10, // Padding bên trong Content
             background: "#f0f2f5", // Nền xám nhẹ cho Content
             minHeight: "",
             // CÓ THỂ CẦN ĐIỀU CHỈNH MINHEIGHT nếu layout bị tràn hoặc thiếu.

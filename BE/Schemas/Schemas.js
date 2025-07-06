@@ -58,9 +58,9 @@ const MedicalSubmissionRequest = {
   parent_id: { type: "int", required: true },
   student_id: { type: "int", required: true },
   status: { type: "string", required: true, enum: ["OPEN", "IN_PROGRESS", "RESOLVED"], default: "PENDING" },
-  nurse_id: { type: "int", required: true },
+  nurse_id: { type: "int", required: false },
   note: { type: "string", required: false },
-  image_url: { type: "string", required: false },
+  image_url: { type: "string", required: true },
   start_date: { type: "date", required: true },
   end_date: { type: "date", required: true },
 };

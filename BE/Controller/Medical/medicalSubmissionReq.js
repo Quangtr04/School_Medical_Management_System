@@ -12,7 +12,7 @@ const medicationSubmissionReq = async (req, res, next) => {
     const result = await pool
       .request()
       .input("parent_id", sql.Int, medicationSubmissionReqData.parent_id)
-      .input("student_id", sql.NVarChar, medicationSubmissionReqData.student_id)
+      .input("student_id", sql.Int, medicationSubmissionReqData.student_id)
       .input("status", sql.NVarChar, medicationSubmissionReqData.status)
       .input("created_at", sql.DateTime, new Date()) // Thời gian tạo yêu cầu
       .input("note", sql.NVarChar, medicationSubmissionReqData.note)
@@ -20,8 +20,8 @@ const medicationSubmissionReq = async (req, res, next) => {
       .input("start_date", sql.Date, medicationSubmissionReqData.start_date)
       .input("end_date", sql.Date, medicationSubmissionReqData.end_date).query(`
         INSERT INTO Medication_Submisstion_Request 
-        (parent_id, student_id, status, created_at, note, image_url, start_date, end_date)
-        VALUES (@parent_id, @student_id, @status, @created_at, @note, @image_url, @start_date, @end_date)
+        (parent_id, student_id, status, created_at, note, image_url, start_date, end_date, nurse_id)
+        VALUES (@parent_id, @student_id, @status, @created_at, @note, @image_url, @start_date, @end_date, null)
       `);
 
     if (result.rowsAffected[0] > 0) {
@@ -178,6 +178,7 @@ const getMedicationSubmissionReqByID = async (req, res, next) => {
 // API y tá cập nhật trạng thái yêu cầu uống thuốc
 const updateMedicationSubmissionReqByNurse = async (req, res, next) => {
   const ReqId = req.params.ReqId;
+  const nurseId = req.user?.user_id;
   const { status } = req.body; // Lấy trạng thái mới từ body
   const pool = await sqlServerPool;
 
@@ -186,10 +187,11 @@ const updateMedicationSubmissionReqByNurse = async (req, res, next) => {
     const result = await pool
       .request()
       .input("id_req", sql.Int, ReqId)
+      .input("nurse_id", sql.Int, nurseId)
       .input("status", sql.NVarChar, status).query(`
         UPDATE Medication_Submisstion_Request
-        SET status = @status
-        WHERE id_req = @id_req
+        SET status = @status AND nurse_id = @nurse_id
+        WHERE id_req = @id_req 
       `);
 
     if (result.rowsAffected[0] > 0) {

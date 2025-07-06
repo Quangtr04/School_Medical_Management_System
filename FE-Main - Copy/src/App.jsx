@@ -1,17 +1,8 @@
-/* eslint-disable no-unused-vars */
 // src/App.jsx
 import React, { useEffect } from "react";
-import {
-  Routes,
-  Route,
-  Navigate,
-  useNavigate,
-  createBrowserRouter,
-} from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom"; // Removed unused useNavigate import
 import { useSelector, useDispatch } from "react-redux";
 import { message } from "antd"; // Import Ant Design message for notifications
-
-// Import actions from authSlice for notification and initial auth check
 
 // Import Role Protected Route
 
@@ -64,47 +55,13 @@ import ParentProfilePage from "./pages/ParentPage/ParentProfilePage";
 import ParentNotificationsPage from "./pages/ParentPage/ParentNotificationsPage";
 import MedicalIncidentsPage from "./pages/ParentPage/MedicalIncidentsPage";
 import RoleProtectedRoute from "./RoleProtectedRoute";
-import {
-  setNotification,
-  clearNotification,
-  initializeAuth,
-} from "./redux/auth/authSlice";
-import StudentRecordPageDetail from "./pages/SchoolNursePage/StudentRecordPageDetail";
-import {
-  fetchAllVaccineCampaigns,
-  fetchApprovedStudentsForVaccineCampaigns,
-  fetchApprovedVaccineCampaigns,
-  fetchDeclinedVaccineCampaigns,
-} from "./redux/nurse/vaccinations/vaccinationSlice";
-import { fetchAllStudentHealthRecords } from "./redux/nurse/studentRecords/studentRecord";
-import { fetchMedicalSupplies } from "./redux/nurse/medicalSupplies/medicalSupplies";
-import { fetchAllMedicalIncidents } from "./redux/nurse/medicalIncidents/medicalIncidents";
-import { fetchAllHealthExaminations } from "./redux/nurse/heathExaminations/heathExamination";
+import { clearNotification, initializeAuth } from "./redux/auth/authSlice";
 
 function App() {
   const dispatch = useDispatch();
   const { notificationMessage, notificationType } = useSelector(
     (state) => state.auth
   );
-
-  const token = localStorage.getItem("accessToken");
-
-  useEffect(() => {
-    // Chỉ fetch nếu có token hoặc nếu API không yêu cầu xác thực
-    // Bạn có thể thêm điều kiện kiểm tra isLoggedIn từ Redux store nếu có slice auth
-    if (token) {
-      // Ví dụ, chỉ fetch khi người dùng đã đăng nhập
-      dispatch(fetchAllVaccineCampaigns());
-      dispatch(fetchAllStudentHealthRecords());
-      dispatch(fetchMedicalSupplies());
-      dispatch(fetchAllMedicalIncidents());
-      dispatch(fetchAllHealthExaminations());
-      // Thêm các dispatch của các hàm fetch khác ở đây
-    } else {
-      // Xử lý trường hợp không có token (ví dụ: chuyển hướng đến trang đăng nhập)
-      console.log("No token found, skipping initial data fetch.");
-    }
-  }, [dispatch, token]);
 
   // Initialize authentication state from localStorage when the app mounts
   useEffect(() => {
@@ -134,149 +91,6 @@ function App() {
       dispatch(clearNotification());
     }
   }, [notificationMessage, notificationType, dispatch]);
-
-  const router = createBrowserRouter([
-    {
-      path: "/",
-      element: <HomePage />,
-    },
-    {
-      path: "/login",
-      element: <LoginPage />,
-    },
-    {
-      path: "/register",
-      element: <RegisterPage />,
-    },
-    {
-      path: "/forgot-password",
-      element: <ForgotPassword />,
-    },
-    {
-      path: "/documents/:id",
-      element: <DocumentDetail />, // Consider wrapping with a general PrivateRoute if only logged-in users can view docs
-    },
-    {
-      path: "/support",
-      element: <SupportPage />, // Consider wrapping with a general PrivateRoute
-    },
-    {
-      path: "/unauthorized", // Route for access denied messages
-      element: <UnauthorizedPage />,
-    },
-
-    // Admin Routes - Protected by Admin Role
-    {
-      path: "/admin",
-      element: <RoleProtectedRoute allowedRoles={[ROLE_ADMIN]} />, // Protects /admin and its children
-      children: [
-        {
-          element: <AdminLayOut />, // This layout will be rendered within RoleProtectedRoute's Outlet
-          children: [
-            {
-              index: true,
-              element: <AdminOverViewPage />,
-            },
-            {
-              path: "nurses",
-              element: <NurseManagementPage />,
-            },
-            {
-              path: "parents",
-              element: <ParentManagementPage />,
-            },
-            {
-              path: "managers",
-              element: <ManagerManagementPage />,
-            },
-            {
-              path: "files",
-              element: <FileManagementSection />,
-            },
-            {
-              path: "settings",
-              element: <AdminSettingPage />,
-            },
-            {
-              path: "monitor",
-              element: <SystemActivityPage />,
-            },
-          ],
-        },
-      ],
-    },
-
-    // Nurse Routes - Protected by Nurse Role
-    {
-      path: "/nurse",
-      element: <RoleProtectedRoute allowedRoles={[ROLE_NURSE]} />, // Protects /nurse and its children
-      children: [
-        {
-          element: <SchoolNurseLayOut />, // This layout will be rendered within RoleProtectedRoute's Outlet
-          children: [
-            { index: true, element: <SchoolNurseOverView /> },
-            { path: "students-record", element: <StudentRecordPage /> },
-            {
-              path: "medical-supplies",
-              element: <SchoolNurseMedicalSupplyPage />,
-            },
-            { path: "medical-incidents", element: <MedicalIncident /> },
-            { path: "vaccinations", element: <Vaccinations /> },
-            { path: "checkups", element: <Examinations /> },
-            { path: "notifications", element: <Notification /> },
-            { path: "report", element: <ReportsPage /> },
-            {
-              path: "students-record/:id",
-              element: <StudentRecordPageDetail />,
-            },
-          ],
-        },
-      ],
-    },
-
-    // Manager Routes - Protected by Manager Role
-    {
-      path: "/manager",
-      element: <RoleProtectedRoute allowedRoles={[ROLE_MANAGER]} />, // Protects /manager and its children
-      children: [
-        {
-          element: <ManagerLayOut />, // This layout will be rendered within RoleProtectedRoute's Outlet
-          children: [
-            { index: true, element: <ManagerOverViewPage /> },
-            {
-              path: "appoinment-apporve",
-              element: <ManagerApprovalRequestsPage />,
-            },
-          ],
-        },
-      ],
-    },
-
-    // Parent Routes - Protected by Parent Role
-    {
-      path: "/parent",
-      element: <RoleProtectedRoute allowedRoles={[ROLE_PARENT]} />, // Protects /parent and its children
-      children: [
-        {
-          element: <ParentLayOut />, // This layout will be rendered within RoleProtectedRoute's Outlet
-          children: [
-            { index: true, element: <ParentDashboard /> },
-            { path: "children", element: <ChildrenInfoPage /> },
-            { path: "health-records", element: <HealthRecordsPage /> },
-            { path: "vaccinations", element: <VaccinationsPage /> },
-            { path: "medicine-request", element: <MedicineRequestPage /> },
-            // Add more parent pages here as needed
-          ],
-        },
-      ],
-    },
-
-    // Catch-all route for unmatched paths (404)
-    {
-      path: "*",
-      element: <Navigate to="/" replace />, // Redirect to home or a 404 page
-    },
-  ]);
 
   return (
     <Routes>
