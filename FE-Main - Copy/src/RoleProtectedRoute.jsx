@@ -13,28 +13,11 @@ const RoleProtectedRoute = ({ element, allowedRoles }) => {
 
   useEffect(() => {
     if (!isAuthInitialized) {
-      console.log("Auth not initialized, dispatching initializeAuth");
       dispatch(initializeAuth());
     }
   }, [dispatch, isAuthInitialized]);
 
-  console.log("RoleProtectedRoute:", {
-    isAuthInitialized,
-    isAuthenticated,
-    user,
-    allowedRoles,
-    authInitializationError,
-  });
-
-<<<<<<< HEAD
   // Nếu đang khởi tạo auth, hiển thị loading
-=======
-  console.log("isAuthenticated:", isAuthenticated);
-  console.log("user:", user);
-  console.log("role_id:", user?.role_id);
-  console.log("allowedRoles:", allowedRoles);
-  // Render logic
->>>>>>> 57eef22 (ud)
   if (!isAuthInitialized) {
     return (
       <Box
@@ -89,7 +72,6 @@ const RoleProtectedRoute = ({ element, allowedRoles }) => {
 
   // Kiểm tra role_id
   const userRoleId = user.role_id;
-  console.log("User role_id:", userRoleId, "Allowed roles:", allowedRoles);
 
   // Nếu không có role_id hoặc role_id không nằm trong danh sách cho phép
   if (!userRoleId || !allowedRoles.includes(userRoleId)) {

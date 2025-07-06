@@ -67,13 +67,13 @@ import { differenceInCalendarDays } from "date-fns";
 const { TextArea } = Input;
 const { Option } = Select;
 const { Text } = Typography;
+
 export default function Examination() {
   const dispatch = useDispatch();
   const examinations = useSelector((state) => state.examination.records);
   const loading = useSelector((state) => state.examination.loading);
   const error = useSelector((state) => state.examination.error);
   const success = useSelector((state) => state.examination.success);
-  const today = startOfDay(new Date());
 
   const upcomingExaminations = useMemo(() => {
     const today = startOfDay(new Date());
@@ -105,10 +105,10 @@ export default function Examination() {
   const [form] = Form.useForm();
 
   const [approvedStudent, setApprovedStudents] = useState(null);
-  // Dữ liệu cho Select lớp áp dụng trong form tạo/sửa
-  const classOptions = Array.from({ length: 5 }, (_, i) => ({
-    label: `Lớp ${i + 1}`,
-    value: `${i + 1}`,
+
+  const classOptions = [1, 2, 3, 4, 5].map((classNumber) => ({
+    label: `Lớp ${classNumber}`,
+    value: classNumber,
   }));
 
   const fetchExaminations = useCallback(async () => {
@@ -187,7 +187,7 @@ export default function Examination() {
           ? moment(record?.scheduled_date)
           : null,
         sponsor: record?.sponsor,
-        className: record?.class_name, // Đảm bảo trường này khớp với API
+        className: record?.className, // Đảm bảo trường này khớp với API
       });
     } else {
       form.resetFields();
@@ -222,10 +222,10 @@ export default function Examination() {
         // toast.success("Tạo đơn khám sức khỏe thành công!"); // Message handled by useEffect
       }
       setIsModalVisible(false);
+      toast.success("Tạo lịch khám sức khỏe thành công");
       // fetchExaminations(); // Re-fetch is already triggered by success useEffect
     } catch (error) {
-      console.error("Failed to save examination campaign:", error);
-      // message.error(error.message || "Đã xảy ra lỗi khi lưu đơn khám."); // Optional: specific error message
+      toast.error(error);
     }
   };
 

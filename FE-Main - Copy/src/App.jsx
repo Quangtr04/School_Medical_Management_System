@@ -80,6 +80,10 @@ import { fetchAllStudentHealthRecords } from "./redux/nurse/studentRecords/stude
 import { fetchMedicalSupplies } from "./redux/nurse/medicalSupplies/medicalSupplies";
 import { fetchAllMedicalIncidents } from "./redux/nurse/medicalIncidents/medicalIncidents";
 import { fetchAllHealthExaminations } from "./redux/nurse/heathExaminations/heathExamination";
+import NurseProfile from "./pages/SchoolNursePage/NurseProfile";
+import { fetchManagerNotifications } from "./redux/manager/managerNotificationSlice";
+import { fetchNurseNotifications } from "./redux/nurse/nurseNotificationSlice";
+import MedicalSubmission from "./pages/SchoolNursePage/MedicalSubmission";
 
 function App() {
   const dispatch = useDispatch();
@@ -99,6 +103,8 @@ function App() {
       dispatch(fetchMedicalSupplies());
       dispatch(fetchAllMedicalIncidents());
       dispatch(fetchAllHealthExaminations());
+      dispatch(fetchManagerNotifications({ page: 1, limit: 10 }));
+      dispatch(fetchNurseNotifications());
       // Thêm các dispatch của các hàm fetch khác ở đây
     } else {
       // Xử lý trường hợp không có token (ví dụ: chuyển hướng đến trang đăng nhập)
@@ -215,10 +221,15 @@ function App() {
           element: <SchoolNurseLayOut />, // This layout will be rendered within RoleProtectedRoute's Outlet
           children: [
             { index: true, element: <SchoolNurseOverView /> },
+            { path: "profile", element: <NurseProfile /> },
             { path: "students-record", element: <StudentRecordPage /> },
             {
               path: "medical-supplies",
               element: <SchoolNurseMedicalSupplyPage />,
+            },
+            {
+              path: "medical-submission",
+              element: <MedicalSubmission></MedicalSubmission>,
             },
             { path: "medical-incidents", element: <MedicalIncident /> },
             { path: "vaccinations", element: <Vaccinations /> },
@@ -329,6 +340,8 @@ function App() {
         <Route path="checkups" element={<Examinations />} />
         <Route path="notifications" element={<Notification />} />
         <Route path="report" element={<ReportsPage />} />
+        <Route path="medical-submission" element={<MedicalSubmission />} />
+        <Route path="profile" element={<NurseProfile />} />
       </Route>
 
       {/* Manager Routes */}

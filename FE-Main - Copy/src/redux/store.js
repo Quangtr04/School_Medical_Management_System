@@ -7,12 +7,10 @@ import medicalsuppliesReducer from "./nurse/medicalSupplies/medicalSupplies";
 import examinationReducer from "./nurse/heathExaminations/heathExamination";
 import incidentsReducer from "./nurse/medicalIncidents/medicalIncidents";
 import immunizationsReducer from "./nurse/vaccinations/vaccinationSlice";
-<<<<<<< HEAD
-import parentReducer from "./parent/parentSlice"; // Import parent reducer
-=======
 import studentRecordReducer from "./nurse/studentRecords/studentRecord";
->>>>>>> 57eef22 (ud)
-
+import managerReducer from "./manager/managerSlice";
+import managerNotificationReducer from "./manager/managerNotificationSlice";
+import notificationReducer from "./nurse/nurseNotificationSlice";
 const store = configureStore({
   reducer: {
     auth: authReducer, // Đăng ký authReducer dưới key 'auth'
@@ -22,11 +20,10 @@ const store = configureStore({
     examination: examinationReducer,
     medicalIncidents: incidentsReducer,
     vaccination: immunizationsReducer,
-<<<<<<< HEAD
-    parent: parentReducer, // Add parent reducer
-=======
     studentRecord: studentRecordReducer,
->>>>>>> 57eef22 (ud)
+    manager: managerReducer,
+    notifications: notificationReducer,
+    managerNotifications: managerNotificationReducer,
   },
   // DevTools được bật mặc định trong môi trường phát triển
 });

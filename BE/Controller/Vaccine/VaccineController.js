@@ -128,6 +128,7 @@ const responseVaccinationCampaign = async (req, res) => {
     if (result.rowsAffected[0] === 0) {
       return res.status(404).json({ message: "Vaccination campaign not found" });
     }
+
     // If the campaign is approved, notify the parents
     if (status === "APPROVED") {
       const campaign = await pool.request().input("id", sql.Int, id).query(`

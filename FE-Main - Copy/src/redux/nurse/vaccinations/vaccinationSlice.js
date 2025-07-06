@@ -75,12 +75,16 @@ export const fetchApprovedVaccineCampaigns = createAsyncThunk(
 export const createVaccinationCampaign = createAsyncThunk(
   "immunizations/createCampaign",
   async ({ token, campaignData }, { rejectWithValue }) => {
+    console.log(campaignData);
+
     try {
       const response = await api.post("/nurse/vaccine-campaigns/create", campaignData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+      console.log(response.data);
+
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || "Tạo lịch tiêm chủng thất bại.");

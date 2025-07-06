@@ -128,10 +128,10 @@ parentRouter.get("/vaccine-campaigns", authenticateToken, getConsentVaccineByPar
 parentRouter.get("/vaccine-campaigns/:id", authenticateToken, getConsentVaccineByIdAndParentId);
 
 // Lấy tất cả lịch tiêm chủng đã được chấp thuận
-parentRouter.get("/vaccine-campaigns/approved", authenticateToken, getConsentVaccineApproveByParentId);
+parentRouter.get("/vaccine-campaign-approved", authenticateToken, getConsentVaccineApproveByParentId);
 
 // Lấy tất cả lịch tiêm chủng đã bị từ chối
-parentRouter.get("/vaccine-campaigns/declined", authenticateToken, getConsentVaccineDeclineByParentId);
+parentRouter.get("/vaccine-campaign-declined", authenticateToken, getConsentVaccineDeclineByParentId);
 
 // Phản hồi về trạng thái lịch tiêm chủng
 parentRouter.post("/vaccine-campaigns/:id/respond", authenticateToken, getResponseConsentVaccineParent);

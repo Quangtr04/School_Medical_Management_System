@@ -65,6 +65,8 @@ import {
   clearImmunizationsSuccess,
   // Không cần clearApprovedStudentDetail vì nó đã được fetch lại khi đóng modal hoặc cập nhật thành công
 } from "../../redux/nurse/vaccinations/vaccinationSlice"; // Đã sửa đường dẫn slice
+import { toast } from "react-toastify";
+import { values } from "lodash";
 
 const { Option } = Select;
 const { Title, Text } = Typography;
@@ -85,6 +87,7 @@ export default function Vaccination() {
     pageSize: 10,
     total: 0,
   });
+
   const [searchQuery, setSearchQuery] = useState("");
   const [scheduleTypeFilter, setScheduleTypeFilter] = useState(null); // Có vẻ không được sử dụng với `campaigns` hiện tại
 
@@ -104,9 +107,15 @@ export default function Vaccination() {
   const [formCreateNewSchedule] = Form.useForm();
   const [formUpdateStudentDetail] = Form.useForm(); // Đổi tên để rõ ràng hơn
 
-  // --- FETCH DỮ LIỆU BAN ĐẦU ---
-  const fetchData = useCallback(() => {
-    dispatch(fetchAllVaccineCampaigns());
+  // // --- FETCH DỮ LIỆU BAN ĐẦU ---
+  const fetchData = useCallback(async () => {
+    const resultAction = await dispatch(fetchAllVaccineCampaigns());
+    if (fetchAllVaccineCampaigns.fulfilled.match(resultAction)) {
+      setPagination((prev) => ({
+        ...prev,
+        total: resultAction.payload.total || prev.total,
+      }));
+    }
   }, [dispatch]);
 
   useEffect(() => {
@@ -114,17 +123,22 @@ export default function Vaccination() {
   }, [fetchData]);
 
   // --- XỬ LÝ THÔNG BÁO LỖI/THÀNH CÔNG TỪ REDUX ---
-  useEffect(() => {
-    if (error) {
-      message.error(error);
-      dispatch(clearImmunizationsError()); // Xóa lỗi sau khi hiển thị
-    }
-    if (success) {
-      message.success("Thao tác thành công!");
-      dispatch(clearImmunizationsSuccess()); // Xóa thành công sau khi hiển thị
-      fetchData(); // Tải lại danh sách campaigns sau khi có thao tác thành công
-    }
-  }, [error, success, dispatch, fetchData]);
+  // useEffect(() => {
+  //   if (error) {
+  //     message.error(error);
+  //     dispatch(clearImmunizationsError()); // Xóa lỗi sau khi hiển thị
+  //   }
+  //   if (success) {
+  //     message.success("Thao tác thành công!");
+  //     dispatch(clearImmunizationsSuccess()); // Xóa thành công sau khi hiển thị
+  //     fetchData(); // Tải lại danh sách campaigns sau khi có thao tác thành công
+  //   }
+  // }, [error, success, dispatch, fetchData]);
+
+  const classOptions = [1, 2, 3, 4, 5].map((classNumber) => ({
+    label: `Lớp ${classNumber}`,
+    value: classNumber,
+  }));
 
   // --- CẬP NHẬT TỔNG SỐ TRANG CHO PHÂN TRANG ---
   useEffect(() => {
@@ -190,7 +204,7 @@ export default function Vaccination() {
   const handleCreateNewScheduleModalOk = async () => {
     try {
       const values = await formCreateNewSchedule.validateFields(); // Validate form
-      console.log("Creating new campaign with values:", values);
+      console.log("Creating new campaign with values:", values.className);
 
       const payload = {
         title: values.title,
@@ -199,7 +213,7 @@ export default function Vaccination() {
           ? values.scheduled_date.format("YYYY-MM-DD")
           : null,
         sponsor: values.sponsor,
-        class_name: values.className, // Đảm bảo khớp với API backend (class_name thay vì className)
+        className: values.className,
       };
 
       await dispatch(
@@ -212,8 +226,7 @@ export default function Vaccination() {
       setCreateNewScheduleModal(false); // Đóng modal sau khi thành công
       formCreateNewSchedule.resetFields(); // Reset form
     } catch (err) {
-      console.error("Lỗi khi tạo lịch trình mới:", err);
-      message.error(err.message || "Tạo lịch trình thất bại!"); // Hiển thị lỗi từ Redux thunk hoặc lỗi mặc định
+      toast.error(err);
     }
   };
 
@@ -379,6 +392,24 @@ export default function Vaccination() {
       ),
       className: "!text-gray-700 !font-medium",
     },
+    {
+      title: (
+        <Space>
+          <CommentOutlined style={{ color: "#bfbfbf" }} />
+          <span className="text-gray-600 font-semibold">Lớp</span>
+        </Space>
+      ),
+      dataIndex: "class",
+      key: "class",
+      align: "left",
+      render: (text) => (
+        <Tooltip title={text}>
+          <Text ellipsis={{ tooltip: true }}>{text}</Text>
+        </Tooltip>
+      ),
+      className: "!text-gray-700 !font-medium",
+    },
+
     {
       title: (
         <Space>
@@ -754,12 +785,12 @@ export default function Vaccination() {
               label="Lớp"
               rules={[{ required: true, message: "Vui lòng chọn lớp!" }]}
             >
-              <Select placeholder="Chọn lớp">
-                <Option value={1}>1</Option>
-                <Option value={2}>2</Option>
-                <Option value={3}>3</Option>
-                <Option value={4}>4</Option>
-                <Option value={5}>5</Option>
+              <Select placeholder="Chọn lớp áp dụng">
+                {classOptions.map((cls) => (
+                  <Option key={cls.value} value={cls.value}>
+                    {cls.label}
+                  </Option>
+                ))}
               </Select>
             </Form.Item>
           </Form>
@@ -909,7 +940,7 @@ export default function Vaccination() {
             initialValues={{
               full_name: selectedStudent?.full_name,
               student_code: selectedStudent?.student_code,
-              class_name: selectedStudent?.class_name,
+              className: selectedStudent?.className,
               date_of_birth: selectedStudent?.date_of_birth
                 ? dayjs(selectedStudent.date_of_birth)
                 : null,

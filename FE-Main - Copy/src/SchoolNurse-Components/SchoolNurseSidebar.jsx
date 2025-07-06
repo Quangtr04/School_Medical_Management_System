@@ -1,34 +1,23 @@
 import {
   AppstoreOutlined,
-  LineChartOutlined,
-  QuestionCircleOutlined,
-  SettingOutlined,
-  UserOutlined,
-  ContainerOutlined,
   ArrowLeftOutlined,
   MedicineBoxOutlined,
   WarningOutlined,
-  SolutionOutlined,
   FileTextOutlined,
-  NotificationOutlined,
-  LogoutOutlined,
 } from "@ant-design/icons";
 import { Button, Layout, Menu, Typography } from "antd";
-import { ArrowBigLeft } from "lucide-react";
-import React from "react";
 import { Link } from "react-router-dom";
-import HomePage from "../pages/HomePage";
 import { PiStudent } from "react-icons/pi";
 import { MdVaccines } from "react-icons/md";
-import { FaSchool, FaUserNurse } from "react-icons/fa";
+import { FaSchool } from "react-icons/fa";
 import { TbReportSearch } from "react-icons/tb";
-import { logout } from "../redux/auth/authSlice";
+import { CiPill } from "react-icons/ci";
 
 const { Sider } = Layout;
 const { Title, Text } = Typography;
 
 export default function SchoolNurseSideBar() {
-  const user = localStorage.getItem("currentUser");
+  const currentPath = location.pathname;
   const menuItems = [
     {
       key: "/nurse",
@@ -66,6 +55,12 @@ export default function SchoolNurseSideBar() {
       key: "/nurse/vaccinations",
       icon: <MdVaccines />,
       label: <Link to="/nurse/vaccinations">Lịch tiêm chủng</Link>,
+    },
+
+    {
+      key: "/nurse/medical-submission",
+      icon: <CiPill />,
+      label: <Link to="/nurse/medical-submission">Xét duyệt đơn thuốc</Link>,
     },
     {
       key: "/nurse/checkups",
@@ -119,7 +114,7 @@ export default function SchoolNurseSideBar() {
       </div>
       <Menu
         mode="inline"
-        defaultSelectedKeys={["/nurse"]} // Consider using location.pathname for dynamic selection
+        defaultSelectedKeys={[currentPath]} // Consider using location.pathname for dynamic selection
         style={{ height: "calc(100% - 64px)", borderRight: 0 }}
         items={menuItems}
       />
