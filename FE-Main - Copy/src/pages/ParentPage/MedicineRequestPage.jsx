@@ -37,109 +37,75 @@ import {
   ClockCircleFilled,
 } from "@ant-design/icons";
 import {
-  getParentChildren,
-  getChildDetails,
   submitMedicationRequest,
-  getMedicationRequests,
   setSelectedChild,
-} from "../../redux/parent/parentSlice";
+  getAllMedicationRequest,
+  getMedicationRequestDetail, // Đảm bảo thunk này đã được đổi tên và import đúng
+} from "../../redux/parent/parentSlice"; // Đảm bảo đường dẫn đúng cho slice của bạn
 import moment from "moment";
-import api from "../../configs/config-axios";
 
 const { TextArea } = Input;
 const { TabPane } = Tabs;
-const { RangePicker } = DatePicker;
 const { Title, Text } = Typography;
 
 function MedicineRequestPage() {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  const accessToken = localStorage.getItem("accessToken");
   const {
     children,
     selectedChild,
     medicationRequests,
-    loading: childrenLoading,
+    loading: parentSliceLoading, // Đổi tên để rõ ràng hơn, đây là loading chung của parentSlice
     success,
     error,
   } = useSelector((state) => state.parent);
 
   const [form] = Form.useForm();
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false); // Modal gửi yêu cầu mới
   const [activeTab, setActiveTab] = useState("1");
   const [fileList, setFileList] = useState([]);
   const [previewImage, setPreviewImage] = useState("");
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewTitle, setPreviewTitle] = useState("");
   const [dateType, setDateType] = useState("single"); // "single" or "multiple"
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState(false); // Loading khi submit form mới
 
-  // Fetch children data on mount
+  // State cục bộ để quản lý modal CHI TIẾT và dữ liệu chi tiết
+  const [modalDetailSubmission, setModalDetailSubmission] = useState(false); // Modal hiển thị chi tiết
+  const [selectedMedicationRequest, setSelectedMedicationRequest] =
+    useState(null);
+  const [modalLoading, setModalLoading] = useState(false); // Loading riêng cho modal chi tiết
+  const [modalError, setModalError] = useState(null); // Error riêng cho modal chi tiết
+
+  // Fetch all medication requests on mount
   useEffect(() => {
-    console.log("Fetching children data...");
-    dispatch(getParentChildren())
-      .unwrap()
-      .then((data) => {
-        console.log("Children data fetched successfully:", data);
-      })
-      .catch((error) => {
-        console.error("Error fetching children data:", error);
-        message.error(
-          "Không thể tải danh sách học sinh. Vui lòng thử lại sau."
-        );
-      });
-  }, [dispatch]);
+    console.log("Fetching all medication requests...");
+    // Truyền accessToken vào thunk nếu cần cho việc xác thực
+    dispatch(getAllMedicationRequest({ accessToken })).unwrap();
+  }, [dispatch, accessToken]); // Thêm accessToken vào dependencies
 
-  // Log children data when it changes
-  useEffect(() => {
-    console.log("Children data in Redux:", children);
-  }, [children]);
+  console.log(selectedMedicationRequest);
 
-  // Select first child if none selected
-  useEffect(() => {
-    if (children && children.length > 0 && !selectedChild) {
-      // Make sure we have a valid ID before dispatching
-      const childId = children[0].id || children[0].student_id;
-      if (childId) {
-        console.log("Selecting first child:", children[0]);
-        dispatch(getChildDetails(childId));
-      } else {
-        console.error("No valid ID found for child:", children[0]);
-      }
-    }
-  }, [dispatch, children, selectedChild]);
-
-  // Fetch medication requests when child is selected
-  useEffect(() => {
-    if (selectedChild?.student_id) {
-      dispatch(getMedicationRequests(selectedChild.student_id));
-    } else if (selectedChild) {
-      // If selectedChild exists but doesn't have student_id, log warning
-      console.warn("Selected child doesn't have a student_id:", selectedChild);
-    }
-  }, [dispatch, selectedChild]);
-
-  // Handle success from API
+  // Handle success from API for new submission
   useEffect(() => {
     if (success && submitting) {
       message.success("Gửi yêu cầu thuốc thành công!");
       setIsModalVisible(false);
       form.resetFields();
       setFileList([]);
+      setDateType("single"); // Reset dateType về mặc định
       setSubmitting(false);
 
-      // Refresh medicine requests
-      if (selectedChild?.student_id) {
-        dispatch(getMedicationRequests(selectedChild.student_id));
-      }
+      // Refresh all medication requests after successful submission
+      dispatch(getAllMedicationRequest({ accessToken }));
     }
-  }, [success, form, selectedChild, submitting, dispatch]);
+  }, [success, form, selectedChild, submitting, dispatch, accessToken]); // Thêm accessToken vào dependencies
 
-  // Handle errors from API
+  // Handle errors from API for new submission
   useEffect(() => {
     if (error && submitting) {
       if (error.errors && Array.isArray(error.errors)) {
-        // Display specific validation errors
         message.error(`Lỗi: ${error.errors.join(", ")}`);
       } else {
         message.error(
@@ -157,23 +123,20 @@ function MedicineRequestPage() {
 
   const showModal = () => {
     form.resetFields();
-
-    // Nếu có học sinh đã chọn, thiết lập giá trị mặc định cho trường học sinh
+    setFileList([]);
+    setDateType("single");
+    // Nếu có học sinh đã chọn hoặc danh sách học sinh, thiết lập giá trị mặc định
     if (selectedChild?.student_id) {
       form.setFieldsValue({
         student: selectedChild.student_id,
       });
     } else if (children.length > 0) {
-      // Nếu chưa có học sinh được chọn nhưng có danh sách học sinh, chọn học sinh đầu tiên
       form.setFieldsValue({
         student: children[0].student_id,
       });
-      // Cập nhật selectedChild trong Redux store
+      // Cập nhật selectedChild trong Redux store nếu chưa có (tùy chọn)
       dispatch(setSelectedChild(children[0]));
     }
-
-    setFileList([]);
-    setDateType("single");
     setIsModalVisible(true);
   };
 
@@ -185,7 +148,6 @@ function MedicineRequestPage() {
     if (!file.url && !file.preview) {
       file.preview = await getBase64(file.originFileObj);
     }
-
     setPreviewImage(file.url || file.preview);
     setPreviewVisible(true);
     setPreviewTitle(
@@ -198,33 +160,21 @@ function MedicineRequestPage() {
   const handleChangeUpload = ({ fileList: newFileList }) =>
     setFileList(newFileList);
 
-  // Date disabler function - disables weekends and past dates
   const disabledDate = (current) => {
-    // Can't select days before today
     const today = moment().startOf("day");
-
-    // Can't select weekends (Saturday is 6, Sunday is 0)
     const isWeekend = current.day() === 0 || current.day() === 6;
-
     return current && (current < today || isWeekend);
   };
 
-  // End date disabler - also prevents selecting date before start date
   const disabledEndDate = (current, startDate) => {
-    // Can't select days before start date
     const isBeforeStartDate = startDate && current < startDate.startOf("day");
-
-    // Can't select weekends (Saturday is 6, Sunday is 0)
     const isWeekend = current.day() === 0 || current.day() === 6;
-
     return current && (isBeforeStartDate || isWeekend);
   };
 
   const handleDateTypeChange = (e) => {
     const newDateType = e.target.value;
     setDateType(newDateType);
-
-    // Clear the date fields when switching between single and multiple
     form.setFieldsValue({
       singleDate: undefined,
       startDate: undefined,
@@ -233,34 +183,23 @@ function MedicineRequestPage() {
   };
 
   const handleSubmit = async (values) => {
-    // Prepare start and end dates based on date type
     let startDate, endDate;
 
     if (dateType === "single") {
-      // For single date, both start and end are the same
       startDate = values.singleDate;
       endDate = values.singleDate;
     } else {
-      // For multiple dates
       startDate = values.startDate;
       endDate = values.endDate;
     }
 
-    // Get student_id from form values
     const student_id = values.student;
 
-    // Find the selected child from the children array
-    const selectedStudentFromForm = children.find(
-      (child) => child.student_id === student_id
-    );
-
-    // Check if student_id exists
     if (!student_id) {
       message.error("Vui lòng chọn học sinh.");
       return;
     }
 
-    // Check if parent_id exists
     if (!user?.user_id) {
       message.error(
         "Không thể xác định thông tin phụ huynh. Vui lòng đăng nhập lại."
@@ -268,19 +207,12 @@ function MedicineRequestPage() {
       return;
     }
 
-    // Prepare the image if available
     let imageUrl = "";
     if (fileList.length > 0 && fileList[0].originFileObj) {
       try {
-        const formData = new FormData();
-        formData.append("file", fileList[0].originFileObj);
-
-        // For now we'll use a placeholder until image upload is implemented
+        // Here, you would typically upload the file to your server
+        // and get a real URL back. For now, using a placeholder.
         imageUrl = "https://example.com/uploaded-prescription.jpg";
-
-        // In a real implementation with actual file upload:
-        // const uploadResponse = await api.post('/parent/upload-image', formData);
-        // imageUrl = uploadResponse.data.url;
       } catch (uploadError) {
         console.error("Lỗi khi tải ảnh lên:", uploadError);
         message.warning(
@@ -289,7 +221,6 @@ function MedicineRequestPage() {
       }
     }
 
-    // Create medication request data with all required fields
     const medicationRequestData = {
       parent_id: user.user_id,
       student_id: student_id,
@@ -297,7 +228,7 @@ function MedicineRequestPage() {
       image_url: imageUrl,
       start_date: startDate.format("YYYY-MM-DD"),
       end_date: endDate.format("YYYY-MM-DD"),
-      medication_name: values.note.split("\n")[0] || "Thuốc",
+      medication_name: values.note.split("\n")[0] || "Thuốc", // Lấy dòng đầu tiên của ghi chú làm tên thuốc
       dosage: values.dosage || "",
       frequency: values.frequency || "",
       status: "PENDING",
@@ -306,13 +237,11 @@ function MedicineRequestPage() {
 
     console.log("Sending medication request data:", medicationRequestData);
     setSubmitting(true);
-
-    // Use the Redux action instead of direct API call
     dispatch(submitMedicationRequest(medicationRequestData));
   };
 
   const getStatusTag = (status) => {
-    switch (status.toUpperCase()) {
+    switch (status?.toUpperCase()) {
       case "PENDING":
         return (
           <Tag icon={<ClockCircleFilled />} color="warning">
@@ -418,69 +347,44 @@ function MedicineRequestPage() {
     },
   ];
 
-  const viewMedicationDetails = (record) => {
-    Modal.info({
-      title: "Chi tiết yêu cầu gửi thuốc",
-      width: 600,
-      content: (
-        <div style={{ marginTop: 16 }}>
-          <Row gutter={[16, 16]}>
-            <Col span={24}>
-              <Card>
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <p>
-                      <strong>Mã yêu cầu:</strong> #{record.id_req}
-                    </p>
-                    <p>
-                      <strong>Ngày yêu cầu:</strong>{" "}
-                      {moment(record.created_at).format("DD/MM/YYYY HH:mm")}
-                    </p>
-                    <p>
-                      <strong>Thời gian sử dụng:</strong>{" "}
-                      {moment(record.start_date).format("DD/MM/YYYY")} -{" "}
-                      {moment(record.end_date).format("DD/MM/YYYY")}
-                    </p>
-                    <p>
-                      <strong>Trạng thái:</strong> {getStatusTag(record.status)}
-                    </p>
-                  </Col>
-                  <Col span={12}>
-                    <p>
-                      <strong>Học sinh:</strong> {selectedChild?.full_name}
-                    </p>
-                    <p>
-                      <strong>Lớp:</strong> {selectedChild?.class_name}
-                    </p>
-                    <p>
-                      <strong>Y tá phụ trách:</strong> ID: {record.nurse_id}
-                    </p>
-                  </Col>
-                </Row>
-                <Divider />
-                <div>
-                  <strong>Ghi chú:</strong>
-                  <p>{record.note || "Không có ghi chú"}</p>
-                </div>
-                {record.image_url && (
-                  <div style={{ marginTop: 16 }}>
-                    <strong>Hình ảnh đơn thuốc:</strong>
-                    <div style={{ marginTop: 8 }}>
-                      <img
-                        src={record.image_url}
-                        alt="Đơn thuốc"
-                        style={{ maxWidth: "100%", maxHeight: 200 }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </Card>
-            </Col>
-          </Row>
-        </div>
-      ),
-      onOk() {},
-    });
+  // Hàm xử lý hiển thị chi tiết yêu cầu thuốc
+  const viewMedicationDetails = async (record) => {
+    console.log("Viewing details for record:", record);
+    const reqId = record.id_req; // Đảm bảo dùng đúng trường ID
+
+    if (reqId) {
+      setModalLoading(true); // Bắt đầu loading cho modal chi tiết
+      setModalError(null); // Reset lỗi
+      setSelectedMedicationRequest(null); // Xóa dữ liệu cũ
+
+      try {
+        const resultAction = await dispatch(
+          getMedicationRequestDetail(reqId)
+        ).unwrap();
+
+        // unwrap() sẽ xử lý cả fulfilled và rejected
+        const details = resultAction; // resultAction.payload chính là dữ liệu trả về từ thunk nếu thành công
+
+        if (details) {
+          setSelectedMedicationRequest(details);
+          setModalDetailSubmission(true); // Mở modal chi tiết
+        } else {
+          message.warn("Không tìm thấy chi tiết yêu cầu thuốc.");
+        }
+      } catch (err) {
+        console.error("Error fetching medication request details:", err);
+        setModalError(err.message || "Lỗi không xác định khi tải chi tiết.");
+        message.error(
+          `Không thể tải chi tiết yêu cầu thuốc: ${
+            err.message || "Lỗi không xác định"
+          }`
+        );
+      } finally {
+        setModalLoading(false); // Kết thúc loading
+      }
+    } else {
+      message.warn("Không tìm thấy ID yêu cầu thuốc.");
+    }
   };
 
   const renderActiveMedications = () => {
@@ -495,8 +399,8 @@ function MedicineRequestPage() {
       <Table
         columns={columns}
         dataSource={activeRequests}
-        rowKey={(record) => record.id_req || record.id}
-        loading={childrenLoading}
+        rowKey={(record) => record.id_req || record.id} // Đảm bảo rowKey đúng
+        loading={parentSliceLoading} // Sử dụng loading chung của slice
         pagination={{ pageSize: 5 }}
         locale={{
           emptyText: (
@@ -517,8 +421,8 @@ function MedicineRequestPage() {
       <Table
         columns={columns}
         dataSource={historyRequests}
-        rowKey={(record) => record.id_req || record.id}
-        loading={childrenLoading}
+        rowKey={(record) => record.id_req || record.id} // Đảm bảo rowKey đúng
+        loading={parentSliceLoading} // Sử dụng loading chung của slice
         pagination={{ pageSize: 5 }}
         locale={{
           emptyText: <Empty description="Không có lịch sử gửi thuốc" />,
@@ -527,7 +431,9 @@ function MedicineRequestPage() {
     );
   };
 
-  if (childrenLoading) {
+  // Sử dụng parentSliceLoading để hiển thị Spin cho toàn bộ trang
+  if (parentSliceLoading && !medicationRequests.length) {
+    // Chỉ hiển thị nếu đang tải và chưa có dữ liệu nào
     return (
       <div style={{ textAlign: "center", padding: 50 }}>
         <Spin size="large" />
@@ -582,11 +488,11 @@ function MedicineRequestPage() {
         </Tabs>
       </Card>
 
-      {/* Modal gửi yêu cầu thuốc */}
+      {/* Modal gửi yêu cầu thuốc mới */}
       <Modal
         title="Gửi yêu cầu thuốc cho con"
         open={isModalVisible}
-        onCancel={() => setIsModalVisible(false)}
+        onCancel={handleCancel}
         footer={null}
         width={700}
       >
@@ -618,7 +524,7 @@ function MedicineRequestPage() {
                   <Empty description="Không có dữ liệu" />
                 )
               }
-              loading={childrenLoading}
+              loading={parentSliceLoading} // Sử dụng loading chung của slice cho select
               placeholder="Chọn học sinh"
             >
               {children && children.length > 0 ? (
@@ -711,10 +617,9 @@ function MedicineRequestPage() {
                         if (!value || !startDate) {
                           return Promise.resolve();
                         }
-                        // Use standard moment.js comparison
                         if (
-                          value.isSame(startDate) ||
-                          value.isAfter(startDate)
+                          value.isSame(startDate, "day") || // So sánh ngày, bỏ qua giờ
+                          value.isAfter(startDate, "day")
                         ) {
                           return Promise.resolve();
                         }
@@ -783,7 +688,7 @@ function MedicineRequestPage() {
           <Form.Item style={{ textAlign: "right", marginBottom: 0 }}>
             <Button
               style={{ marginRight: 8 }}
-              onClick={() => setIsModalVisible(false)}
+              onClick={handleCancel} // Sử dụng handleCancel đã định nghĩa
               disabled={submitting}
             >
               Hủy
@@ -795,6 +700,108 @@ function MedicineRequestPage() {
         </Form>
       </Modal>
 
+      {/* Modal hiển thị chi tiết yêu cầu thuốc */}
+      <Modal
+        title="Chi tiết Yêu cầu Thuốc"
+        open={modalDetailSubmission} // Đã sửa thành modalDetailSubmission
+        onCancel={() => setModalDetailSubmission(false)}
+        footer={[
+          <Button key="back" onClick={() => setModalDetailSubmission(false)}>
+            Đóng
+          </Button>,
+        ]}
+      >
+        {modalLoading ? (
+          <div style={{ textAlign: "center", padding: "20px" }}>
+            <Spin size="large" />
+            <p>Đang tải chi tiết...</p>
+          </div>
+        ) : modalError ? (
+          <div style={{ color: "red" }}>
+            <p>Có lỗi xảy ra khi tải chi tiết:</p>
+            <Text type="danger">{modalError}</Text>
+          </div>
+        ) : selectedMedicationRequest ? (
+          <div>
+            <Title level={4}>
+              Yêu cầu thuốc #{selectedMedicationRequest.id_req}
+            </Title>
+            <p>
+              <Text strong>Tên phụ huynh:</Text>{" "}
+              {selectedMedicationRequest.fullname}
+            </p>
+            <p>
+              <Text strong>Tên học sinh:</Text>{" "}
+              {selectedMedicationRequest.student}
+            </p>
+            <p>
+              <Text strong>ID Học sinh:</Text>{" "}
+              {selectedMedicationRequest.student_id}
+            </p>
+            <p>
+              <Text strong>Trạng thái:</Text>{" "}
+              {getStatusTag(selectedMedicationRequest.status)}
+            </p>
+            <p>
+              <Text strong>Ngày bắt đầu:</Text>{" "}
+              {selectedMedicationRequest.start_date
+                ? moment(selectedMedicationRequest.start_date).format(
+                    "DD/MM/YYYY"
+                  )
+                : "N/A"}
+            </p>
+            <p>
+              <Text strong>Ngày kết thúc:</Text>{" "}
+              {selectedMedicationRequest.end_date
+                ? moment(selectedMedicationRequest.end_date).format(
+                    "DD/MM/YYYY"
+                  )
+                : "N/A"}
+            </p>
+            <p>
+              <Text strong>Ghi chú:</Text>{" "}
+              {selectedMedicationRequest.note || "Không có ghi chú"}
+            </p>
+            <p>
+              <Text strong>ID Y tá:</Text>{" "}
+              {selectedMedicationRequest.nurse_id || "Chưa gán"}
+            </p>
+            <p>
+              <Text strong>Ngày tạo:</Text>{" "}
+              {selectedMedicationRequest.created_at
+                ? moment(selectedMedicationRequest.created_at).format(
+                    "DD/MM/YYYY HH:mm"
+                  )
+                : "N/A"}
+            </p>
+            {selectedMedicationRequest.image_url && (
+              <div>
+                <Text strong>Hình ảnh đơn thuốc:</Text>
+                <br />
+                <a
+                  href={selectedMedicationRequest.image_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <img
+                    src={selectedMedicationRequest.image_url}
+                    alt="Đơn thuốc"
+                    style={{
+                      maxWidth: "100%",
+                      height: "auto",
+                      marginTop: "10px",
+                    }}
+                  />
+                </a>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p>Không có dữ liệu chi tiết yêu cầu thuốc.</p>
+        )}
+      </Modal>
+
+      {/* Modal xem trước ảnh */}
       <Modal
         open={previewVisible}
         title={previewTitle}

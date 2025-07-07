@@ -12,7 +12,6 @@ export const fetchUsers = createAsyncThunk(
       // endpointPath sẽ là '/admin/parents', '/admin/nurses', v.v.
       const response = await api.get(endpointPath, { params });
       const data = response.data.data;
-      console.log(data);
 
       return data;
     } catch (error) {

@@ -78,11 +78,6 @@ export default function SchoolNurseSideBar() {
       icon: <ArrowLeftOutlined />,
       label: <Link to="/">Quay về trang chủ</Link>,
     },
-    {
-      key: "/logout",
-      icon: <LogoutOutlined />,
-      label: <Link to="/logout">Logout</Link>,
-    },
   ];
   return (
     <Sider

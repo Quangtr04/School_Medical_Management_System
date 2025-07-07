@@ -12,6 +12,8 @@ import managerReducer from "./manager/managerSlice";
 import managerNotificationReducer from "./manager/managerNotificationSlice";
 import notificationReducer from "./nurse/nurseNotificationSlice";
 import medicationSubmissionReducer from "./nurse/medicalSubmission/medicalSubmisstionSlice";
+import parentReducer from "./parent/parentSlice";
+
 const store = configureStore({
   reducer: {
     auth: authReducer, // Đăng ký authReducer dưới key 'auth'
@@ -26,6 +28,7 @@ const store = configureStore({
     notifications: notificationReducer,
     managerNotifications: managerNotificationReducer,
     medicationSubmission: medicationSubmissionReducer,
+    parent: parentReducer,
   },
   // DevTools được bật mặc định trong môi trường phát triển
 });

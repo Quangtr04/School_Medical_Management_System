@@ -1,7 +1,6 @@
-import React, { useEffect, useMemo } from "react"; // Import useMemo
+import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { CiPill } from "react-icons/ci";
-// Import các icon cần thiết cho cột
 import {
   FaPills,
   FaUserInjured,
@@ -13,29 +12,41 @@ import {
 } from "react-icons/fa";
 import { MdOutlineDateRange, MdNotes } from "react-icons/md";
 import { BsCalendar2DateFill } from "react-icons/bs";
-import { Table } from "antd"; // Import Table từ antd
+import { Table, Modal, Button, Spin } from "antd"; // Import Modal, Button, Spin
 
 import { fetchAllMedicationSubmissions } from "../../redux/nurse/medicalSubmission/medicalSubmisstionSlice";
-// Điều chỉnh đường dẫn này đến file slice của bạn
+import { fetchAllStudentHealthRecords } from "../../redux/nurse/studentRecords/studentRecord"; // Đảm bảo đường dẫn này đúng
 
 export default function MedicalSubmission() {
   const dispatch = useDispatch();
-  // Lấy dữ liệu, trạng thái loading và error từ Redux store
-  const { data, loading, error } = useSelector(
-    (state) => state.medicationSubmission // Đảm bảo đúng tên slice trong store của bạn (trước đó là medicationSubmission, giờ là medicationSubmissions)
-  );
+  const {
+    data,
+    loading,
+    error,
+    currentStudentDetails,
+    studentDetailsLoading,
+    studentDetailsError,
+  } = useSelector((state) => state.medicationSubmission);
+
+  // Lấy dữ liệu học sinh từ studentRecord slice
+  const students = useSelector((state) => state.studentRecord.healthRecords);
+
+  const [isStudentModalVisible, setIsStudentModalVisible] = useState(false);
 
   useEffect(() => {
-    // Khi component được mount, gửi action để lấy dữ liệu
     dispatch(fetchAllMedicationSubmissions());
-  }, [dispatch]); // Dependency array chỉ chứa dispatch để tránh re-render không cần thiết
+    dispatch(fetchAllStudentHealthRecords()); // Fetch tất cả hồ sơ học sinh
+  }, [dispatch]);
+
+  const handleStudentModalCancel = () => {
+    setIsStudentModalVisible(false);
+  };
 
   const columns = useMemo(
     () => [
-      // Sử dụng useMemo để định nghĩa columns
       {
         title: "ID Yêu Cầu",
-        dataIndex: ["_id"], // Sử dụng _id của MongoDB làm dataIndex chính
+        dataIndex: ["_id"],
         key: "id_req",
         render: (text, record) => (
           <div className="flex items-center gap-2">
@@ -46,25 +57,13 @@ export default function MedicalSubmission() {
       },
       {
         title: "Học Sinh",
-        dataIndex: ["student_id", "name"], // Antd có thể truy cập nested field trực tiếp
+        dataIndex: "full_name", // Vẫn giữ dataIndex là ID
         key: "student",
-        render: (text, record) => (
-          <div className="flex items-center gap-2">
-            <FaUserInjured className="text-purple-500" />
-            <span>{record.student_id?.name || "N/A"}</span>
-          </div>
-        ),
       },
       {
         title: "Phụ Huynh",
-        dataIndex: ["parent_id", "name"],
+        dataIndex: "fullname", // Chỉ cần dataIndex là ID, không phải đường dẫn lồng nhau
         key: "parent",
-        render: (text, record) => (
-          <div className="flex items-center gap-2">
-            👤
-            <span>{record.parent_id?.name || "N/A"}</span>
-          </div>
-        ),
       },
       {
         title: "Y Tá",
@@ -112,8 +111,7 @@ export default function MedicalSubmission() {
       },
       {
         title: "Thuốc & Liều lượng",
-        // Giả định bạn có trường medicationName và dosage trực tiếp trong record hoặc cần một hàm render phức tạp hơn
-        dataIndex: "medicationName", // Hoặc bỏ dataIndex nếu không có trường trực tiếp
+        dataIndex: "medicationName",
         key: "medication_dosage",
         render: (text, record) => (
           <div className="flex items-center gap-2">
@@ -194,8 +192,8 @@ export default function MedicalSubmission() {
         ),
       },
     ],
-    []
-  ); // <-- Dependency array rỗng vì columns không thay đổi
+    [students] // Thêm studentsData vào dependency array để cột re-render khi studentsData thay đổi
+  );
 
   return (
     <div
@@ -223,7 +221,6 @@ export default function MedicalSubmission() {
           </div>
         </header>
 
-        {/* Thay thế phần hiển thị bằng Ant Design Table */}
         <div className="bg-white p-4 rounded-lg shadow-md">
           {error && (
             <p className="text-red-600 mb-2">
@@ -234,12 +231,82 @@ export default function MedicalSubmission() {
             columns={columns}
             dataSource={data}
             loading={loading}
-            rowKey={(record) => record._id || record.id_req} // Ant Design yêu cầu một key duy nhất cho mỗi hàng
-            pagination={{ pageSize: 10 }} // Thêm phân trang với 10 mục mỗi trang
-            scroll={{ x: "max-content" }} // Cho phép cuộn ngang nếu bảng quá rộng
+            rowKey={(record) => record._id || record.id_req}
+            pagination={{ pageSize: 10 }}
+            scroll={{ x: "max-content" }}
           />
         </div>
       </div>
+
+      {/* Modal hiển thị thông tin chi tiết học sinh */}
+      <Modal
+        title="Thông tin chi tiết học sinh"
+        open={isStudentModalVisible}
+        onCancel={handleStudentModalCancel}
+        footer={[
+          <Button key="back" onClick={handleStudentModalCancel}>
+            Đóng
+          </Button>,
+        ]}
+      >
+        {studentDetailsLoading ? (
+          <div className="flex justify-center items-center h-24">
+            <Spin size="large" />
+          </div>
+        ) : studentDetailsError ? (
+          <p className="text-red-600">
+            Lỗi khi tải thông tin học sinh:{" "}
+            {studentDetailsError.message || "Đã xảy ra lỗi."}
+          </p>
+        ) : currentStudentDetails ? (
+          <div>
+            <p>
+              <strong>Mã học sinh:</strong>{" "}
+              {currentStudentDetails._id || currentStudentDetails.student_id}
+            </p>
+            <p>
+              <strong>Tên học sinh:</strong> {currentStudentDetails.name}
+            </p>
+            <p>
+              <strong>Ngày sinh:</strong>{" "}
+              {currentStudentDetails.dateOfBirth
+                ? new Date(
+                    currentStudentDetails.dateOfBirth
+                  ).toLocaleDateString("vi-VN")
+                : "N/A"}
+            </p>
+            <p>
+              <strong>Giới tính:</strong>{" "}
+              {currentStudentDetails.gender || "N/A"}
+            </p>
+            <p>
+              <strong>Lớp:</strong>{" "}
+              {currentStudentDetails.class_id?.name ||
+                currentStudentDetails.class_id ||
+                "N/A"}
+            </p>
+            {currentStudentDetails.parent_id && (
+              <>
+                <h4 className="font-semibold mt-4">Thông tin phụ huynh:</h4>
+                <p>
+                  <strong>Tên phụ huynh:</strong>{" "}
+                  {currentStudentDetails.parent_id.name || "N/A"}
+                </p>
+                <p>
+                  <strong>Email:</strong>{" "}
+                  {currentStudentDetails.parent_id.email || "N/A"}
+                </p>
+                <p>
+                  <strong>Số điện thoại:</strong>{" "}
+                  {currentStudentDetails.parent_id.phone || "N/A"}
+                </p>
+              </>
+            )}
+          </div>
+        ) : (
+          <p>Không có thông tin học sinh.</p>
+        )}
+      </Modal>
     </div>
   );
 }

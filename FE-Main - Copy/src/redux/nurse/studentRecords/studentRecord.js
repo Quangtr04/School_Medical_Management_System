@@ -18,7 +18,6 @@ export const fetchAllStudentHealthRecords = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await api.get("/nurse/students/health-declaration"); // Thay đổi endpoint nếu cần
-      console.log("Fetched student health records:", response.data.data);
       // Giả sử API trả về mảng dữ liệu trực tiếp hoặc trong response.data.data
       return response.data.data; // Hoặc response.data.data tùy cấu trúc API của bạn
     } catch (error) {

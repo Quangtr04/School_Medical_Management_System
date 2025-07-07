@@ -17,6 +17,7 @@ const { Sider } = Layout;
 const { Title, Text } = Typography;
 
 export default function AdminSideBar() {
+  const currLocation = location.pathname;
   const menuItems = [
     {
       key: "/admin",
@@ -93,7 +94,7 @@ export default function AdminSideBar() {
       </div>
       <Menu
         mode="inline"
-        defaultSelectedKeys={["/admin"]} // Consider using location.pathname for dynamic selection
+        defaultSelectedKeys={[currLocation]} // Consider using location.pathname for dynamic selection
         style={{ height: "calc(100% - 64px)", borderRight: 0 }}
         items={menuItems}
       />

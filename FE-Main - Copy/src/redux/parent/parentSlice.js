@@ -32,100 +32,74 @@ const initialState = {
 
 // Async Thunks for API calls
 // Student Information
-export const getParentChildren = createAsyncThunk(
-  "parent/getChildren",
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await api.get("/parent/students");
-      console.log("Parent children API response:", response.data);
+export const getParentChildren = createAsyncThunk("parent/getChildren", async (_, { rejectWithValue }) => {
+  try {
+    const response = await api.get("/parent/students");
+    console.log("Parent children API response:", response.data);
 
-      // Return list of children from response data or direct response
-      if (
-        response.data &&
-        response.data.data &&
-        Array.isArray(response.data.data)
-      ) {
-        // Make sure each child has an id property
-        return response.data.data.map((child) => ({
-          ...child,
-          id: child.student_id || child.id, // Ensure id exists for compatibility
-        }));
-      }
-      if (Array.isArray(response.data)) {
-        // Make sure each child has an id property
-        return response.data.map((child) => ({
-          ...child,
-          id: child.student_id || child.id, // Ensure id exists for compatibility
-        }));
-      }
-      return [];
-    } catch (error) {
-      console.error("Error fetching children:", error);
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch children information"
-      );
+    // Return list of children from response data or direct response
+    if (response.data && response.data.data && Array.isArray(response.data.data)) {
+      // Make sure each child has an id property
+      return response.data.data.map((child) => ({
+        ...child,
+        id: child.student_id || child.id, // Ensure id exists for compatibility
+      }));
     }
-  }
-);
-
-export const getChildDetails = createAsyncThunk(
-  "parent/getChildDetails",
-  async (student_id, { rejectWithValue }) => {
-    try {
-      // Check if student_id is valid before making the API call
-      if (!student_id) {
-        console.warn(
-          "Attempted to fetch child details with undefined student_id"
-        );
-        return null;
-      }
-
-      const response = await api.get(`/parent/students/${student_id}`);
-      // Extract payload where student details reside
-      const payload = response.data.data ?? response.data;
-      // If payload is array, find matching student_id
-      if (Array.isArray(payload)) {
-        return payload.find((item) => item.student_id === student_id) || null;
-      }
-      // Otherwise payload is object
-      return payload;
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch child details"
-      );
+    if (Array.isArray(response.data)) {
+      // Make sure each child has an id property
+      return response.data.map((child) => ({
+        ...child,
+        id: child.student_id || child.id, // Ensure id exists for compatibility
+      }));
     }
+    return [];
+  } catch (error) {
+    console.error("Error fetching children:", error);
+    return rejectWithValue(error.response?.data?.message || "Failed to fetch children information");
   }
-);
+});
 
-export const getParentProfile = createAsyncThunk(
-  "parent/getProfile",
-  async (_, { rejectWithValue }) => {
-    try {
-      console.log("Fetching profile using token");
-      // Thêm timestamp để tránh cache
-      const timestamp = new Date().getTime();
-      const response = await api.get(`/parent/profile?_t=${timestamp}`);
-      console.log("Profile data received:", response.data);
-
-      // Trả về dữ liệu người dùng từ mảng data
-      if (
-        response.data &&
-        response.data.data &&
-        Array.isArray(response.data.data) &&
-        response.data.data.length > 0
-      ) {
-        return response.data.data[0]; // Lấy phần tử đầu tiên từ mảng data
-      }
-
-      return response.data;
-    } catch (error) {
-      console.error("Get profile error:", error.response || error);
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch profile"
-      );
+export const getChildDetails = createAsyncThunk("parent/getChildDetails", async (student_id, { rejectWithValue }) => {
+  try {
+    // Check if student_id is valid before making the API call
+    if (!student_id) {
+      console.warn("Attempted to fetch child details with undefined student_id");
+      return null;
     }
+
+    const response = await api.get(`/parent/students/${student_id}`);
+    // Extract payload where student details reside
+    const payload = response.data.data ?? response.data;
+    // If payload is array, find matching student_id
+    if (Array.isArray(payload)) {
+      return payload.find((item) => item.student_id === student_id) || null;
+    }
+    // Otherwise payload is object
+    return payload;
+  } catch (error) {
+    return rejectWithValue(error.response?.data?.message || "Failed to fetch child details");
   }
-);
+});
+
+export const getParentProfile = createAsyncThunk("parent/getProfile", async (_, { rejectWithValue }) => {
+  try {
+    console.log("Fetching profile using token");
+    // Thêm timestamp để tránh cache
+    const timestamp = new Date().getTime();
+    const response = await api.get(`/parent/profile?_t=${timestamp}`);
+    console.log("Profile data received:", response.data);
+
+    // Trả về dữ liệu người dùng từ mảng data
+    if (response.data && response.data.data && Array.isArray(response.data.data) && response.data.data.length > 0) {
+      return response.data.data[0]; // Lấy phần tử đầu tiên từ mảng data
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error("Get profile error:", error.response || error);
+    return rejectWithValue(error.response?.data?.message || "Failed to fetch profile");
+  }
+});
 
 export const updateParentProfile = createAsyncThunk(
   "parent/updateProfile",
@@ -148,10 +122,7 @@ export const updateParentProfile = createAsyncThunk(
         // Lỗi từ server (status code không phải 2xx)
         console.error("Server error status:", error.response.status);
         console.error("Server error data:", error.response.data);
-        return rejectWithValue(
-          error.response.data?.message ||
-            `Server error: ${error.response.status}`
-        );
+        return rejectWithValue(error.response.data?.message || `Server error: ${error.response.status}`);
       } else if (error.request) {
         // Không nhận được response từ server
         console.error("No response received:", error.request);
@@ -166,70 +137,47 @@ export const updateParentProfile = createAsyncThunk(
 );
 
 // Health Checkups
-export const getApprovedCheckups = createAsyncThunk(
-  "parent/getApprovedCheckups",
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await api.get("/parent/checkups/approved");
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch approved checkups"
-      );
-    }
+export const getApprovedCheckups = createAsyncThunk("parent/getApprovedCheckups", async (_, { rejectWithValue }) => {
+  try {
+    const response = await api.get("/parent/checkups/approved");
+    return response.data;
+  } catch (error) {
+    return rejectWithValue(error.response?.data?.message || "Failed to fetch approved checkups");
   }
-);
+});
 
-export const getApprovedConsents = createAsyncThunk(
-  "parent/getApprovedConsents",
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await api.get("/parent/consents-checkups/approved");
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch approved consents"
-      );
-    }
+export const getApprovedConsents = createAsyncThunk("parent/getApprovedConsents", async (_, { rejectWithValue }) => {
+  try {
+    const response = await api.get("/parent/consents-checkups/approved");
+    return response.data;
+  } catch (error) {
+    return rejectWithValue(error.response?.data?.message || "Failed to fetch approved consents");
   }
-);
+});
 
-export const getCheckupDetails = createAsyncThunk(
-  "parent/getCheckupDetails",
-  async (id, { rejectWithValue }) => {
-    try {
-      const response = await api.get(`/parent/consents-checkups/${id}`);
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch checkup details"
-      );
-    }
+export const getCheckupDetails = createAsyncThunk("parent/getCheckupDetails", async (id, { rejectWithValue }) => {
+  try {
+    const response = await api.get(`/parent/consents-checkups/${id}`);
+    return response.data;
+  } catch (error) {
+    return rejectWithValue(error.response?.data?.message || "Failed to fetch checkup details");
   }
-);
+});
 
-export const getPendingConsents = createAsyncThunk(
-  "parent/getPendingConsents",
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await api.get("/parent/consents-checkups/pending");
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch pending consents"
-      );
-    }
+export const getPendingConsents = createAsyncThunk("parent/getPendingConsents", async (_, { rejectWithValue }) => {
+  try {
+    const response = await api.get("/parent/consents-checkups/pending");
+    return response.data;
+  } catch (error) {
+    return rejectWithValue(error.response?.data?.message || "Failed to fetch pending consents");
   }
-);
+});
 
 export const respondToConsentForm = createAsyncThunk(
   "parent/respondToConsentForm",
   async ({ form_id, response, notes }, { rejectWithValue, dispatch }) => {
     try {
-      const apiResponse = await api.post(
-        `/parent/consents-checkups/${form_id}/respond`,
-        { response, notes }
-      );
+      const apiResponse = await api.post(`/parent/consents-checkups/${form_id}/respond`, { response, notes });
 
       // Sau khi phản hồi thành công, cập nhật danh sách
       dispatch(getApprovedConsents());
@@ -237,9 +185,7 @@ export const respondToConsentForm = createAsyncThunk(
 
       return apiResponse.data;
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to respond to consent form"
-      );
+      return rejectWithValue(error.response?.data?.message || "Failed to respond to consent form");
     }
   }
 );
@@ -248,10 +194,7 @@ export const updateConsentStatus = createAsyncThunk(
   "parent/updateConsentStatus",
   async ({ checkup_id, status, notes }, { rejectWithValue, dispatch }) => {
     try {
-      const response = await api.patch(
-        `/parent/checkups/${checkup_id}/consent`,
-        { status, notes }
-      );
+      const response = await api.patch(`/parent/checkups/${checkup_id}/consent`, { status, notes });
 
       // Sau khi cập nhật thành công, cập nhật danh sách
       dispatch(getApprovedConsents());
@@ -259,9 +202,7 @@ export const updateConsentStatus = createAsyncThunk(
 
       return response.data;
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to update consent status"
-      );
+      return rejectWithValue(error.response?.data?.message || "Failed to update consent status");
     }
   }
 );
@@ -271,14 +212,10 @@ export const getHealthDeclaration = createAsyncThunk(
   "parent/getHealthDeclaration",
   async (student_id, { rejectWithValue }) => {
     try {
-      const response = await api.get(
-        `/parent/students/${student_id}/health-declaration`
-      );
+      const response = await api.get(`/parent/students/${student_id}/health-declaration`);
       return { student_id, data: response.data };
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch health declaration"
-      );
+      return rejectWithValue(error.response?.data?.message || "Failed to fetch health declaration");
     }
   }
 );
@@ -287,37 +224,27 @@ export const updateHealthDeclaration = createAsyncThunk(
   "parent/updateHealthDeclaration",
   async ({ studentId, declarationData }, { rejectWithValue }) => {
     try {
-      const response = await api.patch(
-        `/parent/students/${studentId}/health-declaration`,
-        declarationData
-      );
+      const response = await api.patch(`/parent/students/${studentId}/health-declaration`, declarationData);
       return { studentId, data: response.data };
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to update health declaration"
-      );
+      return rejectWithValue(error.response?.data?.message || "Failed to update health declaration");
     }
   }
 );
 
 // Medical Incidents
-export const getParentIncidents = createAsyncThunk(
-  "parent/getIncidents",
-  async (_, { rejectWithValue }) => {
-    try {
-      console.log("Fetching parent incidents with token");
-      // The token is automatically added by the axios interceptor
-      const response = await api.get("/parent/incidents");
-      console.log("Incidents data received:", response.data);
-      return response.data;
-    } catch (error) {
-      console.error("Error fetching incidents:", error);
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch medical incidents"
-      );
-    }
+export const getParentIncidents = createAsyncThunk("parent/getIncidents", async (_, { rejectWithValue }) => {
+  try {
+    console.log("Fetching parent incidents with token");
+    // The token is automatically added by the axios interceptor
+    const response = await api.get("/parent/incidents");
+    console.log("Incidents data received:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching incidents:", error);
+    return rejectWithValue(error.response?.data?.message || "Failed to fetch medical incidents");
   }
-);
+});
 
 export const getIncidentDetails = createAsyncThunk(
   "parent/getIncidentDetails",
@@ -355,8 +282,7 @@ export const getIncidentDetails = createAsyncThunk(
 
       // Return a more detailed error message
       return rejectWithValue({
-        message:
-          error.response?.data?.message || "Failed to fetch incident details",
+        message: error.response?.data?.message || "Failed to fetch incident details",
         status: error.response?.status,
         statusText: error.response?.statusText,
         url: error.config?.url,
@@ -400,9 +326,7 @@ export const submitMedicationRequest = createAsyncThunk(
         (key) => MedicalSubmissionRequestSchema[key].required
       );
 
-      const missingFields = requiredFields.filter(
-        (field) => !dataWithDefaults[field]
-      );
+      const missingFields = requiredFields.filter((field) => !dataWithDefaults[field]);
 
       if (missingFields.length > 0) {
         console.error("Missing required fields:", missingFields);
@@ -418,20 +342,14 @@ export const submitMedicationRequest = createAsyncThunk(
         note: dataWithDefaults.note || "",
         image_url: dataWithDefaults.image_url || "",
         medication_name:
-          dataWithDefaults.medication_name ||
-          (dataWithDefaults.note
-            ? dataWithDefaults.note.split("\n")[0]
-            : "Thuốc"),
+          dataWithDefaults.medication_name || (dataWithDefaults.note ? dataWithDefaults.note.split("\n")[0] : "Thuốc"),
         dosage: dataWithDefaults.dosage || "",
         frequency: dataWithDefaults.frequency || "",
       };
 
       console.log("Submitting medication request with data:", sanitizedData);
 
-      const response = await api.post(
-        "/parent/medical-submissions",
-        sanitizedData
-      );
+      const response = await api.post("/parent/medical-submissions", sanitizedData);
 
       console.log("Medication request response:", response.data);
       return response.data;
@@ -446,63 +364,66 @@ export const submitMedicationRequest = createAsyncThunk(
         });
       }
 
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to submit medication request"
-      );
+      return rejectWithValue(error.response?.data?.message || "Failed to submit medication request");
     }
   }
 );
 
-export const getMedicationRequests = createAsyncThunk(
+export const getMedicationRequestDetail = createAsyncThunk(
   "parent/getMedicationRequests",
-  async (studentId, { rejectWithValue }) => {
+  async (id_req, { rejectWithValue }) => {
     try {
       // Don't make API call if studentId is undefined or null
-      if (!studentId) {
-        console.warn("Skipping getMedicationRequests - No student ID provided");
-        return [];
-      }
 
-      console.log(`Fetching medication requests for student ${studentId}...`);
-      const response = await api.get(
-        `/parent/medical-submissions/${studentId}`
-      );
-      console.log("Medication requests response:", response);
+      const response = await api.get(`/parent/medical-submissions/${id_req}`);
+      console.log("Medication requests response:", response.data.data);
 
-      // Return data in consistent format
-      if (response.data?.data && Array.isArray(response.data.data)) {
-        return response.data.data;
-      }
-      if (Array.isArray(response.data)) {
-        return response.data;
-      }
-      return [];
+      // Trả về đối tượng chi tiết, giả sử nó nằm trong response.data
+      // Hoặc response.data.data nếu API trả về cấu trúc đó
+      return response.data.data[0];
     } catch (error) {
-      console.error(
-        `Error fetching medication requests for student ${studentId}:`,
-        error
-      );
       // Return empty array instead of rejecting to prevent UI errors
-      return [];
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const getAllMedicationRequest = createAsyncThunk(
+  "parent/getAllMedicationRequest",
+  async (accessToken, { rejectWithValue }) => {
+    console.log(accessToken);
+
+    // Thêm accessToken làm tham số đầu tiên
+    try {
+      // Đảm bảo rằng API của bạn sử dụng accessToken để xác thực
+      // Ví dụ: thêm nó vào header Authorization
+      const config = {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      };
+      const response = await api.get("/parent/medical-submissions", config);
+      console.log(response.data.data);
+      // Điều chỉnh endpoint và truyền config
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(error.message || "Failed to fetch medication requests");
     }
   }
 );
 
 // Vaccinations
-export const getVaccineCampaigns = createAsyncThunk(
-  "parent/getVaccineCampaigns",
-  async (_, { rejectWithValue }) => {
-    try {
-      // Skip API call if student_id is undefined or null
-      const response = await api.get("/parent/vaccine-campaigns");
-      return response.data?.data || response.data || [];
-    } catch (error) {
-      console.error("Error fetching vaccine campaigns:", error);
-      // Return empty array instead of rejecting to prevent UI errors
-      return [];
-    }
+export const getVaccineCampaigns = createAsyncThunk("parent/getVaccineCampaigns", async (_, { rejectWithValue }) => {
+  try {
+    // Skip API call if student_id is undefined or null
+    const response = await api.get("/parent/vaccine-campaigns");
+    return response.data?.data || response.data || [];
+  } catch (error) {
+    console.error("Error fetching vaccine campaigns:", error);
+    // Return empty array instead of rejecting to prevent UI errors
+    return [];
   }
-);
+});
 
 export const getVaccineCampaignDetails = createAsyncThunk(
   "parent/getVaccineCampaignDetails",
@@ -526,37 +447,31 @@ export const getVaccineCampaignDetails = createAsyncThunk(
   }
 );
 
-export const getApprovedCampaigns = createAsyncThunk(
-  "parent/getApprovedCampaigns",
-  async (_, { rejectWithValue }) => {
-    try {
-      console.log("Fetching approved campaigns...");
-      const response = await api.get("/parent/vaccine-campaign-approved");
-      console.log("Approved campaigns response:", response);
-      return response.data?.data || response.data || [];
-    } catch (error) {
-      console.error("Error fetching approved campaigns:", error);
-      // Return empty array instead of rejecting to prevent UI errors
-      return [];
-    }
+export const getApprovedCampaigns = createAsyncThunk("parent/getApprovedCampaigns", async (_, { rejectWithValue }) => {
+  try {
+    console.log("Fetching approved campaigns...");
+    const response = await api.get("/parent/vaccine-campaign-approved");
+    console.log("Approved campaigns response:", response);
+    return response.data?.data || response.data || [];
+  } catch (error) {
+    console.error("Error fetching approved campaigns:", error);
+    // Return empty array instead of rejecting to prevent UI errors
+    return [];
   }
-);
+});
 
-export const getDeclinedCampaigns = createAsyncThunk(
-  "parent/getDeclinedCampaigns",
-  async (_, { rejectWithValue }) => {
-    try {
-      console.log("Fetching declined campaigns...");
-      const response = await api.get("/parent/vaccine-campaign-declined");
-      console.log("Declined campaigns response:", response);
-      return response.data?.data || response.data || [];
-    } catch (error) {
-      console.error("Error fetching declined campaigns:", error);
-      // Return empty array instead of rejecting to prevent UI errors
-      return [];
-    }
+export const getDeclinedCampaigns = createAsyncThunk("parent/getDeclinedCampaigns", async (_, { rejectWithValue }) => {
+  try {
+    console.log("Fetching declined campaigns...");
+    const response = await api.get("/parent/vaccine-campaign-declined");
+    console.log("Declined campaigns response:", response);
+    return response.data?.data || response.data || [];
+  } catch (error) {
+    console.error("Error fetching declined campaigns:", error);
+    // Return empty array instead of rejecting to prevent UI errors
+    return [];
   }
-);
+});
 
 export const getStudentVaccinations = createAsyncThunk(
   "parent/getStudentVaccinations",
@@ -576,10 +491,7 @@ export const getStudentVaccinations = createAsyncThunk(
         vaccinations: response.data?.data || response.data || [],
       };
     } catch (error) {
-      console.error(
-        `Error fetching vaccinations for student ${studentId}:`,
-        error
-      );
+      console.error(`Error fetching vaccinations for student ${studentId}:`, error);
       // Return empty results instead of rejecting to prevent UI errors
       return { studentId, vaccinations: [] };
     }
@@ -588,30 +500,22 @@ export const getStudentVaccinations = createAsyncThunk(
 
 export const respondToVaccinationConsent = createAsyncThunk(
   "parent/respondToVaccinationConsent",
-  async (
-    { notificationId, studentId, campaignId, consent },
-    { rejectWithValue }
-  ) => {
+  async ({ notificationId, studentId, campaignId, consent }, { rejectWithValue }) => {
     try {
       // Validate required parameters
       if (!campaignId) {
         return rejectWithValue("Campaign ID is required");
       }
 
-      const response = await api.post(
-        `/parent/vaccine-campaigns/${campaignId}/respond`,
-        {
-          notification_id: notificationId,
-          student_id: studentId,
-          consent: consent,
-        }
-      );
+      const response = await api.post(`/parent/vaccine-campaigns/${campaignId}/respond`, {
+        notification_id: notificationId,
+        student_id: studentId,
+        consent: consent,
+      });
       return response.data;
     } catch (error) {
       console.error("Error responding to vaccination consent:", error);
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to submit vaccination consent"
-      );
+      return rejectWithValue(error.response?.data?.message || "Failed to submit vaccination consent");
     }
   }
 );
@@ -625,10 +529,7 @@ export const updateVaccinationResponse = createAsyncThunk(
         return rejectWithValue("Campaign ID is required");
       }
 
-      const response = await api.patch(
-        `/parent/vaccine-campaigns/${id}/status`,
-        { status, studentId }
-      );
+      const response = await api.patch(`/parent/vaccine-campaigns/${id}/status`, { status, studentId });
 
       // After successful update, refresh the campaign lists
       dispatch(getVaccineCampaigns());
@@ -643,40 +544,29 @@ export const updateVaccinationResponse = createAsyncThunk(
       return response.data;
     } catch (error) {
       console.error("Error updating vaccination response:", error);
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to update vaccination response"
-      );
+      return rejectWithValue(error.response?.data?.message || "Failed to update vaccination response");
     }
   }
 );
 
 // Notifications
-export const getParentNotifications = createAsyncThunk(
-  "parent/getNotifications",
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await api.get("/parent/notifications");
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch notifications"
-      );
-    }
+export const getParentNotifications = createAsyncThunk("parent/getNotifications", async (_, { rejectWithValue }) => {
+  try {
+    const response = await api.get("/parent/notifications");
+    return response.data;
+  } catch (error) {
+    return rejectWithValue(error.response?.data?.message || "Failed to fetch notifications");
   }
-);
+});
 
 export const markNotificationAsRead = createAsyncThunk(
   "parent/markNotificationAsRead",
   async (notificationId, { rejectWithValue }) => {
     try {
-      const response = await api.put(
-        `/parent/notifications/${notificationId}/read`
-      );
+      const response = await api.put(`/parent/notifications/${notificationId}/read`);
       return { notificationId, response: response.data };
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to mark notification as read"
-      );
+      return rejectWithValue(error.response?.data?.message || "Failed to mark notification as read");
     }
   }
 );
@@ -688,20 +578,14 @@ export const markAllNotificationsAsRead = createAsyncThunk(
       const response = await api.put("/parent/notifications/read-all");
       return response.data;
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message ||
-          "Failed to mark all notifications as read"
-      );
+      return rejectWithValue(error.response?.data?.message || "Failed to mark all notifications as read");
     }
   }
 );
 
 export const respondToCheckupConsent = createAsyncThunk(
   "parent/respondToCheckupConsent",
-  async (
-    { notificationId, studentId, checkupId, consent },
-    { rejectWithValue }
-  ) => {
+  async ({ notificationId, studentId, checkupId, consent }, { rejectWithValue }) => {
     try {
       const response = await api.post("/parent/checkups/consent", {
         notification_id: notificationId,
@@ -711,9 +595,7 @@ export const respondToCheckupConsent = createAsyncThunk(
       });
       return response.data;
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to submit checkup consent"
-      );
+      return rejectWithValue(error.response?.data?.message || "Failed to submit checkup consent");
     }
   }
 );
@@ -723,15 +605,10 @@ export const requestCheckupAppointment = createAsyncThunk(
   "parent/requestCheckupAppointment",
   async (appointmentData, { rejectWithValue }) => {
     try {
-      const response = await api.post(
-        "/parent/checkups/request",
-        appointmentData
-      );
+      const response = await api.post("/parent/checkups/request", appointmentData);
       return response.data;
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to request appointment"
-      );
+      return rejectWithValue(error.response?.data?.message || "Failed to request appointment");
     }
   }
 );
@@ -740,14 +617,10 @@ export const getCheckupHistory = createAsyncThunk(
   "parent/getCheckupHistory",
   async (student_id, { rejectWithValue }) => {
     try {
-      const response = await api.get(
-        `/parent/students/${student_id}/checkup-history`
-      );
+      const response = await api.get(`/parent/students/${student_id}/checkup-history`);
       return { studentId: student_id, history: response.data };
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch checkup history"
-      );
+      return rejectWithValue(error.response?.data?.message || "Failed to fetch checkup history");
     }
   }
 );
@@ -756,14 +629,10 @@ export const getCheckupAppointments = createAsyncThunk(
   "parent/getCheckupAppointments",
   async (student_id, { rejectWithValue }) => {
     try {
-      const response = await api.get(
-        `/parent/students/${student_id}/appointments`
-      );
+      const response = await api.get(`/parent/students/${student_id}/appointments`);
       return { studentId: student_id, appointments: response.data };
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch appointments"
-      );
+      return rejectWithValue(error.response?.data?.message || "Failed to fetch appointments");
     }
   }
 );
@@ -929,9 +798,7 @@ const parentSlice = createSlice({
           // Cập nhật danh sách phù hợp dựa trên trạng thái
           if (checkup.status === "approved") {
             // Thêm vào danh sách approved nếu chưa có
-            const existingIndex = state.checkups.approved.findIndex(
-              (c) => c.id === checkup.id
-            );
+            const existingIndex = state.checkups.approved.findIndex((c) => c.id === checkup.id);
             if (existingIndex === -1) {
               state.checkups.approved.push(checkup);
             } else {
@@ -939,14 +806,10 @@ const parentSlice = createSlice({
             }
 
             // Xóa khỏi danh sách pending nếu có
-            state.checkups.pending = state.checkups.pending.filter(
-              (c) => c.id !== checkup.id
-            );
+            state.checkups.pending = state.checkups.pending.filter((c) => c.id !== checkup.id);
           } else if (checkup.status === "rejected") {
             // Xóa khỏi danh sách pending
-            state.checkups.pending = state.checkups.pending.filter(
-              (c) => c.id !== checkup.id
-            );
+            state.checkups.pending = state.checkups.pending.filter((c) => c.id !== checkup.id);
           }
         }
       })
@@ -973,9 +836,7 @@ const parentSlice = createSlice({
           const lists = ["approved", "pending", "appointments", "history"];
 
           lists.forEach((listName) => {
-            const index = state.checkups[listName].findIndex(
-              (c) => c.id === checkup.id
-            );
+            const index = state.checkups[listName].findIndex((c) => c.id === checkup.id);
             if (index !== -1) {
               state.checkups[listName][index] = checkup;
             }
@@ -1044,8 +905,7 @@ const parentSlice = createSlice({
       })
       .addCase(getHealthDeclaration.fulfilled, (state, action) => {
         state.loading = false;
-        state.healthDeclarations[action.payload.student_id] =
-          action.payload.data;
+        state.healthDeclarations[action.payload.student_id] = action.payload.data;
       })
       .addCase(getHealthDeclaration.rejected, (state, action) => {
         state.loading = false;
@@ -1059,8 +919,7 @@ const parentSlice = createSlice({
       })
       .addCase(updateHealthDeclaration.fulfilled, (state, action) => {
         state.loading = false;
-        state.healthDeclarations[action.payload.studentId] =
-          action.payload.data;
+        state.healthDeclarations[action.payload.studentId] = action.payload.data;
         state.success = true;
       })
       .addCase(updateHealthDeclaration.rejected, (state, action) => {
@@ -1114,15 +973,14 @@ const parentSlice = createSlice({
       })
 
       // Get Medication Requests
-      .addCase(getMedicationRequests.pending, (state) => {
+      .addCase(getMedicationRequestDetail.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(getMedicationRequests.fulfilled, (state, action) => {
+      .addCase(getMedicationRequestDetail.fulfilled, (state, action) => {
         state.loading = false;
-        state.medicationRequests = action.payload;
       })
-      .addCase(getMedicationRequests.rejected, (state, action) => {
+      .addCase(getMedicationRequestDetail.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
@@ -1187,8 +1045,7 @@ const parentSlice = createSlice({
       .addCase(getStudentVaccinations.fulfilled, (state, action) => {
         state.loading = false;
         if (action.payload.studentId) {
-          state.vaccinations.studentVaccinations[action.payload.studentId] =
-            action.payload.vaccinations;
+          state.vaccinations.studentVaccinations[action.payload.studentId] = action.payload.vaccinations;
         } else {
           // When studentId is null, just store the vaccinations in the campaigns array
           state.vaccinations.campaigns = action.payload.vaccinations;
@@ -1226,16 +1083,12 @@ const parentSlice = createSlice({
 
         // Handle case where notifications has a structure like {items: [...]}
         if (state.notifications && state.notifications.items) {
-          const index = state.notifications.items.findIndex(
-            (notification) => notification.id === notificationId
-          );
+          const index = state.notifications.items.findIndex((notification) => notification.id === notificationId);
           if (index !== -1) {
             state.notifications.items[index].isRead = true;
           }
         } else if (Array.isArray(state.notifications)) {
-          const index = state.notifications.findIndex(
-            (notification) => notification.id === notificationId
-          );
+          const index = state.notifications.findIndex((notification) => notification.id === notificationId);
           if (index !== -1) {
             state.notifications[index].isRead = true;
           }
@@ -1294,6 +1147,20 @@ const parentSlice = createSlice({
         state.success = true;
       })
       .addCase(respondToCheckupConsent.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // --- Get Medication Requests ---
+      .addCase(getAllMedicationRequest.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getAllMedicationRequest.fulfilled, (state, action) => {
+        state.loading = false;
+        state.medicationRequests = action.payload; // Update the state with the fetched data
+      })
+      .addCase(getAllMedicationRequest.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });

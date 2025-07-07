@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // src/pages/NursePage/StudentRecordsPage.jsx
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -27,24 +28,35 @@ import {
   EyeOutlined,
   LoadingOutlined,
   UserOutlined,
-  // Thêm các icon mới cho tiêu đề cột
-  IdcardOutlined, // For Student ID
-  TeamOutlined, // For Class
-  CalendarOutlined, // For Age (có thể dùng thay thế cho Birthday, hoặc riêng cho tuổi)
-  SolutionOutlined, // For Medical Conditions (giải pháp, y tế)
-  HistoryOutlined, // For Last Visit
-  // Actions icon đã có sẵn trong render
+  IdcardOutlined,
+  TeamOutlined,
+  CalendarOutlined,
+  SolutionOutlined,
+  HistoryOutlined,
 } from "@ant-design/icons";
-import { FiUsers, FiClipboard, FiPlus } from "react-icons/fi"; // Thêm FiClipboard cho header icon
+import { FiClipboard } from "react-icons/fi";
+import { differenceInYears, format, parseISO } from "date-fns";
+import { useDispatch, useSelector } from "react-redux";
 import api from "../../configs/config-axios";
-import { format, parseISO } from "date-fns";
+import {
+  fetchAllStudentHealthRecords,
+  createStudentHealthRecord,
+  updateStudentHealthRecord,
+  deleteStudentHealthRecord,
+  clearHealthRecordsError,
+  clearHealthRecordsSuccess,
+} from "../../redux/nurse/studentRecords/studentRecord";
+import { useNavigate } from "react-router-dom";
 
 const { Option } = Select;
-const { Title, Text } = Typography;
 
 export default function StudentRecordPage() {
-  const [loading, setLoading] = useState(true);
-  const [students, setStudents] = useState([]);
+  const dispatch = useDispatch();
+  const { healthRecords, loading, error, success } = useSelector(
+    (state) => state.studentRecord
+  );
+
+  const navigate = useNavigate();
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -52,53 +64,29 @@ export default function StudentRecordPage() {
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [classFilter, setClassFilter] = useState(null);
-  const [classes, setClasses] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
   const [form] = Form.useForm();
 
-  const fetchStudents = useCallback(async () => {
-    setLoading(false);
-    try {
-      const params = {
-        page: pagination.current,
-        pageSize: pagination.pageSize,
-        search: searchQuery,
-        class: classFilter,
-      };
-      const res = await api.get("/api/nurse/students-health-records", {
-        params,
-      });
-      setStudents(res.data.data.records);
-      setPagination((prev) => ({
-        ...prev,
-        total: res.data.data.total,
-      }));
-      message.success("Student records loaded!");
-    } catch (error) {
-      console.error("Error fetching student records:", error);
-      message.error("Failed to load student records.");
-    } finally {
-      setLoading(false);
-    }
-  }, [pagination.current, pagination.pageSize, searchQuery, classFilter]);
-
-  const fetchClasses = useCallback(async () => {
-    try {
-      const res = await api.get("/api/nurse/classes");
-      setClasses(res.data.data);
-    } catch (error) {
-      console.error("Error fetching classes:", error);
-    }
-  }, []);
+  useEffect(() => {
+    dispatch(fetchAllStudentHealthRecords());
+  }, [dispatch]);
 
   useEffect(() => {
-    fetchStudents();
-  }, [fetchStudents]);
+    if (success) {
+      setIsModalVisible(false);
+      setEditingStudent(null);
+      form.resetFields();
+      dispatch(clearHealthRecordsSuccess());
+    }
+  }, [success, dispatch]);
 
   useEffect(() => {
-    fetchClasses();
-  }, [fetchClasses]);
+    if (error) {
+      message.error(error);
+      dispatch(clearHealthRecordsError());
+    }
+  }, [error, dispatch]);
 
   const handleTableChange = (newPagination) => {
     setPagination((prev) => ({
@@ -110,12 +98,12 @@ export default function StudentRecordPage() {
 
   const handleSearch = (value) => {
     setSearchQuery(value);
-    setPagination((prev) => ({ ...prev, current: 1 })); // Reset to first page on search
+    setPagination((prev) => ({ ...prev, current: 1 }));
   };
 
   const handleClassFilterChange = (value) => {
     setClassFilter(value);
-    setPagination((prev) => ({ ...prev, current: 1 })); // Reset to first page on filter change
+    setPagination((prev) => ({ ...prev, current: 1 }));
   };
 
   const showAddEditModal = (student = null) => {
@@ -128,31 +116,31 @@ export default function StudentRecordPage() {
     setIsModalVisible(true);
   };
 
-  const handleModalOk = async () => {
-    try {
-      const values = await form.validateFields();
-      setLoading(true);
-      if (editingStudent) {
-        await api.put(`/api/nurse/students/${editingStudent.id}`, values);
-        message.success("Student updated successfully!");
-      } else {
-        await api.post("/api/nurse/students", values);
-        message.success("Student added successfully!");
-      }
-      setIsModalVisible(false);
-      fetchStudents(); // Refresh data
-    } catch (error) {
-      console.error("Failed to save student:", error);
-      message.error("Failed to save student.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleModalCancel = () => {
     setIsModalVisible(false);
     setEditingStudent(null);
     form.resetFields();
+  };
+
+  const handleModalOk = async () => {
+    try {
+      const values = await form.validateFields();
+      if (editingStudent) {
+        await dispatch(
+          updateStudentHealthRecord({
+            studentId: editingStudent.id,
+            healthData: values,
+          })
+        );
+        message.success("Student updated successfully!");
+      } else {
+        await dispatch(createStudentHealthRecord({ healthData: values }));
+        message.success("Student added successfully!");
+      }
+    } catch (error) {
+      console.error("Failed to save student:", error);
+      message.error("Failed to save student.");
+    }
   };
 
   const handleDelete = async (studentId) => {
@@ -163,15 +151,11 @@ export default function StudentRecordPage() {
       okType: "danger",
       onOk: async () => {
         try {
-          setLoading(true);
-          await api.delete(`/api/nurse/students/${studentId}`);
+          await dispatch(deleteStudentHealthRecord({ studentId }));
           message.success("Student deleted successfully!");
-          fetchStudents(); // Refresh data
         } catch (error) {
           console.error("Failed to delete student:", error);
           message.error("Failed to delete student.");
-        } finally {
-          setLoading(false);
         }
       },
     });
@@ -181,23 +165,21 @@ export default function StudentRecordPage() {
     {
       title: (
         <Space>
-          <IdcardOutlined style={{ color: "#1890ff" }} /> {/* Blue */}
-          Student ID
+          <IdcardOutlined style={{ color: "#1890ff" }} /> Student ID
         </Space>
       ),
-      dataIndex: "studentId",
-      key: "studentId",
+      dataIndex: "student_code",
+      key: "student_code",
       sorter: (a, b) => a.studentId.localeCompare(b.studentId),
     },
     {
       title: (
         <Space>
-          <UserOutlined style={{ color: "#52c41a" }} /> {/* Green */}
-          Họ và tên
+          <UserOutlined style={{ color: "#52c41a" }} /> Họ và tên
         </Space>
       ),
-      dataIndex: "name",
-      key: "name",
+      dataIndex: "full_name",
+      key: "full_name",
       render: (text) => (
         <Space>
           <Avatar icon={<UserOutlined />} />
@@ -208,79 +190,43 @@ export default function StudentRecordPage() {
     {
       title: (
         <Space>
-          <TeamOutlined style={{ color: "#faad14" }} /> {/* Orange/Yellow */}
-          Lớp
+          <TeamOutlined style={{ color: "#faad14" }} /> Lớp
         </Space>
       ),
-      dataIndex: "class",
-      key: "class",
+      dataIndex: "class_name",
+      key: "class_name",
       sorter: (a, b) => a.class.localeCompare(b.class),
     },
     {
       title: (
         <Space>
-          <CalendarOutlined style={{ color: "#eb2f96" }} /> {/* Magenta */}
-          Tuổi
+          <CalendarOutlined style={{ color: "#eb2f96" }} /> Tuổi
         </Space>
       ),
-      dataIndex: "age",
+      dataIndex: "date_of_birth",
       key: "age",
-      sorter: (a, b) => a.age - b.age,
+      render: (dob) => differenceInYears(new Date(), new Date(dob)),
+      sorter: (a, b) =>
+        differenceInYears(new Date(), new Date(a.date_of_birth)) -
+        differenceInYears(new Date(), new Date(b.date_of_birth)),
     },
+
     {
       title: (
         <Space>
-          <SolutionOutlined style={{ color: "#722ed1" }} /> {/* Purple */}
-          Điều kiện y tế
-        </Space>
-      ),
-      dataIndex: "medicalConditions",
-      key: "medicalConditions",
-      render: (conditions) => (
-        <Space wrap>
-          {conditions &&
-            conditions.map(
-              (
-                condition,
-                index // Thêm kiểm tra 'conditions' để tránh lỗi nếu là null/undefined
-              ) => (
-                <Tag
-                  key={index}
-                  color={condition.type === "Allergies" ? "orange" : "blue"}
-                >
-                  {condition.name}
-                </Tag>
-              )
-            )}
-        </Space>
-      ),
-    },
-    {
-      title: (
-        <Space>
-          <HistoryOutlined style={{ color: "#08979c" }} /> {/* Cyan */}
-          Lần khám gần nhất
-        </Space>
-      ),
-      dataIndex: "lastVisit",
-      key: "lastVisit",
-      render: (date) => (date ? format(parseISO(date), "MMM dd, yyyy") : "N/A"),
-    },
-    {
-      title: (
-        <Space>
-          <EditOutlined style={{ color: "#bfbfbf" }} /> {/* Màu tím */}
-          Hành động
+          <EditOutlined style={{ color: "#bfbfbf" }} /> Hành động
         </Space>
       ),
       key: "actions",
       align: "center",
       render: (_, record) => (
         <Space size="middle">
-          <Tooltip title="View Details">
+          <Tooltip title="Xem chi tiết sức khỏe học sinh">
             <Button
               icon={<EyeOutlined />}
-              onClick={() => console.log("View", record.id)}
+              onClick={() =>
+                navigate(`/nurse/students-record/${record.student_id}`)
+              }
             />
           </Tooltip>
           <Tooltip title="Edit Record">
@@ -304,32 +250,24 @@ export default function StudentRecordPage() {
   const renderLoadingState = () => (
     <div className="text-center py-8 flex flex-col items-center justify-center gap-4">
       <Spin indicator={<LoadingOutlined style={{ fontSize: 30 }} spin />} />
-      <p className="text-gray-500 text-lg">Loading student records...</p>
+      <p className="text-gray-500 text-lg">Đang tải dữ liệu</p>
     </div>
   );
 
   return (
-    <div
-      className={`min-h-screen bg-white p-6 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc0MCcgaGVpZ2h0PSc0MCcgdmlld0JveD0nMCAwIDQwIDQwJz48ZyBmaWxsPSdyZ2JhKDEzLDExMCwyNTMsMC4xKScgZmlsbC1ydWxlPSdldmVub2RkJz48Y2lyY2xlIGN4PScyMCcgY3k9JzIwJyByPScyJy8+PC9nPjwvc3ZnPg==')] bg-fixed`}
-    >
+    <div className="min-h-screen bg-white p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header Section */}
-        <header
-          className={`mb-5 p-4 rounded-lg bg-blue-600/[.10] to-transparent flex items-center justify-between`}
-        >
+        <header className="mb-5 p-4 rounded-lg bg-blue-600/[.10] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div
-              className={`p-3 bg-blue-600/[.10] rounded-full border border-blue-600`}
-            >
-              <FiClipboard className={`w-10 h-10 text-3xl text-blue-600`} />
+            <div className="p-3 bg-blue-600/[.10] rounded-full border border-blue-600">
+              <FiClipboard className="w-10 h-10 text-3xl text-blue-600" />
             </div>
             <div>
-              <h1 className={`text-gray-900 font-bold text-3xl mb-2`}>
+              <h1 className="text-gray-900 font-bold text-3xl mb-2">
                 Hồ sơ sức khỏe học sinh
               </h1>
-              <p className={`text-gray-500 flex items-center gap-2 text-sm`}>
-                <span>✨</span>
-                Quản lý và xem thông tin sức khỏe của học sinh
+              <p className="text-gray-500 flex items-center gap-2 text-sm">
+                <span>✨</span> Quản lý và xem thông tin sức khỏe của học sinh
               </p>
             </div>
           </div>
@@ -337,13 +275,12 @@ export default function StudentRecordPage() {
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => showAddEditModal()}
-            className="flex items-center gap-1 px-4 py-2 !rounded-lg !bg-blue-600 hover:!bg-blue-700 !transition-colors"
+            className="flex items-center gap-1 px-4 py-2 !rounded-lg !bg-blue-600 hover:!bg-blue-700"
           >
             Thêm học sinh
           </Button>
         </header>
 
-        {/* Student Records Table */}
         <Card className="!rounded-lg !shadow-md">
           {loading ? (
             renderLoadingState()
@@ -357,13 +294,10 @@ export default function StudentRecordPage() {
                   onPressEnter={(e) => handleSearch(e.target.value)}
                   onBlur={(e) => handleSearch(e.target.value)}
                 />
-                <Button
-                  icon={<FilterOutlined />}
-                  className="flex items-center gap-1 px-4 py-2 !border !border-gray-300 !rounded-lg hover:!bg-gray-100 !transition-colors !text-gray-900"
-                >
+                <Button icon={<FilterOutlined />} className="px-4 py-2">
                   Lọc
                 </Button>
-                <Select
+                {/* <Select
                   placeholder="All Classes"
                   onChange={handleClassFilterChange}
                   allowClear
@@ -374,11 +308,11 @@ export default function StudentRecordPage() {
                       {cls.name}
                     </Option>
                   ))}
-                </Select>
+                </Select> */}
               </div>
               <Table
                 columns={columns}
-                dataSource={students}
+                dataSource={Array.isArray(healthRecords) ? healthRecords : []}
                 rowKey="id"
                 pagination={{
                   ...pagination,
@@ -387,36 +321,22 @@ export default function StudentRecordPage() {
                     `Showing ${range[0]}-${range[1]} of ${total} students`,
                 }}
                 onChange={handleTableChange}
-                className="custom-table" // Thêm className để custom CSS nếu cần
                 locale={{
                   emptyText: (
                     <Empty
-                      description="No student records found"
+                      description="Không tìm thấy học sinh"
                       image={Empty.PRESENTED_IMAGE_SIMPLE}
                     />
                   ),
                 }}
               />
-              <div className="text-sm text-gray-600 mt-4">
-                Showing{" "}
-                {pagination.current * pagination.pageSize -
-                  pagination.pageSize +
-                  1}
-                -
-                {Math.min(
-                  pagination.current * pagination.pageSize,
-                  pagination.total
-                )}{" "}
-                of {pagination.total} students
-              </div>
             </>
           )}
         </Card>
 
-        {/* Add/Edit Student Modal */}
         <Modal
           title={editingStudent ? "Edit Student Record" : "Add New Student"}
-          visible={isModalVisible}
+          open={isModalVisible}
           onOk={handleModalOk}
           onCancel={handleModalCancel}
           okText={editingStudent ? "Update" : "Add"}
@@ -439,7 +359,7 @@ export default function StudentRecordPage() {
             >
               <Input />
             </Form.Item>
-            <Form.Item
+            {/* <Form.Item
               name="class"
               label="Class"
               rules={[{ required: true, message: "Please select a Class!" }]}
@@ -451,7 +371,7 @@ export default function StudentRecordPage() {
                   </Option>
                 ))}
               </Select>
-            </Form.Item>
+            </Form.Item> */}
             <Form.Item
               name="age"
               label="Age"
@@ -470,18 +390,11 @@ export default function StudentRecordPage() {
                 mode="tags"
                 style={{ width: "100%" }}
                 placeholder="Add medical conditions"
-              >
-                {/* Options can be pre-defined or let users type new ones */}
-              </Select>
+              />
             </Form.Item>
-            <Form.Item
-              name="lastVisit"
-              label="Last Visit Date"
-              // No 'required' for last visit as it might be new student
-            >
-              <Input type="date" /> {/* Use type="date" for date input */}
+            <Form.Item name="lastVisit" label="Last Visit Date">
+              <Input type="date" />
             </Form.Item>
-            {/* Thêm các trường khác nếu cần, ví dụ: contact details, guardian info, etc. */}
           </Form>
         </Modal>
       </div>

@@ -161,13 +161,8 @@ export default function ManagerHeader() {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-<<<<<<< HEAD
-        paddingLeft: 24,
-        paddingRight: 24,
-=======
         paddingLeft: "24px",
         paddingRight: "24px",
->>>>>>> e0694c05178e66ace2c9c14a3e5705d47d7efa34
       }}
     >
       <Col />
