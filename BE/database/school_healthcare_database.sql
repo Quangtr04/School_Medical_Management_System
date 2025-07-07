@@ -42,7 +42,7 @@ CREATE TABLE Medication_Submisstion_Request (
     status VARCHAR(50) NOT NULL,
     created_at DATETIME DEFAULT GETDATE(),
     nurse_id INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
-    note TEXT,
+    note NVARCHAR(MAX),
     image_url VARCHAR(255),
     start_date DATE NOT NULL,
     end_date DATE NOT NULL
@@ -51,10 +51,10 @@ CREATE TABLE Medication_Submisstion_Request (
 CREATE TABLE Medication_Daily_Log (
     log_id INT PRIMARY KEY IDENTITY(1,1),
     id_req INT NOT NULL FOREIGN KEY REFERENCES Medication_Submisstion_Request(id_req),
-	nurse_id INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
+    nurse_id INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
     date DATE NOT NULL,
     status VARCHAR(50) NOT NULL,
-    note TEXT,
+    note NVARCHAR(MAX),
     updated_at DATETIME DEFAULT GETDATE(),
     image_url VARCHAR(255),
 );
@@ -86,7 +86,7 @@ CREATE TABLE Medical_Incident (
     serverity_id INT NOT NULL FOREIGN KEY REFERENCES Severity_Of_Incident(serverity_id),
     subject_info_id INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
     student_id INT NOT NULL FOREIGN KEY REFERENCES Student_Information(student_id),
-    description TEXT,
+    description NVARCHAR(MAX),
     occurred_at DATETIME NOT NULL,
     reported_at DATETIME DEFAULT GETDATE(),
     nurse_id INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
@@ -101,11 +101,11 @@ CREATE TABLE Medical_Supply (
     type VARCHAR(50) NOT NULL,
     unit VARCHAR(50) NOT NULL,
     quantity INT NOT NULL DEFAULT 0,
-    description TEXT,
+    description NVARCHAR(MAX),
     expired_date DATE,
     is_active BIT DEFAULT 1,
     nurse_id INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
-    usage_note TEXT
+    usage_note NVARCHAR(MAX)
 );
 
 CREATE TABLE Incident_Medication_Log (
@@ -118,7 +118,7 @@ CREATE TABLE Incident_Medication_Log (
 CREATE TABLE Vaccination_Campaign (
     campaign_id INT PRIMARY KEY IDENTITY(1,1),
     title NVARCHAR(255) NOT NULL,
-    description TEXT,
+    description NVARCHAR(MAX),
     scheduled_date DATE NOT NULL,
     created_at DATETIME DEFAULT GETDATE(),
     created_by INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
@@ -135,7 +135,7 @@ CREATE TABLE Vaccination_Consent_Form (
     parent_id INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
     status VARCHAR(50) NOT NULL,
     submitted_at DATETIME,
-    note TEXT
+    note NVARCHAR(MAX)
 );
 
 CREATE TABLE Vaccination_Result (
@@ -146,15 +146,15 @@ CREATE TABLE Vaccination_Result (
     vaccinated_at DATETIME,
     vaccine_name NVARCHAR(255),
     dose_number INT,
-    reaction TEXT,
+    reaction NVARCHAR(MAX),
     follow_up_required BIT DEFAULT 0,
-    note TEXT
+    note NVARCHAR(MAX)
 );
 
 CREATE TABLE Medical_Checkup_Schedule (
     checkup_id INT PRIMARY KEY IDENTITY(1,1),
     title NVARCHAR(255) NOT NULL,
-    description TEXT,
+    description NVARCHAR(MAX),
     scheduled_date DATE NOT NULL,
     created_at DATETIME DEFAULT GETDATE(),
     created_by INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
@@ -171,7 +171,7 @@ CREATE TABLE Checkup_Consent_Form (
     parent_id INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
     status VARCHAR(50) NOT NULL,
     submitted_at DATETIME,
-    note TEXT
+    note NVARCHAR(MAX)
 );
 
 CREATE TABLE Checkup_Participation (
@@ -187,10 +187,9 @@ CREATE TABLE Checkup_Participation (
     hearing_left VARCHAR(50),
     hearing_right VARCHAR(50),
     blood_pressure VARCHAR(50),
-    notes TEXT,
-    abnormal_signs TEXT,
-    needs_counseling BIT DEFAULT 0,
-    note TEXT
+    notes NVARCHAR(MAX),
+    abnormal_signs NVARCHAR(MAX),
+    needs_counseling BIT DEFAULT 0
 );
 
 CREATE TABLE Notification (
