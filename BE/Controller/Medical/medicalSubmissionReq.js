@@ -130,12 +130,64 @@ const cancelMedicationSubmissionReq = async (req, res, next) => {
 // API lấy tất cả yêu cầu uống thuốc
 const getAllMedicationSubmissionReq = async (req, res, next) => {
   const pool = await sqlServerPool;
+<<<<<<< HEAD
   const result = await pool
     .request()
     .query("SELECT * FROM Medication_Submisstion_Request");
+=======
+  const result = await pool.request().query(`SELECT MSR.*, U.fullname, SI.full_name as student FROM Medication_Submisstion_Request MSR 
+                                              JOIN Users U ON MSR.parent_id = U.user_id
+                                              JOIN Student_Information SI ON MSR.student_id = SI.student_id`);
+>>>>>>> df28476 (update)
 
   if (result.recordset.length > 0) {
     // Trả về danh sách các yêu cầu nếu có
+    res.status(200).json({
+      status: "success",
+      data: result.recordset,
+    });
+  } else {
+    // Không có bản ghi nào
+    res.status(400).json({
+      status: "fail",
+      message: "Something went wrong",
+    });
+  }
+};
+
+const getAllMedicationSubmissionReqByParentId = async (req, res, next) => {
+  const parent_id = req.user?.user_id;
+  const pool = await sqlServerPool;
+  const result = await pool.request().input("parent_id", sql.Int, parent_id)
+  .query(`SELECT MSR.*, U.fullname, SI.full_name as student  FROM Medication_Submisstion_Request MSR 
+          JOIN Users U ON MSR.parent_id = U.user_id
+          JOIN Student_Information SI ON MSR.student_id = SI.student_id WHERE MSR.parent_id = @parent_id`);
+
+  if (result.recordset.length > 0) {
+    res.status(200).json({
+      status: "success",
+      data: result.recordset,
+    });
+  } else {
+    // Không có bản ghi nào
+    res.status(400).json({
+      status: "fail",
+      message: "Something went wrong",
+    });
+  }
+};
+
+const getAllMedicationSubmissionReqByParentIdAndId = async (req, res, next) => {
+  const parent_id = req.user?.user_id;
+  const { id_req } = req.params
+  const pool = await sqlServerPool;
+  const result = await pool.request().input("parent_id", sql.Int, parent_id).input("id_req", sql.Int, id_req)
+  .query(`SELECT MSR.*, U.fullname, SI.full_name as student FROM Medication_Submisstion_Request MSR 
+          JOIN Users U ON MSR.parent_id = U.user_id
+          JOIN Student_Information SI ON MSR.student_id = SI.student_id
+          WHERE MSR.parent_id = @parent_id AND MSR.id_req = @id_req`);
+
+  if (result.recordset.length > 0) {
     res.status(200).json({
       status: "success",
       data: result.recordset,
@@ -156,9 +208,15 @@ const getMedicationSubmissionReqByID = async (req, res, next) => {
   const result = await pool
     .request()
     .input("id_req", sql.Int, ReqId)
+<<<<<<< HEAD
     .query(
       "SELECT * FROM Medication_Submisstion_Request WHERE id_req = @id_req"
     );
+=======
+    .query(`SELECT MSR.*, U.fullname, SI.full_name as student FROM Medication_Submisstion_Request MSR 
+            JOIN Users U ON MSR.parent_id = U.user_id
+            JOIN Student_Information SI ON MSR.student_id = SI.student_id WHERE MSR.id_req = @id_req`);
+>>>>>>> df28476 (update)
 
   if (result.recordset.length > 0) {
     // Trả về bản ghi nếu tìm thấy
@@ -299,4 +357,6 @@ module.exports = {
   getMedicationSubmissionReqByID,
   updateMedicationSubmissionReqByNurse,
   cancelMedicationSubmissionReq,
+  getAllMedicationSubmissionReqByParentId,
+  getAllMedicationSubmissionReqByParentIdAndId
 };
