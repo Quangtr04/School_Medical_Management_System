@@ -50,10 +50,21 @@ app.listen(port, "0.0.0.0", () => {
     .flat()
     .forEach((iface) => {
       if (iface.family === "IPv4" && !iface.internal) {
-        console.log(`🌐 Server may be accessible via: http://${iface.address}:${port}`);
+        console.log(
+          `🌐 Server may be accessible via: http://${iface.address}:${port}`
+        );
       }
     });
 
   console.log(`FE can connect from : ${corsOptions.origin.join(", ")}`);
   console.log("Swagger docs at http://localhost:3000/api-docs");
+});
+
+const cron = require("node-cron");
+const checkUnupdatedMedicationLogs = require("./services/checkUnupdatedMedicationLogs");
+
+// Cấu hình cron job chạy vào 18:00 mỗi ngày
+cron.schedule("0 18 * * *", () => {
+  console.log("🕕 Kiểm tra nhật ký uống thuốc (18:00)");
+  checkUnupdatedMedicationLogs(); // Gọi hàm xử lý
 });

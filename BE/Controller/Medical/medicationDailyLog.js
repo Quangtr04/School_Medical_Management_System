@@ -1,6 +1,7 @@
 // Import các thư viện và module cần thiết
 const sql = require("mssql");
 const sqlServerPool = require("../../Utils/connectMySql");
+const sendEmail = require("../../Utils/sendEmail"); // Hàm gửi email qua Gmail
 
 // Hàm cập nhật trạng thái nhật ký uống thuốc
 const updateStatusMedicationDailyLog = async (req, res, next) => {
@@ -57,7 +58,56 @@ const updateStatusMedicationDailyLog = async (req, res, next) => {
   }
 };
 
+// Hàm kiểm tra và gửi email nếu chưa cập nhật uống thuốc
+const checkUnupdatedMedicationLogs = async () => {
+  try {
+    const pool = await sqlServerPool;
+
+    // Truy vấn lấy tất cả nhật ký hôm nay có status là 'PENDING' và chưa có ảnh, sau 18:00
+    const result = await pool.request().query(`
+      SELECT 
+          log.log_id,
+          log.date,
+          log.status,
+          log.image_url,
+          req.parent_id,
+          u.full_name AS parent_name,
+          u.email AS parent_email
+      FROM Medication_Daily_Log log
+      JOIN Medication_Submisstion_Request req ON log.id_req = req.id_req
+      JOIN Users u ON req.parent_id = u.user_id
+      WHERE 
+          log.date = CAST(GETDATE() AS DATE) -- chỉ lấy bản ghi hôm nay
+          AND log.status = 'PENDING'         -- y tá chưa cập nhật trạng thái
+          AND log.image_url IS NULL          -- chưa có ảnh xác nhận
+          AND CAST(GETDATE() AS TIME) > '18:00:00' -- chỉ gửi sau 6 giờ tối
+    `);
+
+    const logs = result.recordset; // Danh sách kết quả truy vấn
+
+    // Lặp qua từng bản ghi để gửi email
+    for (const log of logs) {
+      const subject = "🔔 Cảnh báo: Chưa cập nhật nhật ký uống thuốc";
+
+      const message =
+        `Kính gửi phụ huynh ${log.parent_name},\n\n` +
+        `Y tá hiện chưa cập nhật trạng thái và ảnh xác nhận cho học sinh vào ngày ${log.date}.\n` +
+        `Vui lòng kiểm tra hoặc liên hệ với y tá nếu cần thiết.\n\nTrân trọng,\nPIEDTEAM 👨‍⚕️`;
+
+      // Gửi email cho phụ huynh
+      await sendEmail(log.parent_email, subject, message);
+    }
+
+    // Ghi log sau khi xử lý xong
+    console.log(`✅ Đã gửi thông báo cho ${logs.length} phụ huynh.`);
+  } catch (error) {
+    // Xử lý lỗi
+    console.error("❌ Lỗi khi kiểm tra nhật ký thuốc:", error);
+  }
+};
+
 // Export các controller ra module
 module.exports = {
   updateStatusMedicationDailyLog,
+  checkUnupdatedMedicationLogs,
 };
