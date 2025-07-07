@@ -5,13 +5,14 @@ const sendNotification = require("../../Utils/sendNotification");
 // API tạo yêu cầu uống thuốc từ phụ huynh
 const medicationSubmissionReq = async (req, res, next) => {
   const medicationSubmissionReqData = req.body; // Dữ liệu yêu cầu từ body
+  const parent_id = req.user?.user_id;
   const pool = await sqlServerPool;
 
   try {
     // Thêm bản ghi mới vào bảng Medication_Submisstion_Request
     const result = await pool
       .request()
-      .input("parent_id", sql.Int, medicationSubmissionReqData.parent_id)
+      .input("parent_id", sql.Int, parent_id)
       .input("student_id", sql.Int, medicationSubmissionReqData.student_id)
       .input("status", sql.NVarChar, medicationSubmissionReqData.status)
       .input("created_at", sql.DateTime, new Date()) // Thời gian tạo yêu cầu
@@ -26,9 +27,7 @@ const medicationSubmissionReq = async (req, res, next) => {
 
     if (result.rowsAffected[0] > 0) {
       // Nếu thêm thành công => gửi thông báo đến tất cả y tá (role_id = 3)
-      const nurses = await pool
-        .request()
-        .query("SELECT user_id FROM Users WHERE role_id = 3");
+      const nurses = await pool.request().query("SELECT user_id FROM Users WHERE role_id = 3");
 
       for (const nurse of nurses.recordset) {
         await sendNotification(
@@ -67,8 +66,7 @@ const cancelMedicationSubmissionReq = async (req, res, next) => {
 
   try {
     //  Kiểm tra trạng thái hiện tại
-    const checkStatus = await pool.request().input("id_req", sql.Int, ReqId)
-      .query(`
+    const checkStatus = await pool.request().input("id_req", sql.Int, ReqId).query(`
         SELECT status
         FROM Medication_Submisstion_Request 
         WHERE id_req = @id_req
@@ -91,19 +89,14 @@ const cancelMedicationSubmissionReq = async (req, res, next) => {
     }
 
     //  Cập nhật trạng thái thành "CANCELLED"
-    await pool
-      .request()
-      .input("id_req", sql.Int, ReqId)
-      .input("updated_at", sql.DateTime, new Date()).query(`
+    await pool.request().input("id_req", sql.Int, ReqId).input("updated_at", sql.DateTime, new Date()).query(`
         UPDATE Medication_Submisstion_Request
         SET status = 'CANCELLED', updated_at = @updated_at
         WHERE id_req = @id_req
       `);
 
     //  Gửi thông báo đến tất cả y tá (role_id = 3)
-    const nurses = await pool
-      .request()
-      .query("SELECT user_id FROM Users WHERE role_id = 3");
+    const nurses = await pool.request().query("SELECT user_id FROM Users WHERE role_id = 3");
 
     for (const nurse of nurses.recordset) {
       await sendNotification(
@@ -130,15 +123,10 @@ const cancelMedicationSubmissionReq = async (req, res, next) => {
 // API lấy tất cả yêu cầu uống thuốc
 const getAllMedicationSubmissionReq = async (req, res, next) => {
   const pool = await sqlServerPool;
-<<<<<<< HEAD
-  const result = await pool
-    .request()
-    .query("SELECT * FROM Medication_Submisstion_Request");
-=======
-  const result = await pool.request().query(`SELECT MSR.*, U.fullname, SI.full_name as student FROM Medication_Submisstion_Request MSR 
+  const result = await pool.request()
+    .query(`SELECT MSR.*, U.fullname, SI.full_name as student FROM Medication_Submisstion_Request MSR 
                                               JOIN Users U ON MSR.parent_id = U.user_id
                                               JOIN Student_Information SI ON MSR.student_id = SI.student_id`);
->>>>>>> df28476 (update)
 
   if (result.recordset.length > 0) {
     // Trả về danh sách các yêu cầu nếu có
@@ -159,7 +147,7 @@ const getAllMedicationSubmissionReqByParentId = async (req, res, next) => {
   const parent_id = req.user?.user_id;
   const pool = await sqlServerPool;
   const result = await pool.request().input("parent_id", sql.Int, parent_id)
-  .query(`SELECT MSR.*, U.fullname, SI.full_name as student  FROM Medication_Submisstion_Request MSR 
+    .query(`SELECT MSR.*, U.fullname, SI.full_name as student  FROM Medication_Submisstion_Request MSR 
           JOIN Users U ON MSR.parent_id = U.user_id
           JOIN Student_Information SI ON MSR.student_id = SI.student_id WHERE MSR.parent_id = @parent_id`);
 
@@ -179,10 +167,10 @@ const getAllMedicationSubmissionReqByParentId = async (req, res, next) => {
 
 const getAllMedicationSubmissionReqByParentIdAndId = async (req, res, next) => {
   const parent_id = req.user?.user_id;
-  const { id_req } = req.params
+  const { id_req } = req.params;
   const pool = await sqlServerPool;
   const result = await pool.request().input("parent_id", sql.Int, parent_id).input("id_req", sql.Int, id_req)
-  .query(`SELECT MSR.*, U.fullname, SI.full_name as student FROM Medication_Submisstion_Request MSR 
+    .query(`SELECT MSR.*, U.fullname, SI.full_name as student FROM Medication_Submisstion_Request MSR 
           JOIN Users U ON MSR.parent_id = U.user_id
           JOIN Student_Information SI ON MSR.student_id = SI.student_id
           WHERE MSR.parent_id = @parent_id AND MSR.id_req = @id_req`);
@@ -205,18 +193,10 @@ const getAllMedicationSubmissionReqByParentIdAndId = async (req, res, next) => {
 const getMedicationSubmissionReqByID = async (req, res, next) => {
   const ReqId = req.params.ReqId; // Lấy ID từ URL param
   const pool = await sqlServerPool;
-  const result = await pool
-    .request()
-    .input("id_req", sql.Int, ReqId)
-<<<<<<< HEAD
-    .query(
-      "SELECT * FROM Medication_Submisstion_Request WHERE id_req = @id_req"
-    );
-=======
+  const result = await pool.request().input("id_req", sql.Int, ReqId)
     .query(`SELECT MSR.*, U.fullname, SI.full_name as student FROM Medication_Submisstion_Request MSR 
             JOIN Users U ON MSR.parent_id = U.user_id
             JOIN Student_Information SI ON MSR.student_id = SI.student_id WHERE MSR.id_req = @id_req`);
->>>>>>> df28476 (update)
 
   if (result.recordset.length > 0) {
     // Trả về bản ghi nếu tìm thấy
@@ -256,9 +236,7 @@ const updateMedicationSubmissionReqByNurse = async (req, res, next) => {
       const parentResult = await pool
         .request()
         .input("id_req", sql.Int, ReqId)
-        .query(
-          "SELECT parent_id FROM Medication_Submisstion_Request WHERE id_req = @id_req"
-        );
+        .query("SELECT parent_id FROM Medication_Submisstion_Request WHERE id_req = @id_req");
 
       const parentId = parentResult.recordset[0]?.parent_id;
       if (status === "APPROVED") {
@@ -266,9 +244,7 @@ const updateMedicationSubmissionReqByNurse = async (req, res, next) => {
         const medicationReqResult = await pool
           .request()
           .input("id_req", sql.Int, ReqId)
-          .query(
-            `SELECT * FROM Medication_Submisstion_Request WHERE id_req = @id_req`
-          );
+          .query(`SELECT * FROM Medication_Submisstion_Request WHERE id_req = @id_req`);
 
         const reqData = medicationReqResult.recordset[0];
         if (!reqData) {
@@ -358,5 +334,5 @@ module.exports = {
   updateMedicationSubmissionReqByNurse,
   cancelMedicationSubmissionReq,
   getAllMedicationSubmissionReqByParentId,
-  getAllMedicationSubmissionReqByParentIdAndId
+  getAllMedicationSubmissionReqByParentIdAndId,
 };

@@ -10,7 +10,7 @@ const { swaggerUi, swaggerSpec } = require("../Utils/swaggerOptions");
 const app = express();
 const port = 3000;
 
-// require("dotenv").config();
+require("dotenv").config();
 
 const corsOptions = {
   origin: [
