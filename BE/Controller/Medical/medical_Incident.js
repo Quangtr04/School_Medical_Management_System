@@ -124,6 +124,7 @@ const createMedicalIncident = async (req, res) => {
 };
 
 const updateIncident = async (req, res) => {
+  const nurse_id = req.user?.user_id;
   const { event_id } = req.params;
   const { status, resolution_notes, resolved_at } = req.body;
 
@@ -134,7 +135,8 @@ const updateIncident = async (req, res) => {
     const existingIncident = await pool
       .request()
       .input("event_id", sql.Int, event_id)
-      .query("SELECT * FROM Medical_incident WHERE event_id = @event_id");
+      .input("nurse_id", sql.Int, nurse_id)
+      .query("SELECT * FROM Medical_incident WHERE event_id = @event_id AND nurse_id = @nurse_id");
 
     if (existingIncident.recordset.length === 0) {
       return res.status(404).json({ error: "Incident not found" });
@@ -367,12 +369,10 @@ const getIncidentByStudentId = async (req, res) => {
 
 const getIncidentById = async (req, res) => {
   const { event_id } = req.params;
-  const user_id = req.user?.user_id;
-
   try {
     const pool = await sqlServerPool;
 
-    const result = await pool.request().input("event_id", sql.Int, event_id).input("user_id", sql.Int, user_id).query(`
+    const result = await pool.request().input("event_id", sql.Int, event_id).query(`
         SELECT 
           MI.event_id,
 
@@ -417,7 +417,7 @@ const getIncidentById = async (req, res) => {
         JOIN Users P ON MI.subject_info_id = P.user_id
         LEFT JOIN Users N ON MI.nurse_id = N.user_id
 
-        WHERE MI.event_id = @event_id AND MI.subject_info_id = @user_id
+        WHERE MI.event_id = @event_id
       `);
 
     if (result.recordset.length === 0) {

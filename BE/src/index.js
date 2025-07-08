@@ -9,13 +9,15 @@ const managerRouter = require("../routers/manager.router");
 const { swaggerUi, swaggerSpec } = require("../Utils/swaggerOptions");
 const app = express();
 const port = 3000;
+// const cron = require("node-cron");
+// const checkUnupdatedMedicationLogs = require("./services/checkUnupdatedMedicationLogs");
 
 require("dotenv").config();
 
 const corsOptions = {
   origin: [
     "http://localhost:5173",
-    "http://192.168.1.148:5173",
+    "http://192.168.1.151:5173",
     "http://192.168.1.85:5173",
     "http://172.20.10.4:5173",
     "http://172.20.10.2:5173",
@@ -50,9 +52,7 @@ app.listen(port, "0.0.0.0", () => {
     .flat()
     .forEach((iface) => {
       if (iface.family === "IPv4" && !iface.internal) {
-        console.log(
-          `🌐 Server may be accessible via: http://${iface.address}:${port}`
-        );
+        console.log(`🌐 Server may be accessible via: http://${iface.address}:${port}`);
       }
     });
 
@@ -60,11 +60,8 @@ app.listen(port, "0.0.0.0", () => {
   console.log("Swagger docs at http://localhost:3000/api-docs");
 });
 
-const cron = require("node-cron");
-const checkUnupdatedMedicationLogs = require("./services/checkUnupdatedMedicationLogs");
-
-// Cấu hình cron job chạy vào 18:00 mỗi ngày
-cron.schedule("0 18 * * *", () => {
-  console.log("🕕 Kiểm tra nhật ký uống thuốc (18:00)");
-  checkUnupdatedMedicationLogs(); // Gọi hàm xử lý
-});
+// // Cấu hình cron job chạy vào 18:00 mỗi ngày
+// cron.schedule("0 18 * * *", () => {
+//   console.log("🕕 Kiểm tra nhật ký uống thuốc (18:00)");
+//   checkUnupdatedMedicationLogs(); // Gọi hàm xử lý
+// });

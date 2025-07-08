@@ -25,6 +25,7 @@ const {
   getIncidentById,
   getIncidentsByUserId,
   getIncidentByStudentId,
+  updateIncident,
 } = require("../Controller/Medical/medical_Incident");
 const {
   getAllMedicalSupplies,
@@ -117,6 +118,9 @@ nurseRouter.get("/incidents/user", authenticateToken, getIncidentsByUserId);
 
 // Lấy tất cả sự cố y tế liên quan đến một học sinh
 nurseRouter.get("/incidents/student/:student_id", getIncidentByStudentId);
+
+// Cập nhật sự cố y tế
+nurseRouter.patch("/incidents/student/:event_id/update", authenticateToken, updateIncident);
 
 // Thêm vật tư y tế
 nurseRouter.post("/medical-supplies/create", validateInput(Schemas, "MedicalSupply"), medicalSupply);

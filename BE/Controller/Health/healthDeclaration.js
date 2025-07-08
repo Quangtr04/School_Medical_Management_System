@@ -57,7 +57,6 @@ const updateHealthDeclarationByStudentId = async (req, res, next) => {
     .input("student_id", sql.Int, studentId) // ✅ sửa đúng tên biến
     .input("height_cm", sql.Int, healthDeclarationData.height_cm)
     .input("weight_kg", sql.Int, healthDeclarationData.weight_kg)
-    .input("blood_type", sql.NVarChar, healthDeclarationData.blood_type)
     .input("allergy", sql.NVarChar, healthDeclarationData.allergy)
     .input("chronic_disease", sql.NVarChar, healthDeclarationData.chronic_disease)
     .input("vision_left", sql.Float, healthDeclarationData.vision_left)
@@ -71,7 +70,6 @@ const updateHealthDeclarationByStudentId = async (req, res, next) => {
           weight_kg = @weight_kg, 
           allergy = @allergy,
           chronic_disease = @chronic_disease,
-          blood_type = @blood_type,
           vision_left = @vision_left, 
           vision_right = @vision_right,
           hearing_left = @hearing_left, 
@@ -80,6 +78,31 @@ const updateHealthDeclarationByStudentId = async (req, res, next) => {
           updated_at = @updated_at
       WHERE student_id = @student_id
     `);
+
+  const blood_type = await pool.request().input("student_id", sql.Int, studentId).query(`
+        SELECT blood_type FROM Student_Health WHERE student_id = @student_id
+        `);
+  if (blood_type.recordset[0].blood_type === null) {
+    const blood = healthDeclarationData.blood_type;
+    if (blood !== null && blood !== "") {
+      await pool.request().input("student_id", sql.Int, studentId).input("blood_type", sql.NVarChar, blood).query(`
+        UPDATE Student_Health 
+        SET blood_type = @blood_type
+        WHERE student_id = @student_id
+      `);
+    }
+  }
+  if (
+    healthDeclarationData.blood_type !== null &&
+    healthDeclarationData.blood_type !== "" &&
+    healthDeclarationData.blood_type !== blood_type.recordset[0].blood_type
+  ) {
+    // không cho phép cập nhật blood_type nếu đã tồn tại
+    return res.status(400).json({
+      status: "fail",
+      message: "Health declaration already exists. Cannot update blood type",
+    });
+  }
 
   const parent = await pool.request().input("student_id", sql.Int, studentId).query(`
       SELECT parent_id FROM Student_Information WHERE student_id = @student_id

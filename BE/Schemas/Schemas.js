@@ -40,7 +40,11 @@ const HealthDeclaration = {
   vision_right: { type: "string", required: true },
   hearing_left: { type: "string", required: true },
   hearing_right: { type: "string", required: true },
-  health_status: { type: "string", required: true },
+  health_status: {
+    type: "string",
+    enum: ["Khỏe mạnh", "Nghiêm trọng", "Cần theo dõi"],
+    required: true,
+  },
 };
 
 const StudentInformation = {

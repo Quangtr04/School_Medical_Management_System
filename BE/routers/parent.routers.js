@@ -138,7 +138,7 @@ parentRouter.patch(
 parentRouter.get("/incidents", authenticateToken, getIncidentsByUserId);
 
 // Lấy sự cố y tế của học sinh theo ID (Lưu ý: "view incedent" có vẻ là lỗi chính tả, nên đổi thành /:incident_id)
-parentRouter.get("/incidents/:event_id", authenticateToken, getIncidentById); // Thêm authenticateToken nếu cần, và đổi tên parameter cho rõ ràng
+parentRouter.get("/incidents/:event_id", getIncidentById); // Thêm authenticateToken nếu cần, và đổi tên parameter cho rõ ràng
 
 // --- Nhóm các API liên quan đến Yêu cầu gửi thuốc (Medical Submissions) ---
 /**
@@ -182,13 +182,17 @@ parentRouter.post("/vaccine-campaigns/:id/respond", authenticateToken, getRespon
 parentRouter.patch("/vaccine-campaigns/:form_id/status", authenticateToken, UpdateResponseByParent);
 
 // Lấy danh sách con có tham gia tiêm chủng
-parentRouter.get("/vaccine-campaigns/students", getStudentVaccineList);
+parentRouter.get("/vaccine-campaigns-list-students", authenticateToken, getStudentVaccineList);
 
 // Lấy danh sách con có tham gia tiêm chủng dựa trên campaign id
-parentRouter.get("/vaccine-campaigns/students", getStudentVaccineListByCampaignIdByParentId);
+parentRouter.get(
+  "/vaccine-campaigns/:campaign_id/students",
+  authenticateToken,
+  getStudentVaccineListByCampaignIdByParentId
+);
 
 // Lấy danh sách con có tham gia tiêm chủng theo id
-parentRouter.get("/vaccine-campaigns/:campaing_id/students/:vaccine_id", getStudentVaccineListById);
+parentRouter.get("/vaccine-campaigns/:campaing_id/students/:student_id", getStudentVaccineListById);
 
 // --- Nhóm các API liên quan đến Thông báo (Notifications) ---
 /**

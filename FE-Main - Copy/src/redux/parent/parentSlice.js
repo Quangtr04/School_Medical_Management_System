@@ -224,6 +224,8 @@ export const updateHealthDeclaration = createAsyncThunk(
   "parent/updateHealthDeclaration",
   async ({ studentId, declarationData }, { rejectWithValue }) => {
     try {
+      console.log(declarationData);
+
       const response = await api.patch(`/parent/students/${studentId}/health-declaration`, declarationData);
       return { studentId, data: response.data };
     } catch (error) {
@@ -422,7 +424,7 @@ export const getVaccineCampaigns = createAsyncThunk("parent/getVaccineCampaigns"
   } catch (error) {
     console.error("Error fetching vaccine campaigns:", error);
     // Return empty array instead of rejecting to prevent UI errors
-    return [];
+    return rejectWithValue(error.response?.data?.message || "Failed to fetch vaccine campaigns");
   }
 });
 
@@ -449,7 +451,7 @@ export const getVaccineCampaignDetails = createAsyncThunk(
     } catch (error) {
       console.error(`Error fetching campaign details for ID ${campaignId}:`, error);
       // Return null instead of rejecting to prevent UI errors
-      return null;
+      return rejectWithValue(error.response?.data?.message || "Failed to fetch campaign details");
     }
   }
 );
@@ -463,7 +465,7 @@ export const getApprovedCampaigns = createAsyncThunk("parent/getApprovedCampaign
   } catch (error) {
     console.error("Error fetching approved campaigns:", error);
     // Return empty array instead of rejecting to prevent UI errors
-    return [];
+    return rejectWithValue(error.response?.data?.message || "Failed to fetch approved campaigns");
   }
 });
 
@@ -476,31 +478,31 @@ export const getDeclinedCampaigns = createAsyncThunk("parent/getDeclinedCampaign
   } catch (error) {
     console.error("Error fetching declined campaigns:", error);
     // Return empty array instead of rejecting to prevent UI errors
-    return [];
+    return rejectWithValue(error.response?.data?.message || "Failed to fetch declined campaigns");
   }
 });
 
 export const getStudentVaccinations = createAsyncThunk(
   "parent/getStudentVaccinations",
-  async (studentId = null, { rejectWithValue }) => {
+  async ({ campaignId, studentId }, { rejectWithValue }) => {
     try {
-      // Don't make API call if studentId is undefined or null
-      if (!studentId) {
-        console.log("Skipping getStudentVaccinations - No student ID provided");
-        return { studentId: null, vaccinations: [] };
-      }
+      const response = await api.get(`/parent/vaccine-campaigns/${campaignId}/students/${studentId}`);
+      console.log("Student vaccinations response:", {
+        campaignId,
+        studentId,
+        data: response.data?.data || [],
+      });
 
-      console.log(`Fetching vaccinations for student ${studentId}...`);
-      const response = await api.get(`/parent/vaccine-campaign/${studentId}`);
-      console.log("Student vaccinations response:", response);
       return {
         studentId,
-        vaccinations: response.data?.data || response.data || [],
+        data: response.data.data,
       };
     } catch (error) {
-      console.error(`Error fetching vaccinations for student ${studentId}:`, error);
-      // Return empty results instead of rejecting to prevent UI errors
-      return { studentId, vaccinations: [] };
+      console.error("Error fetching student vaccinations:", error);
+      return rejectWithValue({
+        vaccinations: [],
+        error: error.response?.data?.message || "Failed to fetch student vaccinations",
+      });
     }
   }
 );
@@ -691,7 +693,7 @@ const parentSlice = createSlice({
   name: "parent",
   initialState,
   reducers: {
-    resetParentState: (state) => {
+    resetParentState: () => {
       return initialState;
     },
     setProfile: (state, action) => {
@@ -1026,7 +1028,7 @@ const parentSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(getMedicationRequestDetail.fulfilled, (state, action) => {
+      .addCase(getMedicationRequestDetail.fulfilled, (state) => {
         state.loading = false;
       })
       .addCase(getMedicationRequestDetail.rejected, (state, action) => {
@@ -1093,13 +1095,33 @@ const parentSlice = createSlice({
       })
       .addCase(getStudentVaccinations.fulfilled, (state, action) => {
         state.loading = false;
-        if (action.payload.studentId) {
-          state.vaccinations.studentVaccinations[action.payload.studentId] = action.payload.vaccinations;
+        const { studentId, data: vaccinations } = action.payload;
+
+        if (studentId && Array.isArray(vaccinations)) {
+          const key = String(studentId); // đảm bảo key là chuỗi
+
+          if (!state.vaccinations.studentVaccinations[key]) {
+            state.vaccinations.studentVaccinations[key] = [];
+          }
+
+          const existing = state.vaccinations.studentVaccinations[key];
+
+          const newResults = vaccinations.filter(
+            (newV) =>
+              !existing.some(
+                (e) =>
+                  e.form_id === newV.form_id &&
+                  e.vaccine_name === newV.vaccine_name &&
+                  e.dose_number === newV.dose_number
+              )
+          );
+
+          state.vaccinations.studentVaccinations[key] = [...existing, ...newResults];
         } else {
-          // When studentId is null, just store the vaccinations in the campaigns array
-          state.vaccinations.campaigns = action.payload.vaccinations;
+          console.warn("⚠️ Payload thiếu studentId hoặc vaccinations không phải array");
         }
       })
+
       .addCase(getStudentVaccinations.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;

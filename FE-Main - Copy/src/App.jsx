@@ -1,6 +1,6 @@
 // src/App.jsx
 import React, { useEffect } from "react";
-import { Routes, Route, Navigate, createBrowserRouter } from "react-router-dom"; // Removed unused useNavigate import
+import { Routes, Route, Navigate } from "react-router-dom"; // Removed unused useNavigate import
 import { useSelector, useDispatch } from "react-redux";
 import { message } from "antd"; // Import Ant Design message for notifications
 
@@ -123,153 +123,153 @@ function App() {
     }
   }, [notificationMessage, notificationType, dispatch]);
 
-  const router = createBrowserRouter([
-    {
-      path: "/",
-      element: <HomePage />,
-    },
-    {
-      path: "/login",
-      element: <LoginPage />,
-    },
-    {
-      path: "/register",
-      element: <RegisterPage />,
-    },
-    {
-      path: "/forgot-password",
-      element: <ForgotPassword />,
-    },
-    {
-      path: "/documents/:id",
-      element: <DocumentDetail />, // Consider wrapping with a general PrivateRoute if only logged-in users can view docs
-    },
-    {
-      path: "/support",
-      element: <SupportPage />, // Consider wrapping with a general PrivateRoute
-    },
-    {
-      path: "/unauthorized", // Route for access denied messages
-      element: <UnauthorizedPage />,
-    },
+  // const router = createBrowserRouter([
+  //   {
+  //     path: "/",
+  //     element: <HomePage />,
+  //   },
+  //   {
+  //     path: "/login",
+  //     element: <LoginPage />,
+  //   },
+  //   {
+  //     path: "/register",
+  //     element: <RegisterPage />,
+  //   },
+  //   {
+  //     path: "/forgot-password",
+  //     element: <ForgotPassword />,
+  //   },
+  //   {
+  //     path: "/documents/:id",
+  //     element: <DocumentDetail />, // Consider wrapping with a general PrivateRoute if only logged-in users can view docs
+  //   },
+  //   {
+  //     path: "/support",
+  //     element: <SupportPage />, // Consider wrapping with a general PrivateRoute
+  //   },
+  //   {
+  //     path: "/unauthorized", // Route for access denied messages
+  //     element: <UnauthorizedPage />,
+  //   },
 
-    // Admin Routes - Protected by Admin Role
-    {
-      path: "/admin",
-      element: <RoleProtectedRoute allowedRoles={[ROLE_ADMIN]} />, // Protects /admin and its children
-      children: [
-        {
-          element: <AdminLayOut />, // This layout will be rendered within RoleProtectedRoute's Outlet
-          children: [
-            {
-              index: true,
-              element: <AdminOverViewPage />,
-            },
-            {
-              path: "nurses",
-              element: <NurseManagementPage />,
-            },
-            {
-              path: "parents",
-              element: <ParentManagementPage />,
-            },
-            {
-              path: "managers",
-              element: <ManagerManagementPage />,
-            },
-            {
-              path: "files",
-              element: <FileManagementSection />,
-            },
-            {
-              path: "settings",
-              element: <AdminSettingPage />,
-            },
-            {
-              path: "monitor",
-              element: <SystemActivityPage />,
-            },
-          ],
-        },
-      ],
-    },
+  //   // Admin Routes - Protected by Admin Role
+  //   {
+  //     path: "/admin",
+  //     element: <RoleProtectedRoute allowedRoles={[ROLE_ADMIN]} />, // Protects /admin and its children
+  //     children: [
+  //       {
+  //         element: <AdminLayOut />, // This layout will be rendered within RoleProtectedRoute's Outlet
+  //         children: [
+  //           {
+  //             index: true,
+  //             element: <AdminOverViewPage />,
+  //           },
+  //           {
+  //             path: "nurses",
+  //             element: <NurseManagementPage />,
+  //           },
+  //           {
+  //             path: "parents",
+  //             element: <ParentManagementPage />,
+  //           },
+  //           {
+  //             path: "managers",
+  //             element: <ManagerManagementPage />,
+  //           },
+  //           {
+  //             path: "files",
+  //             element: <FileManagementSection />,
+  //           },
+  //           {
+  //             path: "settings",
+  //             element: <AdminSettingPage />,
+  //           },
+  //           {
+  //             path: "monitor",
+  //             element: <SystemActivityPage />,
+  //           },
+  //         ],
+  //       },
+  //     ],
+  //   },
 
-    // Nurse Routes - Protected by Nurse Role
-    {
-      path: "/nurse",
-      element: <RoleProtectedRoute allowedRoles={[ROLE_NURSE]} />, // Protects /nurse and its children
-      children: [
-        {
-          element: <SchoolNurseLayOut />, // This layout will be rendered within RoleProtectedRoute's Outlet
-          children: [
-            { index: true, element: <SchoolNurseOverView /> },
-            { path: "profile", element: <NurseProfile /> },
-            { path: "students-record", element: <StudentRecordPage /> },
-            {
-              path: "medical-supplies",
-              element: <SchoolNurseMedicalSupplyPage />,
-            },
-            {
-              path: "medical-submission",
-              element: <MedicalSubmission></MedicalSubmission>,
-            },
-            { path: "medical-incidents", element: <MedicalIncident /> },
-            { path: "vaccinations", element: <Vaccinations /> },
-            { path: "checkups", element: <Examinations /> },
-            { path: "notifications", element: <Notification /> },
-            { path: "report", element: <ReportsPage /> },
-            {
-              path: "students-record/:id",
-              element: <StudentRecordPageDetail />,
-            },
-          ],
-        },
-      ],
-    },
+  //   // Nurse Routes - Protected by Nurse Role
+  //   {
+  //     path: "/nurse",
+  //     element: <RoleProtectedRoute allowedRoles={[ROLE_NURSE]} />, // Protects /nurse and its children
+  //     children: [
+  //       {
+  //         element: <SchoolNurseLayOut />, // This layout will be rendered within RoleProtectedRoute's Outlet
+  //         children: [
+  //           { index: true, element: <SchoolNurseOverView /> },
+  //           { path: "profile", element: <NurseProfile /> },
+  //           { path: "students-record", element: <StudentRecordPage /> },
+  //           {
+  //             path: "medical-supplies",
+  //             element: <SchoolNurseMedicalSupplyPage />,
+  //           },
+  //           {
+  //             path: "medical-submission",
+  //             element: <MedicalSubmission></MedicalSubmission>,
+  //           },
+  //           { path: "medical-incidents", element: <MedicalIncident /> },
+  //           { path: "vaccinations", element: <Vaccinations /> },
+  //           { path: "checkups", element: <Examinations /> },
+  //           { path: "notifications", element: <Notification /> },
+  //           { path: "report", element: <ReportsPage /> },
+  //           {
+  //             path: "students-record/:id",
+  //             element: <StudentRecordPageDetail />,
+  //           },
+  //         ],
+  //       },
+  //     ],
+  //   },
 
-    // Manager Routes - Protected by Manager Role
-    {
-      path: "/manager",
-      element: <RoleProtectedRoute allowedRoles={[ROLE_MANAGER]} />, // Protects /manager and its children
-      children: [
-        {
-          element: <ManagerLayOut />, // This layout will be rendered within RoleProtectedRoute's Outlet
-          children: [
-            { index: true, element: <ManagerOverViewPage /> },
-            {
-              path: "appoinment-apporve",
-              element: <ManagerApprovalRequestsPage />,
-            },
-          ],
-        },
-      ],
-    },
+  //   // Manager Routes - Protected by Manager Role
+  //   {
+  //     path: "/manager",
+  //     element: <RoleProtectedRoute allowedRoles={[ROLE_MANAGER]} />, // Protects /manager and its children
+  //     children: [
+  //       {
+  //         element: <ManagerLayOut />, // This layout will be rendered within RoleProtectedRoute's Outlet
+  //         children: [
+  //           { index: true, element: <ManagerOverViewPage /> },
+  //           {
+  //             path: "appoinment-apporve",
+  //             element: <ManagerApprovalRequestsPage />,
+  //           },
+  //         ],
+  //       },
+  //     ],
+  //   },
 
-    // Parent Routes - Protected by Parent Role
-    {
-      path: "/parent",
-      element: <RoleProtectedRoute allowedRoles={[ROLE_PARENT]} />, // Protects /parent and its children
-      children: [
-        {
-          element: <ParentLayOut />, // This layout will be rendered within RoleProtectedRoute's Outlet
-          children: [
-            { index: true, element: <ParentDashboard /> },
-            { path: "children", element: <ChildrenInfoPage /> },
-            { path: "health-records", element: <HealthRecordsPage /> },
-            { path: "vaccinations", element: <VaccinationsPage /> },
-            { path: "medicine-request", element: <MedicineRequestPage /> },
-            // Add more parent pages here as needed
-          ],
-        },
-      ],
-    },
+  //   // Parent Routes - Protected by Parent Role
+  //   {
+  //     path: "/parent",
+  //     element: <RoleProtectedRoute allowedRoles={[ROLE_PARENT]} />, // Protects /parent and its children
+  //     children: [
+  //       {
+  //         element: <ParentLayOut />, // This layout will be rendered within RoleProtectedRoute's Outlet
+  //         children: [
+  //           { index: true, element: <ParentDashboard /> },
+  //           { path: "children", element: <ChildrenInfoPage /> },
+  //           { path: "health-records", element: <HealthRecordsPage /> },
+  //           { path: "vaccinations", element: <VaccinationsPage /> },
+  //           { path: "medicine-request", element: <MedicineRequestPage /> },
+  //           // Add more parent pages here as needed
+  //         ],
+  //       },
+  //     ],
+  //   },
 
-    // Catch-all route for unmatched paths (404)
-    {
-      path: "*",
-      element: <Navigate to="/" replace />, // Redirect to home or a 404 page
-    },
-  ]);
+  //   // Catch-all route for unmatched paths (404)
+  //   {
+  //     path: "*",
+  //     element: <Navigate to="/" replace />, // Redirect to home or a 404 page
+  //   },
+  // ]);
 
   return (
     <Routes>

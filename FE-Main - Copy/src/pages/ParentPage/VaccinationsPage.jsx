@@ -58,6 +58,7 @@ import {
 import api from "../../configs/config-axios";
 import VaccinationCalendar from "./components/VaccinationCalendar";
 import VaccinationDetail from "./components/VaccinationDetail";
+import VaccinationHistoryDetail from "./components/VaccinationHistoryDetail";
 
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
@@ -91,6 +92,8 @@ const VaccinationsPage = () => {
   const [calendarData, setCalendarData] = useState({});
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedCampaignId, setSelectedCampaignId] = useState(null);
+  const [historyModalVisible, setHistoryModalVisible] = useState(false);
+  const [historyData, setHistoryData] = useState([]);
 
   // Fetch data on component mount
   useEffect(() => {
@@ -112,17 +115,23 @@ const VaccinationsPage = () => {
   // When children data is loaded, select the first child
   useEffect(() => {
     if (children && children.length > 0 && !selectedChild) {
-      dispatch(getChildDetails(children[0].id));
+      dispatch(getChildDetails(children[0].student_id));
     }
   }, [dispatch, children, selectedChild]);
 
   // When a child is selected, fetch their vaccinations
   useEffect(() => {
-    if (selectedChild?.id) {
-      dispatch(getStudentVaccinations(selectedChild.id));
+    if (selectedChild?.student_id) {
+      dispatch(getStudentVaccinations(selectedChild.student_id));
     }
   }, [dispatch, selectedChild]);
-
+  useEffect(() => {
+    console.log("selectedChild", selectedChild);
+    console.log(
+      "vaccinations.studentVaccinations",
+      vaccinations.studentVaccinations
+    );
+  }, [vaccinations, selectedChild]);
   // Process vaccination data for display
   useEffect(() => {
     // Update campaigns data from Redux store
@@ -151,14 +160,33 @@ const VaccinationsPage = () => {
 
     // Process vaccination results for the selected student
     if (
-      selectedChild?.id &&
-      vaccinations.studentVaccinations?.[selectedChild.id]
+      selectedChild?.student_id &&
+      vaccinations.studentVaccinations?.[selectedChild.student_id]
     ) {
-      setVaccinationResults(vaccinations.studentVaccinations[selectedChild.id]);
+      setVaccinationResults(
+        vaccinations.studentVaccinations[selectedChild.student_id]
+      );
     } else {
       setVaccinationResults([]);
     }
   }, [vaccinations, selectedChild]);
+
+  const handleOpenHistoryModal = async (record) => {
+    try {
+      const result = await dispatch(
+        getStudentVaccinations({
+          campaignId: record.campaign_id, // hoặc record.form_id tùy backend
+          studentId: selectedChild.student_id,
+        })
+      ).unwrap();
+
+      setHistoryData(result.data); // ✅ Gán dữ liệu vào state để truyền qua props
+      setHistoryModalVisible(true);
+    } catch (error) {
+      message.error("Không thể tải lịch sử tiêm chủng");
+      console.error(error);
+    }
+  };
 
   // Process calendar data for the calendar display
   const processCalendarData = (campaigns) => {
@@ -288,84 +316,41 @@ const VaccinationsPage = () => {
       title: "Hành động",
       key: "action",
       render: (_, record) => (
-        <Space size="small">
+        <Space direction="vertical" size={4}>
           <Button
             type="primary"
             size="small"
             icon={<InfoCircleOutlined />}
             onClick={() => handleViewCampaign(record)}
+            block
           >
-            Chi tiết
+            Xem chi tiết
           </Button>
+
           {record.consent_status === "PENDING" && (
             <Button
               type="default"
               size="small"
               icon={<FileTextOutlined />}
               onClick={() => handleRespondToConsent(record)}
+              block
             >
-              Phản hồi
+              Phản hồi đồng ý
+            </Button>
+          )}
+
+          {record.status === "AGREED" && (
+            <Button
+              type="dashed"
+              size="small"
+              icon={<FileTextOutlined />}
+              onClick={() => handleOpenHistoryModal(record)}
+              block
+            >
+              Lịch sử tiêm chủng
             </Button>
           )}
         </Space>
-      ),
-    },
-  ];
-
-  // Columns for the vaccination history table
-  const vaccinationHistoryColumns = [
-    {
-      title: "Tên vaccine",
-      dataIndex: "vaccine_name",
-      key: "vaccine_name",
-      render: (text) => <Text strong>{text}</Text>,
-    },
-    {
-      title: "Thuộc chiến dịch",
-      dataIndex: "campaign_title",
-      key: "campaign_title",
-    },
-    {
-      title: "Ngày tiêm",
-      dataIndex: "vaccinated_at",
-      key: "vaccinated_at",
-      render: (date) => moment(date).format("DD/MM/YYYY"),
-    },
-    {
-      title: "Mũi số",
-      dataIndex: "dose_number",
-      key: "dose_number",
-      render: (dose) => <Tag color="blue">Mũi {dose}</Tag>,
-    },
-    {
-      title: "Phản ứng phụ",
-      dataIndex: "reaction",
-      key: "reaction",
-      render: (reaction, record) => (
-        <>
-          <Text>{reaction}</Text>
-          {record.follow_up_required && (
-            <Tooltip title="Cần theo dõi thêm">
-              <ExclamationCircleOutlined
-                style={{ color: "#ff4d4f", marginLeft: 8 }}
-              />
-            </Tooltip>
-          )}
-        </>
-      ),
-    },
-    {
-      title: "Hành động",
-      key: "action",
-      render: (_, record) => (
-        <Button
-          type="primary"
-          size="small"
-          icon={<InfoCircleOutlined />}
-          onClick={() => handleViewResult(record)}
-        >
-          Chi tiết
-        </Button>
       ),
     },
   ];
@@ -502,28 +487,6 @@ const VaccinationsPage = () => {
                       <Empty description="Không có lịch tiêm chủng bị từ chối" />
                     )}
                   </TabPane>
-                  <TabPane
-                    tab={
-                      <span>
-                        <MedicineBoxOutlined /> Lịch sử tiêm chủng
-                      </span>
-                    }
-                    key="4"
-                  >
-                    {vaccinationResults && vaccinationResults.length > 0 ? (
-                      <Table
-                        columns={vaccinationHistoryColumns}
-                        dataSource={vaccinationResults.map((item, index) => ({
-                          ...item,
-                          key: `history-${item.id || index}`,
-                        }))}
-                        pagination={{ pageSize: 5 }}
-                        size="middle"
-                      />
-                    ) : (
-                      <Empty description="Không có lịch sử tiêm chủng" />
-                    )}
-                  </TabPane>
                 </Tabs>
               </Card>
             </Col>
@@ -538,54 +501,16 @@ const VaccinationsPage = () => {
             onSuccess={handleConsentSuccess}
           />
 
-          {/* Result Detail Modal */}
-          <Modal
-            title="Chi tiết kết quả tiêm chủng"
-            open={resultModalVisible}
-            onCancel={() => setResultModalVisible(false)}
-            footer={[
-              <Button key="close" onClick={() => setResultModalVisible(false)}>
-                Đóng
-              </Button>,
-            ]}
-            width={700}
-          >
-            {selectedResult ? (
-              <Descriptions bordered column={1}>
-                <Descriptions.Item label="Tên vaccine">
-                  {selectedResult.vaccine_name}
-                </Descriptions.Item>
-                <Descriptions.Item label="Thuộc chiến dịch">
-                  {selectedResult.campaign_title}
-                </Descriptions.Item>
-                <Descriptions.Item label="Ngày tiêm">
-                  {moment(selectedResult.vaccinated_at).format("DD/MM/YYYY")}
-                </Descriptions.Item>
-                <Descriptions.Item label="Mũi số">
-                  <Tag color="blue">Mũi {selectedResult.dose_number}</Tag>
-                </Descriptions.Item>
-                <Descriptions.Item label="Lô vaccine">
-                  {selectedResult.batch_number || "Không có thông tin"}
-                </Descriptions.Item>
-                <Descriptions.Item label="Phản ứng phụ">
-                  {selectedResult.reaction || "Không có"}
-                  {selectedResult.follow_up_required && (
-                    <Tag color="error" style={{ marginLeft: 8 }}>
-                      Cần theo dõi thêm
-                    </Tag>
-                  )}
-                </Descriptions.Item>
-                <Descriptions.Item label="Ghi chú">
-                  {selectedResult.notes || "Không có ghi chú"}
-                </Descriptions.Item>
-                <Descriptions.Item label="Y tá thực hiện">
-                  {selectedResult.nurse_name || "Không có thông tin"}
-                </Descriptions.Item>
-              </Descriptions>
-            ) : (
-              <Empty description="Không có thông tin chi tiết" />
-            )}
-          </Modal>
+          <VaccinationHistoryDetail
+            visible={historyModalVisible}
+            onClose={() => {
+              setHistoryModalVisible(false);
+              setHistoryData([]); // clear
+            }}
+            student={selectedChild}
+            data={historyData}
+            destroyOnClose
+          />
 
           <style jsx>{`
             .vaccinations-page {

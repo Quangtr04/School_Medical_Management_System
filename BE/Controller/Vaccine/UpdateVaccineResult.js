@@ -73,7 +73,6 @@ const getStudentVaccineList = async (req, res, next) => {
     const pool = await sqlServerPool;
     const result = await pool
       .request()
-      .input("id", sql.Int, campaign_id)
       .input("parent_id", sql.Int, parent_id)
       .query(
         `SELECT VR.*, SI.full_name, SI.address, SI.class_name, SI.student_code, SI.gender, SI.date_of_birth 
@@ -137,15 +136,17 @@ const getStudentVaccineListByCampaignId = async (req, res, next) => {
 };
 
 const getStudentVaccineListById = async (req, res, next) => {
-  const { vaccine_id, campaing_id } = req.params;
+  const { student_id, campaing_id } = req.params;
   try {
     const pool = await sqlServerPool;
     const result = await pool
       .request()
       .input("campaign_id", sql.Int, campaing_id)
-      .input("id", sql.Int, vaccine_id)
+      .input("student_id", sql.Int, student_id)
       .query(
-        "SELECT VR.*, SI.full_name, SI.address, SI.class_name, SI.student_code, SI.gender, SI.date_of_birth FROM Vaccination_Result VR JOIN Student_Information SI ON VR.student_id = SI.student_id WHERE VR.id = @id AND VR.campaign_id = @campaign_id"
+        `SELECT VR.*, SI.full_name, SI.address, SI.class_name, SI.student_code, SI.gender, SI.date_of_birth 
+        FROM Vaccination_Result VR JOIN Student_Information SI ON VR.student_id = SI.student_id 
+        WHERE VR.student_id = @student_id AND VR.campaign_id = @campaign_id`
       );
     res.status(200).json({
       status: "success",

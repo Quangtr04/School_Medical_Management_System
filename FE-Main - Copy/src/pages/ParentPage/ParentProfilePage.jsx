@@ -43,6 +43,7 @@ import api from "../../configs/config-axios";
 import { format } from "date-fns";
 import moment from "moment";
 import axios from "axios";
+import HealthModal from "./components/HealthModal"; // chỉnh đường dẫn đúng
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -995,6 +996,9 @@ export default function ParentProfilePage() {
                         <Descriptions.Item label="Dị ứng">
                           {child.health?.allergy || "Không có"}
                         </Descriptions.Item>
+                        <Descriptions.Item label="Trạng thái sức khỏe">
+                          {child.health?.health_status || "Chưa cập nhật"}
+                        </Descriptions.Item>
                       </Descriptions>
                     </Col>
                   </Row>
@@ -1027,52 +1031,11 @@ export default function ParentProfilePage() {
       </Modal>
 
       {/* Child Details Modal */}
-      <Modal
-        visible={detailVisible}
-        title="Chi tiết học sinh"
-        footer={null}
-        onCancel={() => setDetailVisible(false)}
-      >
-        {selectedChild ? (
-          <Descriptions column={1} bordered size="small">
-            <Descriptions.Item label="Họ và tên">
-              {selectedChild.full_name}
-            </Descriptions.Item>
-            <Descriptions.Item label="Ngày sinh">
-              {selectedChild.date_of_birth
-                ? format(new Date(selectedChild.date_of_birth), "dd/MM/yyyy")
-                : "Chưa cập nhật"}
-            </Descriptions.Item>
-            <Descriptions.Item label="Giới tính">
-              {selectedChild.gender || "Chưa cập nhật"}
-            </Descriptions.Item>
-            <Descriptions.Item label="Lớp">
-              {selectedChild.class_name || "Chưa cập nhật"}
-            </Descriptions.Item>
-            <Descriptions.Item label="Khối">
-              {selectedChild.grade || "Chưa cập nhật"}
-            </Descriptions.Item>
-            <Descriptions.Item label="Nhóm máu">
-              {selectedChild.health?.blood_type || "Chưa cập nhật"}
-            </Descriptions.Item>
-            <Descriptions.Item label="Chiều cao">
-              {selectedChild.health?.height_cm
-                ? `${selectedChild.health.height_cm} cm`
-                : "Chưa cập nhật"}
-            </Descriptions.Item>
-            <Descriptions.Item label="Cân nặng">
-              {selectedChild.health?.weight_kg
-                ? `${selectedChild.health.weight_kg} kg`
-                : "Chưa cập nhật"}
-            </Descriptions.Item>
-            <Descriptions.Item label="Dị ứng">
-              {selectedChild.health?.allergy || "Không có"}
-            </Descriptions.Item>
-          </Descriptions>
-        ) : (
-          <Spin size="small" />
-        )}
-      </Modal>
+      <HealthModal
+        detailVisible={detailVisible}
+        setDetailVisible={setDetailVisible}
+        selectedChild={selectedChild}
+      />
     </div>
   );
 }
