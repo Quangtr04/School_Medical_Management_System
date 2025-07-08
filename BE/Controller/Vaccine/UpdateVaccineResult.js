@@ -69,6 +69,53 @@ const updateResultVaccine = async (req, res, next) => {
 
 const getStudentVaccineList = async (req, res, next) => {
   try {
+    const parent_id = req.user?.user_id;
+    const pool = await sqlServerPool;
+    const result = await pool
+      .request()
+      .input("id", sql.Int, campaign_id)
+      .input("parent_id", sql.Int, parent_id)
+      .query(
+        `SELECT VR.*, SI.full_name, SI.address, SI.class_name, SI.student_code, SI.gender, SI.date_of_birth 
+        FROM Vaccination_Result VR JOIN Student_Information SI ON VR.student_id = SI.student_id
+        WHERE SI.parent_id = @parent_id`
+      );
+    res.status(200).json({
+      status: "success",
+      data: result.recordset,
+    });
+  } catch (error) {
+    console.error("Error in getStudentVaccineList:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+const getStudentVaccineListByCampaignIdByParentId = async (req, res, next) => {
+  try {
+    const campaign_id = req.params.campaign_id;
+    const parent_id = req.user?.user_id;
+    const pool = await sqlServerPool;
+    const result = await pool
+      .request()
+      .input("id", sql.Int, campaign_id)
+      .input("parent_id", sql.Int, parent_id)
+      .query(
+        `SELECT VR.*, SI.full_name, SI.address, SI.class_name, SI.student_code, SI.gender, SI.date_of_birth 
+        FROM Vaccination_Result VR JOIN Student_Information SI ON VR.student_id = SI.student_id
+        WHERE VR.campaign_id = @id AND SI.parent_id = @parent_id`
+      );
+    res.status(200).json({
+      status: "success",
+      data: result.recordset,
+    });
+  } catch (error) {
+    console.error("Error in getStudentVaccineList:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+const getStudentVaccineListByCampaignId = async (req, res, next) => {
+  try {
     const campaign_id = req.params.campaign_id;
     const pool = await sqlServerPool;
     const result = await pool
@@ -114,4 +161,6 @@ module.exports = {
   updateResultVaccine,
   getStudentVaccineListById,
   getStudentVaccineList,
+  getStudentVaccineListByCampaignId,
+  getStudentVaccineListByCampaignIdByParentId,
 };

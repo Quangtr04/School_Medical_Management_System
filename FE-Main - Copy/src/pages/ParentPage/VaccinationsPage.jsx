@@ -191,7 +191,7 @@ const VaccinationsPage = () => {
 
   // View campaign details
   const handleViewCampaign = (campaign) => {
-    setSelectedCampaignId(campaign.id);
+    setSelectedCampaignId(campaign.form_id);
     setDetailModalVisible(true);
   };
 
@@ -213,31 +213,34 @@ const VaccinationsPage = () => {
     fetchData();
   };
 
+  // Tìm form_id theo selectedChild và selectedCampaignId
+  const currentForm = campaigns.find(
+    (item) =>
+      item.form_id === selectedCampaignId ||
+      item.campaign_id === selectedCampaignId
+  );
+
+  const formId = currentForm?.form_id || null;
+
   // Get status tag based on campaign/consent status
   const getStatusTag = (status) => {
     switch (status) {
-      case "APPROVED":
+      case "AGREED":
         return (
           <Tag color="success" icon={<CheckCircleOutlined />}>
-            Đã duyệt
+            Đã chấp thuận
           </Tag>
         );
       case "PENDING":
         return (
           <Tag color="processing" icon={<ClockCircleOutlined />}>
-            Đang chờ
+            Đang chờ phản hồi
           </Tag>
         );
       case "DECLINED":
         return (
           <Tag color="error" icon={<CloseCircleOutlined />}>
-            Từ chối
-          </Tag>
-        );
-      default:
-        return (
-          <Tag color="default" icon={<ExclamationCircleOutlined />}>
-            Không xác định
+            Đã từ chối
           </Tag>
         );
     }
@@ -252,26 +255,33 @@ const VaccinationsPage = () => {
       render: (text) => <Text strong>{text}</Text>,
     },
     {
+      title: "Mô tả chiến dịch",
+      dataIndex: "description",
+      key: "description",
+      render: (text) => <Text strong>{text}</Text>,
+    },
+    {
       title: "Ngày tiêm",
       dataIndex: "scheduled_date",
       key: "scheduled_date",
       render: (date) => moment(date).format("DD/MM/YYYY"),
     },
     {
-      title: "Địa điểm",
-      dataIndex: "location",
-      key: "location",
+      title: "Tên Học Sinh",
+      dataIndex: "full_name",
+      key: "full_name",
+      render: (text) => <Text strong>{text}</Text>,
+    },
+    {
+      title: "Lớp",
+      dataIndex: "class",
+      key: "class",
+      render: (text) => <Text strong>{text}</Text>,
     },
     {
       title: "Trạng thái",
-      dataIndex: "approval_status",
-      key: "approval_status",
-      render: (status) => getStatusTag(status),
-    },
-    {
-      title: "Phản hồi",
-      dataIndex: "consent_status",
-      key: "consent_status",
+      dataIndex: "status",
+      key: "status",
       render: (status) => getStatusTag(status),
     },
     {
@@ -521,6 +531,7 @@ const VaccinationsPage = () => {
 
           {/* Vaccination Detail Modal */}
           <VaccinationDetail
+            form_id={formId}
             campaignId={selectedCampaignId}
             visible={detailModalVisible}
             onClose={() => setDetailModalVisible(false)}

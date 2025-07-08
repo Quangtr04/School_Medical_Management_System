@@ -1,4 +1,3 @@
-const { resolve } = require("path");
 const sqlServerPool = require("../../Utils/connectMySql");
 const sql = require("mssql");
 const sendNotification = require("../../Utils/sendNotification");
@@ -7,8 +6,34 @@ const listPendingConsent = async (req, res, next) => {
   const user_id = req.user?.user_id;
   const pool = await sqlServerPool;
   const forms = await pool.request().input("parent_id", sql.Int, user_id).query(`
-      SELECT * FROM Checkup_Consent_Form
-      WHERE parent_id = @parent_id AND status = 'PENDING';
+      SELECT CF.*, MC.title, MC.description, MC.scheduled_date, SI.full_name FROM Checkup_Consent_Form CF 
+      JOIN Medical_Checkup_Schedule MC ON CF.checkup_id = MC.checkup_id
+      JOIN Student_Information SI ON CF.student_id = SI.student_id
+      WHERE CF.parent_id = @parent_id AND CF.status = 'PENDING';
+    `);
+  res.json({ forms: forms.recordset });
+};
+
+const listAgreeConsent = async (req, res, next) => {
+  const user_id = req.user?.user_id;
+  const pool = await sqlServerPool;
+  const forms = await pool.request().input("parent_id", sql.Int, user_id).query(`
+      SELECT CF.*, MC.title, MC.description, MC.scheduled_date, SI.full_name FROM Checkup_Consent_Form CF 
+      JOIN Medical_Checkup_Schedule MC ON CF.checkup_id = MC.checkup_id
+      JOIN Student_Information SI ON CF.student_id = SI.student_id
+      WHERE CF.parent_id = @parent_id AND CF.status = 'AGREED';
+    `);
+  res.json({ forms: forms.recordset });
+};
+
+const listDeclineConsent = async (req, res, next) => {
+  const user_id = req.user?.user_id;
+  const pool = await sqlServerPool;
+  const forms = await pool.request().input("parent_id", sql.Int, user_id).query(`
+      SELECT CF.*, MC.title, MC.description, MC.scheduled_date, SI.full_name FROM Checkup_Consent_Form CF 
+      JOIN Medical_Checkup_Schedule MC ON CF.checkup_id = MC.checkup_id
+      JOIN Student_Information SI ON CF.student_id = SI.student_id
+      WHERE CF.parent_id = @parent_id AND CF.status = 'DECLINED';
     `);
   res.json({ forms: forms.recordset });
 };
@@ -88,4 +113,6 @@ const respondConsent = async (req, res, next) => {
 module.exports = {
   listPendingConsent,
   respondConsent,
+  listAgreeConsent,
+  listDeclineConsent,
 };

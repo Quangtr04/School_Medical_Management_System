@@ -417,7 +417,8 @@ export const getVaccineCampaigns = createAsyncThunk("parent/getVaccineCampaigns"
   try {
     // Skip API call if student_id is undefined or null
     const response = await api.get("/parent/vaccine-campaigns");
-    return response.data?.data || response.data || [];
+    console.log(response.data.data);
+    return response.data?.data;
   } catch (error) {
     console.error("Error fetching vaccine campaigns:", error);
     // Return empty array instead of rejecting to prevent UI errors
@@ -427,20 +428,26 @@ export const getVaccineCampaigns = createAsyncThunk("parent/getVaccineCampaigns"
 
 export const getVaccineCampaignDetails = createAsyncThunk(
   "parent/getVaccineCampaignDetails",
-  async (id, { rejectWithValue }) => {
+  async ({ campaignId, accessToken }, { rejectWithValue }) => {
     try {
       // Don't make API call if id is undefined or null
-      if (!id) {
+      if (!campaignId) {
         console.log("Skipping getVaccineCampaignDetails - No ID provided");
         return null;
       }
 
-      console.log(`Fetching campaign details for ID ${id}...`);
-      const response = await api.get(`/parent/vaccine-campaign/${id}`);
+      const config = {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      };
+
+      console.log(`Fetching campaign details for ID ${campaignId}...`);
+      const response = await api.get(`/parent/vaccine-campaigns/${campaignId}`, config);
       console.log("Campaign details response:", response);
       return response.data?.data || response.data;
     } catch (error) {
-      console.error(`Error fetching campaign details for ID ${id}:`, error);
+      console.error(`Error fetching campaign details for ID ${campaignId}:`, error);
       // Return null instead of rejecting to prevent UI errors
       return null;
     }
@@ -498,20 +505,62 @@ export const getStudentVaccinations = createAsyncThunk(
   }
 );
 
-export const respondToVaccinationConsent = createAsyncThunk(
-  "parent/respondToVaccinationConsent",
-  async ({ notificationId, studentId, campaignId, consent }, { rejectWithValue }) => {
+export const resendToVaccinationConsent = createAsyncThunk(
+  "parent/resendToVaccinationConsent",
+  async ({ accessToken, note, form_id, status }, { rejectWithValue }) => {
     try {
       // Validate required parameters
-      if (!campaignId) {
-        return rejectWithValue("Campaign ID is required");
+      if (!form_id) {
+        return rejectWithValue("Form ID is required");
       }
 
-      const response = await api.post(`/parent/vaccine-campaigns/${campaignId}/respond`, {
-        notification_id: notificationId,
-        student_id: studentId,
-        consent: consent,
-      });
+      const config = {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      };
+      console.log(accessToken);
+
+      const response = await api.patch(
+        `/parent/vaccine-campaigns/${form_id}/status`,
+        {
+          note: note,
+          status: status,
+        },
+        config
+      );
+      return response;
+    } catch (error) {
+      console.error("Error responding to vaccination consent:", error);
+      return rejectWithValue(error.response?.data?.message || "Failed to submit vaccination consent");
+    }
+  }
+);
+
+export const respondToVaccinationConsent = createAsyncThunk(
+  "parent/respondToVaccinationConsent",
+  async ({ accessToken, note, form_id, status }, { rejectWithValue }) => {
+    try {
+      // Validate required parameters
+      if (!form_id) {
+        return rejectWithValue("Form ID is required");
+      }
+
+      const config = {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      };
+      console.log(accessToken);
+
+      const response = await api.post(
+        `/parent/vaccine-campaigns/${form_id}/respond`,
+        {
+          note: note,
+          status: status,
+        },
+        config
+      );
       return response.data;
     } catch (error) {
       console.error("Error responding to vaccination consent:", error);

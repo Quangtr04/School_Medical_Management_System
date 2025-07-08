@@ -41,8 +41,10 @@ const getCheckupListByIdAndParentId = async (req, res, next) => {
     const pool = await sqlServerPool;
     // Lấy danh sách lịch khám sức khỏe theo id và parentId
     const checkupList = await pool.request().input("id", sql.Int, id).input("parentId", sql.Int, parentId)
-      .query(`SELECT MS.*, U.fullname FROM Medical_Checkup_Schedule MS JOIN Users U ON MS.created_by = U.user_id 
-              WHERE MS.checkup_id = @id AND MS.parent_id = @parentId`);
+      .query(`SELECT CF.*, MC.title, MC.description, MC.scheduled_date, SI.full_name FROM Checkup_Consent_Form CF 
+              JOIN Medical_Checkup_Schedule MC ON CF.checkup_id = MC.checkup_id
+              JOIN Student_Information SI ON CF.student_id = SI.student_id 
+              WHERE CF.checkup_id = 1 AND CF.parent_id = 4`);
     if (checkupList.recordset.length === 0) {
       return res.status(404).json({ message: "Checkup not found for this parent" });
     }
@@ -59,8 +61,10 @@ const getCheckupListByParentId = async (req, res, next) => {
     const pool = await sqlServerPool;
     // Lấy danh sách lịch khám sức khỏe theo parentId
     const checkupList = await pool.request().input("parentId", sql.Int, parentId)
-      .query(`SELECT MS.*, U.fullname FROM Medical_Checkup_Schedule MS JOIN Users U ON MS.created_by = U.user_id 
-              WHERE MS.parent_id = @parentId`);
+      .query(`SELECT CF.*, MC.title, MC.description, MC.scheduled_date, SI.full_name FROM Checkup_Consent_Form CF 
+              JOIN Medical_Checkup_Schedule MC ON CF.checkup_id = MC.checkup_id
+              JOIN Student_Information SI ON CF.student_id = SI.student_id 
+              WHERE CF.parent_id = @parentId`);
     if (checkupList.recordset.length === 0) {
       return res.status(404).json({ message: "No checkups found for this parent" });
     }

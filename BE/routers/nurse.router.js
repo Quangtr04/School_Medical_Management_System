@@ -44,6 +44,7 @@ const {
   getStudentVaccineList,
   getStudentVaccineListById,
   updateResultVaccine,
+  getStudentVaccineListByCampaignId,
 } = require("../Controller/Vaccine/UpdateVaccineResult");
 const { getAllStudentInfo, getStudentInfoById } = require("../Controller/Infomation/getInformation");
 const { updateHealthDeclarationByStudentId } = require("../Controller/Health/healthDeclaration");
@@ -147,8 +148,8 @@ nurseRouter.get("/vaccine-campaigns-approved", getVaccinationCampaignApprove);
 // Tạo lịch tiêm chủng
 nurseRouter.post("/vaccine-campaigns/create", authenticateToken, createVaccinationCampaign);
 
-// Lấy danh sách học sinh đã duyệt
-nurseRouter.get("/vaccine-campaigns-list-student/:campaign_id", getStudentVaccineList);
+// Lấy danh sách học sinh đã duyệt theo id campaign
+nurseRouter.get("/vaccine-campaigns-list-student/:campaign_id", getStudentVaccineListByCampaignId);
 
 // Lấy thông tin chi tiết học sinh được duyệt
 nurseRouter.get("/vaccine-campaigns-students/:campaign_id/students/:vaccine_id", getStudentVaccineListById);

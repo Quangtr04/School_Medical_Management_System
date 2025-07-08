@@ -92,7 +92,7 @@ const UpdateResponseByParent = async (req, res, next) => {
   try {
     const parent_id = req.user?.user_id;
     const { form_id } = req.params;
-    const { status } = req.body;
+    const { status, note } = req.body;
 
     if (!["AGREED", "DECLINED"].includes(status)) {
       return res.status(400).json({ message: "Invalid status value. Must be 'AGREED' or 'DECLINED'." });
@@ -121,9 +121,11 @@ const UpdateResponseByParent = async (req, res, next) => {
       .request()
       .input("status", sql.VarChar, status)
       .input("form_id", sql.Int, form_id)
-      .input("parent_id", sql.Int, parent_id).query(`
+      .input("parent_id", sql.Int, parent_id)
+      .input("submit_at", sql.DateTime, new Date())
+      .input("note", sql.NVarChar, note || "").query(`
         UPDATE Vaccination_Consent_Form
-        SET status = @status
+        SET status = @status, submitted_at = @submit_at, note = @note
         WHERE form_id = @form_id AND parent_id = @parent_id
       `);
 

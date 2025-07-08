@@ -30,13 +30,20 @@ import {
 import moment from "moment";
 import {
   getVaccineCampaignDetails,
+  resendToVaccinationConsent,
   respondToVaccinationConsent,
 } from "../../../redux/parent/parentSlice";
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
-const VaccinationDetail = ({ campaignId, visible, onClose, onSuccess }) => {
+const VaccinationDetail = ({
+  form_id,
+  campaignId,
+  visible,
+  onClose,
+  onSuccess,
+}) => {
   const dispatch = useDispatch();
   const { selectedChild } = useSelector((state) => state.parent);
   const [loading, setLoading] = useState(false);
@@ -44,6 +51,10 @@ const VaccinationDetail = ({ campaignId, visible, onClose, onSuccess }) => {
   const [consentForm] = Form.useForm();
   const [respondingConsent, setRespondingConsent] = useState(false);
   const [consentModalVisible, setConsentModalVisible] = useState(false);
+  const [resendModalVisible, setResendModalVisible] = useState(false);
+  const [resendForm] = Form.useForm();
+
+  const token = localStorage.getItem("accessToken");
 
   // Fetch campaign details when modal becomes visible
   useEffect(() => {
@@ -56,7 +67,7 @@ const VaccinationDetail = ({ campaignId, visible, onClose, onSuccess }) => {
     try {
       setLoading(true);
       const response = await dispatch(
-        getVaccineCampaignDetails(campaignId)
+        getVaccineCampaignDetails({ campaignId, token })
       ).unwrap();
       setCampaignDetail(response);
       setLoading(false);
@@ -64,6 +75,35 @@ const VaccinationDetail = ({ campaignId, visible, onClose, onSuccess }) => {
       console.error("Error fetching campaign details:", error);
       message.error("Không thể tải thông tin chi tiết chiến dịch tiêm chủng");
       setLoading(false);
+    }
+  };
+
+  const handleResendSubmit = async (values) => {
+    if (!selectedChild || !campaignId) {
+      message.error("Thiếu thông tin học sinh hoặc chiến dịch");
+      return;
+    }
+
+    try {
+      setRespondingConsent(true);
+      await dispatch(
+        resendToVaccinationConsent({
+          accessToken: token,
+          form_id: form_id,
+          status: values.status === "AGREED" ? "AGREED" : "DECLINED",
+          note: values.notes || "",
+        })
+      ).unwrap();
+
+      message.success("Đã gửi phản hồi thành công");
+      setConsentModalVisible(false);
+      fetchCampaignDetails(); // Refresh campaign details
+      if (onSuccess) onSuccess();
+    } catch (error) {
+      console.error("Error responding to consent:", error);
+      message.error("Không thể gửi phản hồi. Vui lòng thử lại sau.");
+    } finally {
+      setRespondingConsent(false);
     }
   };
 
@@ -75,13 +115,15 @@ const VaccinationDetail = ({ campaignId, visible, onClose, onSuccess }) => {
     }
 
     try {
+      console.log(values);
+
       setRespondingConsent(true);
       await dispatch(
         respondToVaccinationConsent({
-          studentId: selectedChild.id,
-          campaignId: campaignId,
-          consent: values.consent === "approve",
-          notes: values.notes || "",
+          accessToken: token,
+          form_id: form_id,
+          status: values.status === "AGREED" ? "AGREED" : "DECLINED",
+          note: values.notes || "",
         })
       ).unwrap();
 
@@ -103,10 +145,15 @@ const VaccinationDetail = ({ campaignId, visible, onClose, onSuccess }) => {
     setConsentModalVisible(true);
   };
 
+  const showResendForm = () => {
+    consentForm.resetFields();
+    setResendModalVisible(true);
+  };
+
   // Get status color
   const getStatusColor = (status) => {
     switch (status) {
-      case "APPROVED":
+      case "AGREED":
         return "success";
       case "PENDING":
         return "processing";
@@ -120,7 +167,7 @@ const VaccinationDetail = ({ campaignId, visible, onClose, onSuccess }) => {
   // Get status text
   const getStatusText = (status) => {
     switch (status) {
-      case "APPROVED":
+      case "AGREED":
         return "Đã duyệt";
       case "PENDING":
         return "Đang chờ";
@@ -143,9 +190,15 @@ const VaccinationDetail = ({ campaignId, visible, onClose, onSuccess }) => {
         open={visible}
         onCancel={onClose}
         footer={[
-          campaignDetail?.consent_status === "PENDING" && (
+          campaignDetail?.status === "PENDING" && (
             <Button key="respond" type="primary" onClick={showConsentForm}>
               Phản hồi đồng ý/từ chối
+            </Button>
+          ),
+          (campaignDetail?.status === "DECLINED" ||
+            campaignDetail?.status === "AGREED") && (
+            <Button key="resend" type="dashed" onClick={showResendForm}>
+              Gửi lại yêu cầu
             </Button>
           ),
           <Button key="close" onClick={onClose}>
@@ -160,14 +213,24 @@ const VaccinationDetail = ({ campaignId, visible, onClose, onSuccess }) => {
           </div>
         ) : campaignDetail ? (
           <div className="campaign-detail">
-            <Card className="mb-4">
-              <Title level={4}>
+            <Card className="mb-4" style={{ textAlign: "center" }}>
+              <Title level={4} style={{ textAlign: "center" }}>
                 {campaignDetail.title || "Chiến dịch tiêm chủng"}
               </Title>
-              <Row gutter={[16, 16]}>
-                <Col span={12}>
-                  <div className="detail-item">
-                    <CalendarOutlined className="detail-icon" />
+              <Row gutter={[16, 16]} justify="center">
+                <Col>
+                  <div
+                    className="detail-item"
+                    style={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
+                    <CalendarOutlined
+                      className="detail-icon"
+                      style={{ marginRight: 8 }}
+                    />
                     <Text>
                       Ngày tiêm:{" "}
                       <Text strong>
@@ -180,23 +243,17 @@ const VaccinationDetail = ({ campaignId, visible, onClose, onSuccess }) => {
                     </Text>
                   </div>
                 </Col>
-                <Col span={12}>
-                  <div className="detail-item">
-                    <EnvironmentOutlined className="detail-icon" />
-                    <Text>
-                      Địa điểm:{" "}
-                      <Text strong>
-                        {campaignDetail.location || "Chưa xác định"}
-                      </Text>
-                    </Text>
-                  </div>
-                </Col>
               </Row>
             </Card>
-
             <Descriptions bordered column={1} className="mb-4">
-              <Descriptions.Item label="Loại vaccine">
-                {campaignDetail.vaccine_type || "Không có thông tin"}
+              <Descriptions.Item label="Tên học sinh">
+                {campaignDetail.full_name || "Không có thông tin"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Lớp">
+                {campaignDetail.class || "Không có thông tin"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Mô tả tiêm chủng">
+                {campaignDetail.description || "Không có thông tin"}
               </Descriptions.Item>
               <Descriptions.Item label="Nhà tài trợ">
                 <div className="detail-item">
@@ -205,22 +262,14 @@ const VaccinationDetail = ({ campaignId, visible, onClose, onSuccess }) => {
                 </div>
               </Descriptions.Item>
               <Descriptions.Item label="Trạng thái">
-                <Tag color={getStatusColor(campaignDetail.approval_status)}>
-                  {getStatusText(campaignDetail.approval_status)}
+                <Tag color={getStatusColor(campaignDetail.status)}>
+                  {getStatusText(campaignDetail.status)}
                 </Tag>
               </Descriptions.Item>
               <Descriptions.Item label="Trạng thái phản hồi">
-                <Tag color={getStatusColor(campaignDetail.consent_status)}>
-                  {getStatusText(campaignDetail.consent_status)}
+                <Tag color={getStatusColor(campaignDetail.status)}>
+                  {getStatusText(campaignDetail.status)}
                 </Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="Mô tả">
-                <div className="detail-item">
-                  <FileTextOutlined className="detail-icon" />
-                  <Paragraph>
-                    {campaignDetail.description || "Không có mô tả"}
-                  </Paragraph>
-                </div>
               </Descriptions.Item>
             </Descriptions>
           </div>
@@ -242,23 +291,23 @@ const VaccinationDetail = ({ campaignId, visible, onClose, onSuccess }) => {
           onFinish={handleConsentSubmit}
         >
           <Form.Item
-            name="consent"
+            name="status"
             label="Quyết định của bạn"
             rules={[{ required: true, message: "Vui lòng chọn quyết định" }]}
           >
             <Radio.Group>
-              <Radio value="approve">
+              <Radio value="AGREED">
                 <CheckCircleOutlined style={{ color: "#52c41a" }} /> Đồng ý cho
                 con tham gia tiêm chủng
               </Radio>
-              <Radio value="decline">
+              <Radio value="DECLINED">
                 <CloseCircleOutlined style={{ color: "#f5222d" }} /> Không đồng
                 ý cho con tham gia tiêm chủng
               </Radio>
             </Radio.Group>
           </Form.Item>
 
-          <Form.Item name="notes" label="Ghi chú (nếu có)">
+          <Form.Item name="note" label="Ghi chú (nếu có)">
             <TextArea rows={4} placeholder="Nhập ghi chú hoặc lý do (nếu có)" />
           </Form.Item>
 
@@ -267,6 +316,55 @@ const VaccinationDetail = ({ campaignId, visible, onClose, onSuccess }) => {
               <Button
                 style={{ marginRight: 8 }}
                 onClick={() => setConsentModalVisible(false)}
+              >
+                Hủy
+              </Button>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={respondingConsent}
+              >
+                Gửi phản hồi
+              </Button>
+            </div>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Resend Form Modal */}
+      <Modal
+        title="Phản hồi đồng ý tiêm chủng"
+        open={resendModalVisible}
+        onCancel={() => setResendModalVisible(false)}
+        footer={null}
+      >
+        <Form form={resendForm} layout="vertical" onFinish={handleResendSubmit}>
+          <Form.Item
+            name="status"
+            label="Quyết định của bạn"
+            rules={[{ required: true, message: "Vui lòng chọn quyết định" }]}
+          >
+            <Radio.Group>
+              <Radio value="AGREED">
+                <CheckCircleOutlined style={{ color: "#52c41a" }} /> Đồng ý cho
+                con tham gia tiêm chủng
+              </Radio>
+              <Radio value="DECLINED">
+                <CloseCircleOutlined style={{ color: "#f5222d" }} /> Không đồng
+                ý cho con tham gia tiêm chủng
+              </Radio>
+            </Radio.Group>
+          </Form.Item>
+
+          <Form.Item name="note" label="Ghi chú (nếu có)">
+            <TextArea rows={4} placeholder="Nhập ghi chú hoặc lý do (nếu có)" />
+          </Form.Item>
+
+          <Form.Item>
+            <div style={{ textAlign: "right" }}>
+              <Button
+                style={{ marginRight: 8 }}
+                onClick={() => setResendModalVisible(false)}
               >
                 Hủy
               </Button>

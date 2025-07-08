@@ -8,13 +8,14 @@ const Schemas = require("../Schemas/Schemas");
 const { getAllStudentByParentId, getStudentInfoById } = require("../Controller/Infomation/getInformation");
 
 // Khám sức khỏe / Đồng ý khám sức khỏe
-const { listPendingConsent, respondConsent } = require("../Controller/CheckUp/consentController");
-const { UpdateStatusCheckupParent } = require("../Controller/CheckUp/UpdateStatusCheckup");
 const {
-  getCheckupListApproved,
-  getCheckupListByIdAndParentId,
-  getCheckupListByParentId,
-} = require("../Controller/CheckUp/getCheckup");
+  listPendingConsent,
+  respondConsent,
+  listAgreeConsent,
+  listDeclineConsent,
+} = require("../Controller/CheckUp/consentController");
+const { UpdateStatusCheckupParent } = require("../Controller/CheckUp/UpdateStatusCheckup");
+const { getCheckupListByIdAndParentId, getCheckupListByParentId } = require("../Controller/CheckUp/getCheckup");
 
 // Khai báo y tế
 const {
@@ -46,8 +47,16 @@ const {
 const { UpdateResponseByParent } = require("../Controller/Vaccine/UpdateResponseVaccine");
 const { getProfileByUserId } = require("../Controller/Infomation/getUser");
 const { parentUpdateUserById } = require("../Controller/Login/account_status");
-const { getStudentVaccineList, getStudentVaccineListById } = require("../Controller/Vaccine/UpdateVaccineResult");
-const { getCheckupParticipation, getCheckupParticipationById } = require("../Controller/CheckUp/saveCheckupResult");
+const {
+  getStudentVaccineList,
+  getStudentVaccineListById,
+  getStudentVaccineListByCampaignIdByParentId,
+} = require("../Controller/Vaccine/UpdateVaccineResult");
+const {
+  getCheckupParticipation,
+  getCheckupParticipationById,
+  getAllCheckupParticipation,
+} = require("../Controller/CheckUp/saveCheckupResult");
 
 const parentRouter = express.Router();
 
@@ -72,17 +81,25 @@ parentRouter.get("/students/:student_id", authenticateToken, getStudentInfoById)
 
 /** * 📋 Danh sách phiếu đồng ý khám sức khỏe đã duyệt (hoặc danh sách phiếu khám sức khỏe đã duyệt)
  */
-parentRouter.get("/checkups/approved", authenticateToken, getCheckupListByParentId); // Đổi từ /consents checkups/approved để thống nhất
-parentRouter.get("/consents-checkups/approved", authenticateToken, getCheckupListApproved); // Giữ lại nếu cần cả hai, nếu không thì bỏ cái trùng lặp
-
+parentRouter.get("/consents-checkups", authenticateToken, getCheckupListByParentId); // đã sửa
 /** * 📋 Chi tiết phiếu khám sức khỏe
  */
-parentRouter.get("/consents-checkups/:id", authenticateToken, getCheckupListByIdAndParentId);
+parentRouter.get("/consents-checkups/:id", authenticateToken, getCheckupListByIdAndParentId); //đã sửa
 
 /**
  * 📋 Danh sách phiếu đồng ý khám sức khỏe chưa phản hồi
  */
-parentRouter.get("/consents-checkups/pending", authenticateToken, listPendingConsent); //done
+parentRouter.get("/consents-checkups/pending", authenticateToken, listPendingConsent); //đã sửa
+
+/**
+ * 📋 Danh sách phiếu đồng ý khám sức khỏe đã chấp thuận
+ */
+parentRouter.get("/consents-checkups/agree", authenticateToken, listAgreeConsent); //đã sửa
+
+/**
+ * 📋 Danh sách phiếu đồng ý khám sức khỏe đã từ chối
+ */
+parentRouter.get("/consents-checkups/declined", authenticateToken, listDeclineConsent); //đã sửa
 
 /**
  * ✅ Phản hồi phiếu đồng ý khám sức khỏe (AGREED / DECLINED)
@@ -94,9 +111,11 @@ parentRouter.post("/consents-checkups/:form_id/respond", authenticateToken, resp
  */
 parentRouter.patch("/checkups/:checkup_id/consent", authenticateToken, UpdateStatusCheckupParent); //done
 
-parentRouter.get("/consents-checkups/:id/students", getCheckupParticipation);
+parentRouter.get("/consents-checkups/students", authenticateToken, getAllCheckupParticipation); // đã sửa
 
-parentRouter.get("/consents-checkups/:id/students/:student_id", getCheckupParticipationById);
+parentRouter.get("/consents-checkups/:id/students", authenticateToken, getCheckupParticipation);
+
+parentRouter.get("/consents-checkups/:id/students/:student_id", authenticateToken, getCheckupParticipationById); //đã sửa
 
 // --- Nhóm các API liên quan đến Khai báo y tế (Health Declarations) ---
 /**
@@ -133,10 +152,10 @@ parentRouter.post(
 );
 
 // Lấy danh sách đơn yêu cầu gửi thuốc
-parentRouter.get("/medical-submissions", authenticateToken, getAllMedicationSubmissionReqByParentId)
+parentRouter.get("/medical-submissions", authenticateToken, getAllMedicationSubmissionReqByParentId);
 
 // Xem chi tiết đơn yêu cầu gửi thuốc
-parentRouter.get("/medical-submissions/:id_req", authenticateToken, getAllMedicationSubmissionReqByParentIdAndId)
+parentRouter.get("/medical-submissions/:id_req", authenticateToken, getAllMedicationSubmissionReqByParentIdAndId);
 
 // Xóa đơn đã gửi
 parentRouter.delete("/medical-submissions/:id_req", authenticateToken, cancelMedicationSubmissionReq); // đang sai
@@ -163,7 +182,10 @@ parentRouter.post("/vaccine-campaigns/:id/respond", authenticateToken, getRespon
 parentRouter.patch("/vaccine-campaigns/:form_id/status", authenticateToken, UpdateResponseByParent);
 
 // Lấy danh sách con có tham gia tiêm chủng
-parentRouter.get("/vaccine-campaigns/:campaign_id/students", getStudentVaccineList);
+parentRouter.get("/vaccine-campaigns/students", getStudentVaccineList);
+
+// Lấy danh sách con có tham gia tiêm chủng dựa trên campaign id
+parentRouter.get("/vaccine-campaigns/students", getStudentVaccineListByCampaignIdByParentId);
 
 // Lấy danh sách con có tham gia tiêm chủng theo id
 parentRouter.get("/vaccine-campaigns/:campaing_id/students/:vaccine_id", getStudentVaccineListById);
