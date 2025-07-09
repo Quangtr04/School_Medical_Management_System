@@ -483,33 +483,6 @@ export const getStudentVaccinations = createAsyncThunk(
       if (!studentId) {
         console.log("Skipping getStudentVaccinations - No student ID provided");
         return { studentId: null, vaccinations: [] };
-<<<<<<< HEAD
-      }
-
-      console.log(`Fetching vaccinations for student ${studentId}...`);
-      const response = await api.get(`/parent/vaccine-campaign/${studentId}`);
-      console.log("Student vaccinations response:", response);
-      return {
-        studentId,
-        vaccinations: response.data?.data || response.data || [],
-      };
-    } catch (error) {
-      console.error(`Error fetching vaccinations for student ${studentId}:`, error);
-      // Return empty results instead of rejecting to prevent UI errors
-      return { studentId, vaccinations: [] };
-    }
-  }
-);
-
-export const resendToVaccinationConsent = createAsyncThunk(
-  "parent/resendToVaccinationConsent",
-  async ({ accessToken, note, form_id, status }, { rejectWithValue }) => {
-    try {
-      // Validate required parameters
-      if (!form_id) {
-        return rejectWithValue("Form ID is required");
-=======
->>>>>>> b0afb3a (update)
       }
 
       console.log(`Fetching vaccinations for student ${studentId}...`);

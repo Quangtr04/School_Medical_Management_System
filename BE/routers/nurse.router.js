@@ -56,6 +56,7 @@ const {
   getMedicationSubmissionReqByID,
   updateMedicationSubmissionReqByNurse,
 } = require("../Controller/Medical/medicalSubmissionReq");
+const { updateStatusMedicationDailyLog } = require("../Controller/Medical/medicationDailyLog");
 
 const nurseRouter = express.Router();
 
@@ -182,6 +183,13 @@ nurseRouter.get("/medication-submissions/:ReqId", getMedicationSubmissionReqByID
 
 // Cập nhật trạng thái đơn thuốc được gửi
 nurseRouter.patch("/medication-submissions/:ReqId/update", authenticateToken, updateMedicationSubmissionReqByNurse);
+
+// Cập nhật trạng thái đơn thuốc mỗi ngày
+nurseRouter.patch(
+  "/medication-daily-logs-submissions/:ReqId/update",
+  authenticateToken,
+  updateStatusMedicationDailyLog
+);
 
 //lấy thông báo
 nurseRouter.get("/notifications", authenticateToken, getNotifications);

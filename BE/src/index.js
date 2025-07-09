@@ -9,6 +9,7 @@ const managerRouter = require("../routers/manager.router");
 const { swaggerUi, swaggerSpec } = require("../Utils/swaggerOptions");
 const app = express();
 const port = 3000;
+const path = require("path");
 // const cron = require("node-cron");
 // const checkUnupdatedMedicationLogs = require("./services/checkUnupdatedMedicationLogs");
 
@@ -26,6 +27,8 @@ const corsOptions = {
   optionsSuccessStatus: 204,
   credentials: false,
 };
+
+app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
 app.use(cors(corsOptions));
 

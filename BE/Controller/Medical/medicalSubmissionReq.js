@@ -220,6 +220,17 @@ const updateMedicationSubmissionReqByNurse = async (req, res, next) => {
   const { status } = req.body; // Lấy trạng thái mới từ body
   const pool = await sqlServerPool;
 
+  // Hàm chuẩn hóa ngày về 00:00:00 để tránh sai lệch
+  function normalizeDate(date) {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  }
+
+  // Hàm kiểm tra có phải thứ 7 hoặc Chủ nhật không
+  function isWeekend(date) {
+    const day = date.getDay(); // 0 = CN, 6 = T7
+    return day === 0 || day === 6;
+  }
+
   try {
     // Cập nhật trạng thái cho bản ghi
     const result = await pool
@@ -228,43 +239,36 @@ const updateMedicationSubmissionReqByNurse = async (req, res, next) => {
       .input("nurse_id", sql.Int, nurseId)
       .input("status", sql.NVarChar, status).query(`
         UPDATE Medication_Submisstion_Request
-        SET status = @status AND nurse_id = @nurse_id
-        WHERE id_req = @id_req 
+        SET status = @status, nurse_id = @nurse_id
+        WHERE id_req = @id_req
       `);
 
     if (result.rowsAffected[0] > 0) {
+      // Lấy parent_id
       const parentResult = await pool
         .request()
         .input("id_req", sql.Int, ReqId)
         .query("SELECT parent_id FROM Medication_Submisstion_Request WHERE id_req = @id_req");
 
       const parentId = parentResult.recordset[0]?.parent_id;
-      if (status === "APPROVED") {
-        // Lấy dữ liệu yêu cầu ban đầu
+
+      if (status === "ACCEPTED") {
+        // Lấy dữ liệu yêu cầu
         const medicationReqResult = await pool
           .request()
           .input("id_req", sql.Int, ReqId)
           .query(`SELECT * FROM Medication_Submisstion_Request WHERE id_req = @id_req`);
 
         const reqData = medicationReqResult.recordset[0];
-        if (!reqData) {
-          throw new Error("Yêu cầu không tồn tại");
-        }
+        if (!reqData) throw new Error("Yêu cầu không tồn tại");
 
-        // Lấy start và end date
-        const startDate = new Date(reqData.start_date);
-        const endDate = new Date(reqData.end_date);
-
-        // Hàm kiểm tra có phải thứ 7 hoặc CN không
-        function isWeekend(date) {
-          const day = date.getDay(); // 0 = Chủ nhật, 6 = Thứ 7
-          return day === 0 || day === 6;
-        }
+        // Chuẩn hóa ngày bắt đầu và kết thúc
+        const startDate = normalizeDate(new Date(reqData.start_date));
+        const endDate = normalizeDate(new Date(reqData.end_date));
 
         const insertPromises = [];
         let current = new Date(startDate);
 
-        // Lặp qua từng ngày
         while (current <= endDate) {
           if (!isWeekend(current)) {
             insertPromises.push(
@@ -272,31 +276,33 @@ const updateMedicationSubmissionReqByNurse = async (req, res, next) => {
                 .request()
                 .input("id_req", sql.Int, ReqId)
                 .input("nurse_id", sql.Int, reqData.nurse_id)
-                .input("date", sql.DateTime, current)
+                .input("date", sql.DateTime, new Date(current)) // Clone ngày hiện tại
                 .input("note", sql.NVarChar, reqData.note)
                 .input("updated_at", sql.DateTime, new Date())
-                .input("image_url", sql.NVarChar, reqData.image_url || null)
-                .query(
-                  `INSERT INTO Medication_Daily_Log 
+                .input("image_url", sql.NVarChar, reqData.image_url || null).query(`
+                  INSERT INTO Medication_Daily_Log 
                   (id_req, nurse_id, date, status, note, updated_at, image_url) 
-                  VALUES (@id_req, @nurse_id, @date, 'PENDING', @note, @updated_at, @image_url)`
-                )
+                  VALUES (@id_req, @nurse_id, @date, 'PENDING', @note, @updated_at, @image_url)
+                `)
             );
           }
-          // Tăng ngày lên 1
-          current.setDate(current.getDate() + 1);
+          current.setDate(current.getDate() + 1); // Tăng ngày
         }
+
+        await Promise.all(insertPromises);
+
         await sendNotification(
           pool,
           parentId,
           "Cập nhật trạng thái yêu cầu thuốc",
           `Trạng thái yêu cầu uống thuốc đã được cập nhật thành`
         );
-      } else if (status === "REJECTED") {
+      } else if (status === "DECLINED") {
         await pool
           .request()
           .input("id_req", sql.Int, ReqId)
           .query(`DELETE FROM Medication_Daily_Log WHERE id_req = @id_req`);
+
         await sendNotification(
           pool,
           parentId,
@@ -310,7 +316,6 @@ const updateMedicationSubmissionReqByNurse = async (req, res, next) => {
         message: "medicationSubmissionReq updated successfully",
       });
     } else {
-      // Không có bản ghi nào được cập nhật
       return res.status(400).json({
         status: "fail",
         message: "Failed to update medicationSubmissionReq",
@@ -318,7 +323,6 @@ const updateMedicationSubmissionReqByNurse = async (req, res, next) => {
     }
   } catch (error) {
     console.error("Error updating medicationSubmissionReq:", error);
-    // Lỗi server khi cập nhật
     res.status(500).json({
       status: "error",
       message: "Server error while updating medicationSubmissionReq",
