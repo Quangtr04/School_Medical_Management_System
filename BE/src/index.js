@@ -17,8 +17,8 @@ require("dotenv").config();
 const corsOptions = {
   origin: [
     "http://localhost:5173",
-    "http://192.168.1.151:5173",
-    "http://192.168.1.85:5173",
+    "http://192.168.1.102:5173",
+    "http://192.168.1.4:5173",
     "http://172.20.10.4:5173",
     "http://172.20.10.2:5173",
   ],

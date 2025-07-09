@@ -92,7 +92,9 @@ const checkUnupdatedMedicationLogs = async () => {
       const message =
         `Kính gửi phụ huynh ${log.parent_name},\n\n` +
         `Y tá hiện chưa cập nhật trạng thái và ảnh xác nhận cho học sinh vào ngày ${log.date}.\n` +
-        `Vui lòng kiểm tra hoặc liên hệ với y tá nếu cần thiết.\n\nTrân trọng,\nPIEDTEAM 👨‍⚕️`;
+        `Vui lòng kiểm tra hoặc liên hệ với y tá nếu cần thiết.\n
+        \nTrân trọng,
+        \nPIEDTEAM 👨‍⚕️`;
 
       // Gửi email cho phụ huynh
       await sendEmail(log.parent_email, subject, message);
@@ -106,8 +108,106 @@ const checkUnupdatedMedicationLogs = async () => {
   }
 };
 
+// Hàm lấy nhật ký uống thuốc theo ID yêu cầu và ID y tá
+const getLogsByRequestIdAndNurse = async (req, res) => {
+  const { id_req, nurse_id } = req.query;
+  const pool = await sqlServerPool;
+
+  try {
+    const result = await pool
+      .request()
+      .input("id_req", sql.Int, id_req)
+      .input("nurse_id", sql.Int, nurse_id).query(`
+        SELECT 
+          log.*,
+          stu.full_name,
+          stu.class_name,
+          u.fullname AS parent_name,
+          u.phone AS parent_phone,
+          u.email AS parent_email
+        FROM Medication_Daily_Log log
+        JOIN Medication_Submisstion_Request req ON log.id_req = req.id_req
+        JOIN Student_Information stu ON req.student_id = stu.student_id
+        JOIN Users u ON req.parent_id = u.user_id
+        WHERE log.id_req = @id_req AND req.nurse_id = @nurse_id
+        ORDER BY log.date ASC;
+      `);
+
+    res.status(200).json({ status: "success", data: result.recordset });
+  } catch (err) {
+    console.error("Error:", err);
+    res.status(500).json({ status: "error", message: "Internal Server Error" });
+  }
+};
+
+// Hàm lấy nhật ký uống thuốc theo ID nhật ký
+const getLogByLogId = async (req, res) => {
+  const { log_id } = req.params; // ví dụ: /api/logs/1l;
+
+  try {
+    const result = await pool.request().input("log_id", sql.Int, log_id).query(`
+        SELECT 
+          log.*,
+          stu.full_name,
+          stu.class_name,
+          u.fullname AS parent_name,
+          u.phone AS parent_phone,
+          u.email AS parent_email
+        FROM Medication_Daily_Log log
+        JOIN Medication_Submisstion_Request req ON log.id_req = req.id_req
+        JOIN Student_Information stu ON req.student_id = stu.student_id
+        JOIN Users u ON req.parent_id = u.user_id
+        WHERE log.log_id = @log_id;
+      `);
+
+    if (result.recordset.length > 0) {
+      res.status(200).json({ status: "success", data: result.recordset[0] });
+    } else {
+      res.status(404).json({ status: "fail", message: "Log not found" });
+    }
+  } catch (err) {
+    console.error("Error:", err);
+    res.status(500).json({ status: "error", message: "Internal Server Error" });
+  }
+};
+
+// Hàm lấy nhật ký uống thuốc theo ngày và ID y tá
+const getLogsByDateAndNurse = async (req, res) => {
+  const { date, nurse_id } = req.query;
+  const pool = await sqlServerPool;
+
+  try {
+    const result = await pool
+      .request()
+      .input("log_date", sql.Date, date)
+      .input("nurse_id", sql.Int, nurse_id).query(`
+        SELECT 
+          log.*,
+          stu.full_name,
+          stu.class_name,
+          u.fullname AS parent_name,
+          u.phone AS parent_phone,
+          u.email AS parent_email
+        FROM Medication_Daily_Log log
+        JOIN Medication_Submisstion_Request req ON log.id_req = req.id_req
+        JOIN Student_Information stu ON req.student_id = stu.student_id
+        JOIN Users u ON req.parent_id = u.user_id
+        WHERE CAST(log.date AS DATE) = @log_date AND log.nurse_id = @nurse_id
+        ORDER BY log.date ASC;
+      `);
+
+    res.status(200).json({ status: "success", data: result.recordset });
+  } catch (err) {
+    console.error("Error:", err);
+    res.status(500).json({ status: "error", message: "Internal Server Error" });
+  }
+};
+
 // Export các controller ra module
 module.exports = {
   updateStatusMedicationDailyLog,
   checkUnupdatedMedicationLogs,
+  getLogsByRequestIdAndNurse,
+  getLogByLogId,
+  getLogsByDateAndNurse,
 };
