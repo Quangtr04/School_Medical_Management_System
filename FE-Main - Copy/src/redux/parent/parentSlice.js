@@ -417,8 +417,9 @@ export const getVaccineCampaigns = createAsyncThunk("parent/getVaccineCampaigns"
   try {
     // Skip API call if student_id is undefined or null
     const response = await api.get("/parent/vaccine-campaigns");
-    console.log(response.data.data);
-    return response.data?.data;
+    console.log("Vaccine Campaigns:", response.data.data);
+
+    return response.data.data;
   } catch (error) {
     console.error("Error fetching vaccine campaigns:", error);
     // Return empty array instead of rejecting to prevent UI errors
@@ -428,26 +429,20 @@ export const getVaccineCampaigns = createAsyncThunk("parent/getVaccineCampaigns"
 
 export const getVaccineCampaignDetails = createAsyncThunk(
   "parent/getVaccineCampaignDetails",
-  async ({ campaignId, accessToken }, { rejectWithValue }) => {
+  async (id, { rejectWithValue }) => {
     try {
       // Don't make API call if id is undefined or null
-      if (!campaignId) {
+      if (!id) {
         console.log("Skipping getVaccineCampaignDetails - No ID provided");
         return null;
       }
 
-      const config = {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      };
-
-      console.log(`Fetching campaign details for ID ${campaignId}...`);
-      const response = await api.get(`/parent/vaccine-campaigns/${campaignId}`, config);
+      console.log(`Fetching campaign details for ID ${id}...`);
+      const response = await api.get(`/parent/vaccine-campaign/${id}`);
       console.log("Campaign details response:", response);
       return response.data?.data || response.data;
     } catch (error) {
-      console.error(`Error fetching campaign details for ID ${campaignId}:`, error);
+      console.error(`Error fetching campaign details for ID ${id}:`, error);
       // Return null instead of rejecting to prevent UI errors
       return null;
     }
@@ -458,8 +453,8 @@ export const getApprovedCampaigns = createAsyncThunk("parent/getApprovedCampaign
   try {
     console.log("Fetching approved campaigns...");
     const response = await api.get("/parent/vaccine-campaign-approved");
-    console.log("Approved campaigns response:", response);
-    return response.data?.data || response.data || [];
+    console.log("Approved campaigns response:", response.data.data);
+    return response.data.data;
   } catch (error) {
     console.error("Error fetching approved campaigns:", error);
     // Return empty array instead of rejecting to prevent UI errors
@@ -488,6 +483,7 @@ export const getStudentVaccinations = createAsyncThunk(
       if (!studentId) {
         console.log("Skipping getStudentVaccinations - No student ID provided");
         return { studentId: null, vaccinations: [] };
+<<<<<<< HEAD
       }
 
       console.log(`Fetching vaccinations for student ${studentId}...`);
@@ -512,55 +508,39 @@ export const resendToVaccinationConsent = createAsyncThunk(
       // Validate required parameters
       if (!form_id) {
         return rejectWithValue("Form ID is required");
+=======
+>>>>>>> b0afb3a (update)
       }
 
-      const config = {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+      console.log(`Fetching vaccinations for student ${studentId}...`);
+      const response = await api.get(`/parent/vaccine-campaign/${studentId}`);
+      console.log("Student vaccinations response:", response);
+      return {
+        studentId,
+        vaccinations: response.data?.data || response.data || [],
       };
-      console.log(accessToken);
-
-      const response = await api.patch(
-        `/parent/vaccine-campaigns/${form_id}/status`,
-        {
-          note: note,
-          status: status,
-        },
-        config
-      );
-      return response;
     } catch (error) {
-      console.error("Error responding to vaccination consent:", error);
-      return rejectWithValue(error.response?.data?.message || "Failed to submit vaccination consent");
+      console.error(`Error fetching vaccinations for student ${studentId}:`, error);
+      // Return empty results instead of rejecting to prevent UI errors
+      return { studentId, vaccinations: [] };
     }
   }
 );
 
 export const respondToVaccinationConsent = createAsyncThunk(
   "parent/respondToVaccinationConsent",
-  async ({ accessToken, note, form_id, status }, { rejectWithValue }) => {
+  async ({ notificationId, studentId, campaignId, consent }, { rejectWithValue }) => {
     try {
       // Validate required parameters
-      if (!form_id) {
-        return rejectWithValue("Form ID is required");
+      if (!campaignId) {
+        return rejectWithValue("Campaign ID is required");
       }
 
-      const config = {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      };
-      console.log(accessToken);
-
-      const response = await api.post(
-        `/parent/vaccine-campaigns/${form_id}/respond`,
-        {
-          note: note,
-          status: status,
-        },
-        config
-      );
+      const response = await api.post(`/parent/vaccine-campaigns/${campaignId}/respond`, {
+        notification_id: notificationId,
+        student_id: studentId,
+        consent: consent,
+      });
       return response.data;
     } catch (error) {
       console.error("Error responding to vaccination consent:", error);
