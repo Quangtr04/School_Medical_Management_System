@@ -78,12 +78,9 @@ const VaccinationsPage = () => {
   // Component state
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("1");
-  const [campaignModalVisible, setCampaignModalVisible] = useState(false);
-  const [consentModalVisible, setConsentModalVisible] = useState(false);
+
   const [resultModalVisible, setResultModalVisible] = useState(false);
-  const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [selectedResult, setSelectedResult] = useState(null);
-  const [consentForm] = Form.useForm();
   const [campaigns, setCampaigns] = useState([]);
   const [approvedCampaigns, setApprovedCampaigns] = useState([]);
   const [declinedCampaigns, setDeclinedCampaigns] = useState([]);
@@ -191,7 +188,7 @@ const VaccinationsPage = () => {
 
   // View campaign details
   const handleViewCampaign = (campaign) => {
-    setSelectedCampaignId(campaign.form_id);
+    setSelectedCampaignId(campaign.id);
     setDetailModalVisible(true);
   };
 
@@ -213,34 +210,31 @@ const VaccinationsPage = () => {
     fetchData();
   };
 
-  // Tìm form_id theo selectedChild và selectedCampaignId
-  const currentForm = campaigns.find(
-    (item) =>
-      item.form_id === selectedCampaignId ||
-      item.campaign_id === selectedCampaignId
-  );
-
-  const formId = currentForm?.form_id || null;
-
   // Get status tag based on campaign/consent status
   const getStatusTag = (status) => {
     switch (status) {
-      case "AGREED":
+      case "APPROVED":
         return (
           <Tag color="success" icon={<CheckCircleOutlined />}>
-            Đã chấp thuận
+            Đã duyệt
           </Tag>
         );
       case "PENDING":
         return (
           <Tag color="processing" icon={<ClockCircleOutlined />}>
-            Đang chờ phản hồi
+            Đang chờ
           </Tag>
         );
       case "DECLINED":
         return (
           <Tag color="error" icon={<CloseCircleOutlined />}>
-            Đã từ chối
+            Từ chối
+          </Tag>
+        );
+      default:
+        return (
+          <Tag color="default" icon={<ExclamationCircleOutlined />}>
+            Không xác định
           </Tag>
         );
     }
@@ -255,33 +249,21 @@ const VaccinationsPage = () => {
       render: (text) => <Text strong>{text}</Text>,
     },
     {
-      title: "Mô tả chiến dịch",
-      dataIndex: "description",
-      key: "description",
-      render: (text) => <Text strong>{text}</Text>,
-    },
-    {
       title: "Ngày tiêm",
       dataIndex: "scheduled_date",
       key: "scheduled_date",
       render: (date) => moment(date).format("DD/MM/YYYY"),
     },
     {
-      title: "Tên Học Sinh",
-      dataIndex: "full_name",
-      key: "full_name",
-      render: (text) => <Text strong>{text}</Text>,
-    },
-    {
-      title: "Lớp",
-      dataIndex: "class",
-      key: "class",
-      render: (text) => <Text strong>{text}</Text>,
-    },
-    {
       title: "Trạng thái",
-      dataIndex: "status",
-      key: "status",
+      dataIndex: "approval_status",
+      key: "approval_status",
+      render: (status) => getStatusTag(status),
+    },
+    {
+      title: "Phản hồi",
+      dataIndex: "consent_status",
+      key: "consent_status",
       render: (status) => getStatusTag(status),
     },
     {
@@ -531,7 +513,6 @@ const VaccinationsPage = () => {
 
           {/* Vaccination Detail Modal */}
           <VaccinationDetail
-            form_id={formId}
             campaignId={selectedCampaignId}
             visible={detailModalVisible}
             onClose={() => setDetailModalVisible(false)}

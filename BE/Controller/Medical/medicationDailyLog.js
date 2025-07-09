@@ -1,10 +1,11 @@
 // Import các thư viện và module cần thiết
 const sql = require("mssql");
 const sqlServerPool = require("../../Utils/connectMySql");
-const sendEmail = require("../../Utils/sendEmail"); // Hàm gửi email qua Gmail
+const sendEmail = require("../../Utils/mailer");
 
 // Hàm cập nhật trạng thái nhật ký uống thuốc
 const updateStatusMedicationDailyLog = async (req, res, next) => {
+  const nurse_id = req.user?.user_id;
   const ReqId = req.params.ReqId; // ID của yêu cầu uống thuốc
   const { status } = req.body;
 
@@ -23,7 +24,8 @@ const updateStatusMedicationDailyLog = async (req, res, next) => {
     const checkLog = await pool
       .request()
       .input("id_req", sql.Int, ReqId)
-      .query("SELECT id_req FROM Medication_Daily_Log WHERE id_req = @id_req");
+      .input("nurse_id", sql.Int, nurse_id)
+      .query("SELECT id_req FROM Medication_Daily_Log WHERE id_req = @id_req AND nurse_id = @nurse_id");
 
     if (checkLog.recordset.length === 0) {
       return res.status(404).json({

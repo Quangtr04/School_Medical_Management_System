@@ -60,7 +60,7 @@ const StudentInformation = {
 
 const MedicalSubmissionRequest = {
   student_id: { type: "int", required: true },
-  status: { type: "string", required: true, enum: ["OPEN", "IN_PROGRESS", "RESOLVED"], default: "PENDING" },
+  status: { type: "string", required: true, enum: ["DECLINED", "ACCEPTED"], default: "PENDING" },
   nurse_id: { type: "int", required: false },
   note: { type: "string", required: false },
   image_url: { type: "string", required: true },

@@ -65,6 +65,7 @@ const {
   getMedicationSubmissionReqByID,
   updateMedicationSubmissionReqByNurse,
 } = require("../Controller/Medical/medicalSubmissionReq");
+const { updateStatusMedicationDailyLog } = require("../Controller/Medical/medicationDailyLog");
 
 const {
   getLogsByRequestIdAndNurse,
@@ -233,6 +234,13 @@ nurseRouter.patch(
   "/medication-submissions/:ReqId/update",
   authenticateToken,
   updateMedicationSubmissionReqByNurse
+);
+
+// Cập nhật trạng thái đơn thuốc mỗi ngày
+nurseRouter.patch(
+  "/medication-daily-logs-submissions/:ReqId/update",
+  authenticateToken,
+  updateStatusMedicationDailyLog
 );
 
 //lấy thông báo

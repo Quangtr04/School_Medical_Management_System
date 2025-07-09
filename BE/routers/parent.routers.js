@@ -57,6 +57,7 @@ const {
   getCheckupParticipationById,
   getAllCheckupParticipation,
 } = require("../Controller/CheckUp/saveCheckupResult");
+const upload = require("../middlewares/multerConfig");
 
 const parentRouter = express.Router();
 
@@ -147,7 +148,34 @@ parentRouter.get("/incidents/:event_id", getIncidentById); // Thêm authenticate
 parentRouter.post(
   "/medical-submissions",
   authenticateToken,
-  validateInput(Schemas, "MedicalSubmissionRequest"),
+  upload.single("image"),
+  async (req, res, next) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          status: "fail",
+          message: "Ảnh là bắt buộc",
+        });
+      }
+
+      // Gán ảnh
+      req.body.image_url = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+
+      // Gán từ token
+      req.body.parent_id = req.user?.user_id;
+
+      // Ép kiểu dữ liệu trước khi validate
+      req.body.student_id = parseInt(req.body.student_id);
+      req.body.nurse_id = req.body.nurse_id ? parseInt(req.body.nurse_id) : undefined;
+      req.body.status = req.body.status || "PENDING";
+
+      console.log("✔️ Trước validate:", req.body);
+
+      return validateInput(Schemas, "MedicalSubmissionRequest")(req, res, next);
+    } catch (err) {
+      next(err);
+    }
+  },
   medicationSubmissionReq
 );
 
