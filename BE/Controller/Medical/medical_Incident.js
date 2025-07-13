@@ -13,17 +13,10 @@ const createMedicalIncident = async (req, res) => {
   try {
     const pool = await sqlServerPool;
 
-    // Lấy student_id từ tên học sinh
-    const studentId = await getStudentIdByName(IncidentData.student_name);
-
-    if (!studentId) {
-      return res.status(404).json({ error: "Student not found" });
-    }
-
     // Lấy parent_id
     const parentQuery = await pool
       .request()
-      .input("student_id", sql.Int, studentId)
+      .input("student_id", sql.Int, IncidentData.student_id)
       .query(`SELECT parent_id FROM Student_Information WHERE student_id = @student_id`);
 
     if (parentQuery.recordset.length === 0) return res.status(404).json({ error: "Parent not found for the student" });
@@ -38,7 +31,7 @@ const createMedicalIncident = async (req, res) => {
       .request()
       .input("serverity_id", sql.Int, serverity_id)
       .input("subject_info_id", sql.Int, subject_info_id)
-      .input("student_id", sql.Int, studentId)
+      .input("student_id", sql.Int, IncidentData.student_id)
       .input("description", sql.NVarChar(sql.MAX), IncidentData.description)
       .input("occurred_at", sql.DateTime, IncidentData.occurred_at)
       .input("nurse_id", sql.Int, nurse_id)
@@ -110,7 +103,7 @@ const createMedicalIncident = async (req, res) => {
       pool,
       subject_info_id,
       "Medical Incident Reported",
-      `A medical incident has been reported for your child ${IncidentData.student_name}. Please check the details in the system.`
+      `A medical incident has been reported for your child ${IncidentData.student_id}. Please check the details in the system.`
     );
 
     return res.status(201).json({

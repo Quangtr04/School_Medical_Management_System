@@ -18,31 +18,43 @@ import {
   Select,
   Upload,
   Modal,
-  message,
   Tabs,
   Radio,
   Alert,
+  Popconfirm,
 } from "antd";
 import {
   PlusOutlined,
-  CalendarOutlined,
-  MedicineBoxOutlined,
-  FileImageOutlined,
   ClockCircleOutlined,
-  UserOutlined,
   InfoCircleOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
   ExclamationCircleOutlined,
   ClockCircleFilled,
+  BankOutlined,
+  FileTextOutlined,
+  UsergroupAddOutlined,
 } from "@ant-design/icons";
 import {
   submitMedicationRequest,
   setSelectedChild,
   getAllMedicationRequest,
-  getMedicationRequestDetail, // Đảm bảo thunk này đã được đổi tên và import đúng
+  getMedicationRequestDetail,
+  getParentChildren,
+  getMedicationDailyLog,
+  cancelMedicationRequest, // Đảm bảo thunk này đã được đổi tên và import đúng
 } from "../../redux/parent/parentSlice"; // Đảm bảo đường dẫn đúng cho slice của bạn
 import moment from "moment";
+import {
+  UserOutlined,
+  MailOutlined,
+  PhoneOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  MedicineBoxOutlined,
+  IdcardOutlined,
+  CalendarOutlined,
+  FileImageOutlined,
+} from "@ant-design/icons";
+import { toast } from "react-toastify";
 
 const { TextArea } = Input;
 const { TabPane } = Tabs;
@@ -70,6 +82,10 @@ function MedicineRequestPage() {
   const [previewTitle, setPreviewTitle] = useState("");
   const [dateType, setDateType] = useState("single"); // "single" or "multiple"
   const [submitting, setSubmitting] = useState(false); // Loading khi submit form mới
+  const [isGiveMedicineModalVisible, setIsGiveMedicineModalVisible] =
+    useState(false);
+  const [currentMedicationForGiving, setCurrentMedicationForGiving] =
+    useState(null);
 
   // State cục bộ để quản lý modal CHI TIẾT và dữ liệu chi tiết
   const [modalDetailSubmission, setModalDetailSubmission] = useState(false); // Modal hiển thị chi tiết
@@ -77,6 +93,7 @@ function MedicineRequestPage() {
     useState(null);
   const [modalLoading, setModalLoading] = useState(false); // Loading riêng cho modal chi tiết
   const [modalError, setModalError] = useState(null); // Error riêng cho modal chi tiết
+  const [historyFilterStatus, setHistoryFilterStatus] = useState("ALL");
 
   // Fetch all medication requests on mount
   useEffect(() => {
@@ -85,12 +102,20 @@ function MedicineRequestPage() {
     dispatch(getAllMedicationRequest({ accessToken })).unwrap();
   }, [dispatch, accessToken]); // Thêm accessToken vào dependencies
 
-  console.log(selectedMedicationRequest);
+  useEffect(() => {
+    if (user?.user_id) {
+      dispatch(getParentChildren());
+    }
+  }, [dispatch, user]);
+
+  useEffect(() => {
+    console.log("Children data:", children);
+  }, [children]);
 
   // Handle success from API for new submission
   useEffect(() => {
     if (success && submitting) {
-      message.success("Gửi yêu cầu thuốc thành công!");
+      toast.success("Gửi yêu cầu thuốc thành công!");
       setIsModalVisible(false);
       form.resetFields();
       setFileList([]);
@@ -106,9 +131,9 @@ function MedicineRequestPage() {
   useEffect(() => {
     if (error && submitting) {
       if (error.errors && Array.isArray(error.errors)) {
-        message.error(`Lỗi: ${error.errors.join(", ")}`);
+        toast.error(`Lỗi: ${error.errors.join(", ")}`);
       } else {
-        message.error(
+        toast.error(
           "Không thể gửi yêu cầu thuốc: " +
             (error.message || "Vui lòng thử lại sau.")
         );
@@ -125,6 +150,10 @@ function MedicineRequestPage() {
     form.resetFields();
     setFileList([]);
     setDateType("single");
+    if (!children || children.length === 0) {
+      toast.warning("Chưa có dữ liệu học sinh để gửi yêu cầu.");
+      return;
+    }
     // Nếu có học sinh đã chọn hoặc danh sách học sinh, thiết lập giá trị mặc định
     if (selectedChild?.student_id) {
       form.setFieldsValue({
@@ -196,48 +225,46 @@ function MedicineRequestPage() {
     const student_id = values.student;
 
     if (!student_id) {
-      message.error("Vui lòng chọn học sinh.");
+      toast.error("Vui lòng chọn học sinh.");
       return;
     }
 
     if (!user?.user_id) {
-      message.error(
+      toast.error(
         "Không thể xác định thông tin phụ huynh. Vui lòng đăng nhập lại."
       );
       return;
     }
-
-    let imageUrl = "";
-    if (fileList.length > 0 && fileList[0].originFileObj) {
-      try {
-        // Here, you would typically upload the file to your server
-        // and get a real URL back. For now, using a placeholder.
-        imageUrl = "https://example.com/uploaded-prescription.jpg";
-      } catch (uploadError) {
-        console.error("Lỗi khi tải ảnh lên:", uploadError);
-        message.warning(
-          "Không thể tải ảnh lên, tiếp tục gửi yêu cầu không có ảnh."
-        );
-      }
+    const file = values.prescription?.[0]?.originFileObj;
+    if (!file) {
+      toast.error("Vui lòng chọn ảnh đơn thuốc.");
+      return;
     }
+    const formData = new FormData();
+    formData.append("student_id", student_id);
+    formData.append("note", values.note || "");
+    formData.append("start_date", startDate.format("YYYY-MM-DD"));
+    formData.append("end_date", endDate.format("YYYY-MM-DD"));
+    formData.append("status", "PENDING");
+    formData.append("nurse_id", 3); // tạm hard-code, hoặc có thể để backend gán
+    formData.append("image", file); // Ảnh đơn thuốc (File object)
 
-    const medicationRequestData = {
-      parent_id: user.user_id,
-      student_id: student_id,
-      note: values.note,
-      image_url: imageUrl,
-      start_date: startDate.format("YYYY-MM-DD"),
-      end_date: endDate.format("YYYY-MM-DD"),
-      medication_name: values.note.split("\n")[0] || "Thuốc", // Lấy dòng đầu tiên của ghi chú làm tên thuốc
-      dosage: values.dosage || "",
-      frequency: values.frequency || "",
-      status: "PENDING",
-      nurse_id: 3, // Luôn gán nurse_id mặc định là 3
-    };
-
-    console.log("Sending medication request data:", medicationRequestData);
     setSubmitting(true);
-    dispatch(submitMedicationRequest(medicationRequestData));
+
+    try {
+      console.log("---- FormData Content ----");
+      for (let [key, value] of formData.entries()) {
+        console.log(`${key}:`, value);
+      }
+
+      await dispatch(submitMedicationRequest(formData)); // thunk này cần hỗ trợ FormData
+      toast.success("Gửi yêu cầu thành công!");
+    } catch (error) {
+      toast.error("Gửi yêu cầu thất bại.");
+      console.error(error);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const getStatusTag = (status) => {
@@ -248,28 +275,16 @@ function MedicineRequestPage() {
             Đang chờ duyệt
           </Tag>
         );
-      case "APPROVED":
+      case "ACCEPTED":
         return (
           <Tag icon={<CheckCircleOutlined />} color="success">
             Đã duyệt
           </Tag>
         );
-      case "REJECTED":
+      case "DECLINED":
         return (
           <Tag icon={<CloseCircleOutlined />} color="error">
             Từ chối
-          </Tag>
-        );
-      case "IN_REVIEW":
-        return (
-          <Tag icon={<ExclamationCircleOutlined />} color="processing">
-            Đang xem xét
-          </Tag>
-        );
-      case "DELIVERED":
-        return (
-          <Tag icon={<MedicineBoxOutlined />} color="blue">
-            Đã giao thuốc
           </Tag>
         );
       default:
@@ -331,9 +346,9 @@ function MedicineRequestPage() {
     {
       title: "Thao tác",
       key: "action",
-      width: 120,
+      width: 180,
       render: (_, record) => (
-        <Space size="small">
+        <Space wrap align="center">
           <Button
             type="primary"
             size="small"
@@ -342,6 +357,35 @@ function MedicineRequestPage() {
           >
             Chi tiết
           </Button>
+
+          {(record.status || "").toUpperCase() === "ACCEPTED" && (
+            <Button
+              type="default"
+              size="small"
+              icon={<MedicineBoxOutlined />}
+              onClick={() => openGiveMedicineModal(record)}
+            >
+              Uống thuốc
+            </Button>
+          )}
+
+          {(record.status || "").toUpperCase() === "PENDING" && (
+            <Popconfirm
+              title={`Xác nhận hủy yêu cầu thuốc #${record.id_req}?`}
+              description="Bạn chắc chắn muốn hủy? Hành động này không thể hoàn tác."
+              okText="Có"
+              cancelText="Không"
+              onConfirm={() => cancelRequestMedical(record)}
+            >
+              <Button
+                type="default"
+                size="small"
+                icon={<MedicineBoxOutlined />}
+              >
+                Hủy yêu cầu
+              </Button>
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -359,22 +403,26 @@ function MedicineRequestPage() {
 
       try {
         const resultAction = await dispatch(
-          getMedicationRequestDetail(reqId)
+          getMedicationRequestDetail({
+            id_req: reqId,
+            accessToken: localStorage.getItem("accessToken"),
+          })
         ).unwrap();
 
         // unwrap() sẽ xử lý cả fulfilled và rejected
         const details = resultAction; // resultAction.payload chính là dữ liệu trả về từ thunk nếu thành công
+        console.log("Medication request details:", details);
 
         if (details) {
           setSelectedMedicationRequest(details);
           setModalDetailSubmission(true); // Mở modal chi tiết
         } else {
-          message.warn("Không tìm thấy chi tiết yêu cầu thuốc.");
+          toast.warn("Không tìm thấy chi tiết yêu cầu thuốc.");
         }
       } catch (err) {
         console.error("Error fetching medication request details:", err);
         setModalError(err.message || "Lỗi không xác định khi tải chi tiết.");
-        message.error(
+        toast.error(
           `Không thể tải chi tiết yêu cầu thuốc: ${
             err.message || "Lỗi không xác định"
           }`
@@ -383,29 +431,91 @@ function MedicineRequestPage() {
         setModalLoading(false); // Kết thúc loading
       }
     } else {
-      message.warn("Không tìm thấy ID yêu cầu thuốc.");
+      toast.warn("Không tìm thấy ID yêu cầu thuốc.");
     }
+  };
+
+  const openGiveMedicineModal = async (medicationRequest) => {
+    console.log("Viewing details for record:", medicationRequest);
+    const reqId = medicationRequest.id_req; // Đảm bảo dùng đúng trường ID
+
+    if (reqId) {
+      setModalLoading(true);
+      setModalError(null);
+      setSelectedMedicationRequest(null);
+
+      try {
+        const resultAction = await dispatch(
+          getMedicationDailyLog({
+            id_req: reqId,
+            accessToken: localStorage.getItem("accessToken"),
+            studentId: medicationRequest.student_id,
+          })
+        ).unwrap();
+
+        const details = resultAction;
+        console.log("Medication request details:", details);
+
+        if (details) {
+          setCurrentMedicationForGiving(details);
+          setIsGiveMedicineModalVisible(true);
+        } else {
+          toast.warn("Không tìm thấy chi tiết yêu cầu thuốc.");
+        }
+      } catch (err) {
+        console.error("Error fetching medication request details:", err);
+        setModalError(err.message || "Lỗi không xác định khi tải chi tiết.");
+        toast.error(
+          `Không thể tải chi tiết yêu cầu thuốc: ${
+            err.message || "Lỗi không xác định"
+          }`
+        );
+      } finally {
+        setModalLoading(false); // Kết thúc loading
+      }
+    } else {
+      toast.warn("Không tìm thấy ID yêu cầu thuốc.");
+    }
+  };
+
+  const cancelRequestMedical = async (medicationRequest) => {
+    const { id_req } = medicationRequest;
+
+    try {
+      await dispatch(
+        cancelMedicationRequest({
+          id_req,
+          accessToken,
+        })
+      ).unwrap();
+
+      toast.success("Đã hủy yêu cầu thuốc thành công.");
+      dispatch(getAllMedicationRequest({ accessToken }));
+    } catch (err) {
+      toast.error("Không thể hủy yêu cầu: " + err);
+    }
+  };
+
+  const closeGiveMedicineModal = () => {
+    setCurrentMedicationForGiving(null); // Xóa thông tin đang xem
+    setIsGiveMedicineModalVisible(false); // Đóng modal
   };
 
   const renderActiveMedications = () => {
     const activeRequests =
-      medicationRequests?.filter((req) =>
-        ["PENDING", "APPROVED", "IN_REVIEW"].includes(
-          (req.status || "").toUpperCase()
-        )
+      medicationRequests?.filter(
+        (req) => (req.status || "").toUpperCase() === "PENDING"
       ) || [];
 
     return (
       <Table
         columns={columns}
         dataSource={activeRequests}
-        rowKey={(record) => record.id_req || record.id} // Đảm bảo rowKey đúng
-        loading={parentSliceLoading} // Sử dụng loading chung của slice
+        rowKey={(record) => record.id_req || record.id}
+        loading={parentSliceLoading}
         pagination={{ pageSize: 5 }}
         locale={{
-          emptyText: (
-            <Empty description="Không có yêu cầu thuốc nào đang hoạt động" />
-          ),
+          emptyText: <Empty description="Không có yêu cầu thuốc đang xử lý" />,
         }}
       />
     );
@@ -413,21 +523,39 @@ function MedicineRequestPage() {
 
   const renderHistoryMedications = () => {
     const historyRequests =
-      medicationRequests?.filter((req) =>
-        ["DELIVERED", "REJECTED"].includes((req.status || "").toUpperCase())
-      ) || [];
+      medicationRequests?.filter((req) => {
+        const status = (req.status || "").toUpperCase();
+        if (historyFilterStatus === "ALL") {
+          return status === "ACCEPTED" || status === "DECLINED";
+        }
+        return status === historyFilterStatus;
+      }) || [];
 
     return (
-      <Table
-        columns={columns}
-        dataSource={historyRequests}
-        rowKey={(record) => record.id_req || record.id} // Đảm bảo rowKey đúng
-        loading={parentSliceLoading} // Sử dụng loading chung của slice
-        pagination={{ pageSize: 5 }}
-        locale={{
-          emptyText: <Empty description="Không có lịch sử gửi thuốc" />,
-        }}
-      />
+      <>
+        <div style={{ marginBottom: 16, textAlign: "right" }}>
+          <Select
+            value={historyFilterStatus}
+            onChange={(value) => setHistoryFilterStatus(value)}
+            style={{ width: 200, textAlign: "center" }}
+          >
+            <Select.Option value="ALL">Tất cả trạng thái</Select.Option>
+            <Select.Option value="ACCEPTED">Đã duyệt</Select.Option>
+            <Select.Option value="DECLINED">Từ chối</Select.Option>
+          </Select>
+        </div>
+
+        <Table
+          columns={columns}
+          dataSource={historyRequests}
+          rowKey={(record) => record.id_req || record.id}
+          loading={parentSliceLoading}
+          pagination={{ pageSize: 5 }}
+          locale={{
+            emptyText: <Empty description="Không có lịch sử gửi thuốc" />,
+          }}
+        />
+      </>
     );
   };
 
@@ -533,10 +661,7 @@ function MedicineRequestPage() {
                     key={child.student_id}
                     value={child.student_id}
                   >
-                    {child.full_name ||
-                      child.name ||
-                      `Học sinh ${child.student_id}`}{" "}
-                    {child.class_name ? `- ${child.class_name}` : ""}
+                    {child.student_name}
                   </Select.Option>
                 ))
               ) : (
@@ -659,26 +784,32 @@ function MedicineRequestPage() {
             />
           </Form.Item>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="dosage" label="Liều lượng">
-                <Input placeholder="Ví dụ: 1 viên/lần" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="frequency" label="Tần suất sử dụng">
-                <Input placeholder="Ví dụ: 3 lần/ngày sau bữa ăn" />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Form.Item name="prescription" label="Hình ảnh đơn thuốc (nếu có)">
+          <Form.Item
+            name="prescription"
+            label="Hình ảnh đơn thuốc"
+            valuePropName="fileList"
+            getValueFromEvent={(e) => (Array.isArray(e) ? e : e?.fileList)}
+            rules={[
+              {
+                required: true,
+                message: "Vui lòng tải lên hình ảnh đơn thuốc",
+              },
+              {
+                validator: () =>
+                  fileList.length > 0
+                    ? Promise.resolve()
+                    : Promise.reject(
+                        new Error("Vui lòng tải lên hình ảnh đơn thuốc")
+                      ),
+              },
+            ]}
+          >
             <Upload
               listType="picture-card"
               fileList={fileList}
               onPreview={handlePreview}
               onChange={handleChangeUpload}
-              beforeUpload={() => false} // Prevent auto upload
+              beforeUpload={() => false} // Ngăn upload tự động
               maxCount={1}
             >
               {fileList.length >= 1 ? null : uploadButton}
@@ -778,21 +909,18 @@ function MedicineRequestPage() {
               <div>
                 <Text strong>Hình ảnh đơn thuốc:</Text>
                 <br />
-                <a
-                  href={selectedMedicationRequest.image_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <img
-                    src={selectedMedicationRequest.image_url}
-                    alt="Đơn thuốc"
-                    style={{
-                      maxWidth: "100%",
-                      height: "auto",
-                      marginTop: "10px",
-                    }}
-                  />
-                </a>
+                <img
+                  src={selectedMedicationRequest.image_url}
+                  alt="Đơn thuốc"
+                  style={{
+                    width: "200px",
+                    height: "auto",
+                    borderRadius: 8,
+                    border: "1px solid #ccc",
+                    display: "block",
+                    margin: "10px auto",
+                  }}
+                />
               </div>
             )}
           </div>
@@ -809,6 +937,128 @@ function MedicineRequestPage() {
         onCancel={handlePreviewCancel}
       >
         <img alt="example" style={{ width: "100%" }} src={previewImage} />
+      </Modal>
+
+      {/* Modal xem việc uống thuốc trên trường */}
+      <Modal
+        title="💊 Báo cáo uống thuốc của học sinh trên trường"
+        open={isGiveMedicineModalVisible}
+        onCancel={closeGiveMedicineModal}
+        footer={[
+          <Button key="close" onClick={closeGiveMedicineModal}>
+            Đóng
+          </Button>,
+        ]}
+      >
+        {Array.isArray(currentMedicationForGiving) ? (
+          currentMedicationForGiving.map((log) => (
+            <div
+              key={log.log_id}
+              style={{
+                padding: "1rem",
+                border: "1px solid #eee",
+                borderRadius: "10px",
+                marginBottom: "1.5rem",
+                backgroundColor: "#fafafa",
+                boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
+              }}
+            >
+              <p>
+                <b>
+                  <IdcardOutlined style={{ marginRight: 4 }} />
+                  Mã log:
+                </b>{" "}
+                {log.log_id}
+              </p>
+              <p>
+                <b>
+                  <UserOutlined style={{ marginRight: 4 }} />
+                  Họ tên học sinh:
+                </b>{" "}
+                {log.full_name}
+              </p>
+              <p>
+                <b>
+                  <BankOutlined style={{ marginRight: 4 }} />
+                  Lớp:
+                </b>{" "}
+                {log.class_name}
+              </p>
+              <p>
+                <b>
+                  <CalendarOutlined style={{ marginRight: 4 }} />
+                  Ngày uống thuốc:
+                </b>{" "}
+                {new Date(log.date).toLocaleDateString("vi-VN")}
+              </p>
+              <p>
+                <b>
+                  <FileTextOutlined style={{ marginRight: 4 }} />
+                  Ghi chú:
+                </b>{" "}
+                {log.note}
+              </p>
+              <p>
+                <b>
+                  <InfoCircleOutlined style={{ marginRight: 4 }} />
+                  Trạng thái:
+                </b>{" "}
+                <Tag
+                  icon={
+                    log.status === "GIVEN" ? (
+                      <CheckCircleOutlined />
+                    ) : (
+                      <CloseCircleOutlined />
+                    )
+                  }
+                  color={log.status === "GIVEN" ? "green" : "orange"}
+                  style={{ marginLeft: 5 }}
+                >
+                  {log.status === "GIVEN" ? "Đã uống" : "Chưa uống"}
+                </Tag>
+              </p>
+
+              <p>
+                <b>🧑‍⚕️ Y tá phụ trách:</b>{" "}
+                <span style={{ marginLeft: 4 }}>ID {log.nurse_id}</span>
+              </p>
+              <p>
+                <b>
+                  <UsergroupAddOutlined style={{ marginRight: 4 }} />
+                  Phụ huynh:
+                </b>{" "}
+                <span style={{ marginLeft: 4 }}>
+                  <UserOutlined /> {log.parent_name}, <MailOutlined />{" "}
+                  {log.parent_email}, <PhoneOutlined /> {log.parent_phone}
+                </span>
+              </p>
+
+              {log.image_url && (
+                <div style={{ marginTop: "1rem" }}>
+                  <b>
+                    <FileImageOutlined style={{ marginRight: 4 }} />
+                    Hình ảnh đơn thuốc:
+                  </b>
+                  <br />
+                  <img
+                    src={log.image_url}
+                    alt="Ảnh đơn thuốc"
+                    style={{
+                      width: "100%",
+                      maxWidth: "300px",
+                      borderRadius: "10px",
+                      marginTop: "0.5rem",
+                      border: "1px solid #ccc",
+                      boxShadow: "0 0 5px rgba(0,0,0,0.1)",
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          ))
+        ) : (
+          <p>Không có dữ liệu báo cáo.</p>
+        )}
       </Modal>
     </div>
   );

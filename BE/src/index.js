@@ -9,6 +9,7 @@ const managerRouter = require("../routers/manager.router");
 const { swaggerUi, swaggerSpec } = require("../Utils/swaggerOptions");
 const app = express();
 const port = 3000;
+const path = require("path");
 // const cron = require("node-cron");
 // const checkUnupdatedMedicationLogs = require("./services/checkUnupdatedMedicationLogs");
 
@@ -17,7 +18,7 @@ require("dotenv").config();
 const corsOptions = {
   origin: [
     "http://localhost:5173",
-    "http://192.168.1.151:5173",
+    "http://192.168.1.102:5173",
     "http://192.168.1.85:5173",
     "http://172.20.10.4:5173",
     "http://172.20.10.2:5173",
@@ -26,6 +27,8 @@ const corsOptions = {
   optionsSuccessStatus: 204,
   credentials: false,
 };
+
+app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
 app.use(cors(corsOptions));
 

@@ -56,6 +56,13 @@ const {
   getMedicationSubmissionReqByID,
   updateMedicationSubmissionReqByNurse,
 } = require("../Controller/Medical/medicalSubmissionReq");
+const {
+  updateStatusMedicationDailyLog,
+  getLogsByRequestIdAndUserId,
+  getLogsByRequestIdAndUserIdAndStudentId,
+} = require("../Controller/Medical/medicationDailyLog");
+
+const { getLogByLogId, getLogsByDateAndNurse } = require("../Controller/Medical/medicationDailyLog");
 
 const nurseRouter = express.Router();
 
@@ -183,7 +190,30 @@ nurseRouter.get("/medication-submissions/:ReqId", getMedicationSubmissionReqByID
 // Cập nhật trạng thái đơn thuốc được gửi
 nurseRouter.patch("/medication-submissions/:ReqId/update", authenticateToken, updateMedicationSubmissionReqByNurse);
 
+// Cập nhật trạng thái đơn thuốc mỗi ngày
+nurseRouter.patch(
+  "/medication-daily-logs-submissions/:ReqId/update",
+  authenticateToken,
+  updateStatusMedicationDailyLog
+);
+
 //lấy thông báo
 nurseRouter.get("/notifications", authenticateToken, getNotifications);
+
+// Lấy nhật ký uống thuốc theo ID yêu cầu và ID y tá
+nurseRouter.get("/logs/by-request/:id_req", authenticateToken, getLogsByRequestIdAndUserId);
+
+// Lấy nhật ký uống thuốc theo ID yêu cầu và ID y tá và ID học sinh
+nurseRouter.get(
+  "/logs/by-request/:id_req/student/:student_id",
+  authenticateToken,
+  getLogsByRequestIdAndUserIdAndStudentId
+);
+
+// Lấy nhật ký uống thuốc theo ID nhật ký
+nurseRouter.get("/logs/:log_id", authenticateToken, getLogByLogId);
+
+// Lấy nhật ký uống thuốc theo ngày và ID y tá
+nurseRouter.get("/logs/by-date", authenticateToken, getLogsByDateAndNurse);
 
 module.exports = nurseRouter;

@@ -335,7 +335,7 @@ const VaccinationsPage = () => {
               onClick={() => handleRespondToConsent(record)}
               block
             >
-              Phản hồi đồng ý
+              Phản hồi ý kiến
             </Button>
           )}
 

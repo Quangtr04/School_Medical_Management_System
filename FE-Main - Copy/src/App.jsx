@@ -66,6 +66,7 @@ import NurseProfile from "./pages/SchoolNursePage/NurseProfile";
 import { fetchManagerNotifications } from "./redux/manager/managerNotificationSlice";
 import { fetchNurseNotifications } from "./redux/nurse/nurseNotificationSlice";
 import MedicalSubmission from "./pages/SchoolNursePage/MedicalSubmission";
+import ParentCheckUp from "./pages/ParentPage/ParentCheckUp";
 
 function App() {
   const dispatch = useDispatch();
@@ -361,6 +362,7 @@ function App() {
         <Route path="medicine-request" element={<MedicineRequestPage />} />
         <Route path="notifications" element={<ParentNotificationsPage />} />
         <Route path="medical-incidents" element={<MedicalIncidentsPage />} />
+        <Route path="checkup" element={<ParentCheckUp />} />
       </Route>
 
       {/* Catch-all route for unmatched paths (404) */}

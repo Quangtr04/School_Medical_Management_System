@@ -6,7 +6,7 @@ const listPendingConsent = async (req, res, next) => {
   const user_id = req.user?.user_id;
   const pool = await sqlServerPool;
   const forms = await pool.request().input("parent_id", sql.Int, user_id).query(`
-      SELECT CF.*, MC.title, MC.description, MC.scheduled_date, SI.full_name FROM Checkup_Consent_Form CF 
+      SELECT CF.*, MC.title, MC.description, MC.scheduled_date, SI.full_name, MC.sponsor, SI.class_name FROM Checkup_Consent_Form CF 
       JOIN Medical_Checkup_Schedule MC ON CF.checkup_id = MC.checkup_id
       JOIN Student_Information SI ON CF.student_id = SI.student_id
       WHERE CF.parent_id = @parent_id AND CF.status = 'PENDING';
@@ -18,7 +18,7 @@ const listAgreeConsent = async (req, res, next) => {
   const user_id = req.user?.user_id;
   const pool = await sqlServerPool;
   const forms = await pool.request().input("parent_id", sql.Int, user_id).query(`
-      SELECT CF.*, MC.title, MC.description, MC.scheduled_date, SI.full_name FROM Checkup_Consent_Form CF 
+      SELECT CF.*, MC.title, MC.description, MC.scheduled_date, SI.full_name, MC.sponsor, SI.class_name FROM Checkup_Consent_Form CF 
       JOIN Medical_Checkup_Schedule MC ON CF.checkup_id = MC.checkup_id
       JOIN Student_Information SI ON CF.student_id = SI.student_id
       WHERE CF.parent_id = @parent_id AND CF.status = 'AGREED';
@@ -30,7 +30,7 @@ const listDeclineConsent = async (req, res, next) => {
   const user_id = req.user?.user_id;
   const pool = await sqlServerPool;
   const forms = await pool.request().input("parent_id", sql.Int, user_id).query(`
-      SELECT CF.*, MC.title, MC.description, MC.scheduled_date, SI.full_name FROM Checkup_Consent_Form CF 
+      SELECT CF.*, MC.title, MC.description, MC.scheduled_date, SI.full_name, MC.sponsor, SI.class_name FROM Checkup_Consent_Form CF 
       JOIN Medical_Checkup_Schedule MC ON CF.checkup_id = MC.checkup_id
       JOIN Student_Information SI ON CF.student_id = SI.student_id
       WHERE CF.parent_id = @parent_id AND CF.status = 'DECLINED';
@@ -40,10 +40,10 @@ const listDeclineConsent = async (req, res, next) => {
 
 const respondConsent = async (req, res, next) => {
   const { form_id } = req.params;
-  const { decision } = req.body;
+  const { status, note } = req.body;
   const user_id = req.user?.user_id;
 
-  if (!["AGREED", "DECLINED"].includes(decision)) {
+  if (!["AGREED", "DECLINED"].includes(status)) {
     return res.status(400).json({ message: "Invalid decision value. Must be 'AGREED' or 'DECLINED'." });
   }
 
@@ -62,13 +62,17 @@ const respondConsent = async (req, res, next) => {
 
     const { checkup_id, student_id } = formResult.recordset[0];
 
-    await pool.request().input("status", sql.NVarChar, decision).input("form_id", sql.Int, form_id).query(`
+    await pool
+      .request()
+      .input("status", sql.NVarChar, status)
+      .input("form_id", sql.Int, form_id)
+      .input("note", sql.NVarChar, note).query(`
         UPDATE Checkup_Consent_Form
-        SET status = @status, submitted_at = GETDATE()
+        SET status = @status, submitted_at = GETDATE(), note = @note
         WHERE form_id = @form_id
       `);
 
-    if (decision === "AGREED") {
+    if (status === "AGREED") {
       // Thêm vào danh sách tham gia nếu đồng ý
       await pool
         .request()

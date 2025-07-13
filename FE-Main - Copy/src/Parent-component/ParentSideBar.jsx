@@ -35,6 +35,10 @@ export default function ParentSideBar() {
       label: "Sức khỏe",
       children: [
         {
+          key: "/parent/checkup",
+          label: <Link to="/parent/checkup">Lịch khám sức khỏe</Link>,
+        },
+        {
           key: "/parent/vaccinations",
           label: <Link to="/parent/vaccinations">Lịch tiêm chủng</Link>,
         },
