@@ -106,7 +106,7 @@ const UpdateStatusCheckupByManager = async (req, res) => {
 const UpdateStatusCheckupParent = async (req, res) => {
   const { checkup_id } = req.params;
   const parent_id = req.user?.user_id;
-  const { status } = req.body;
+  const { status, note } = req.body;
 
   if (!["APPROVED", "DECLINED"].includes(status)) {
     return res.status(400).json({ message: "Invalid status value. 'APPROVED' or 'DECLINED'." });
@@ -133,9 +133,10 @@ const UpdateStatusCheckupParent = async (req, res) => {
       .request()
       .input("status", sql.NVarChar, status)
       .input("checkup_id", sql.Int, checkup_id)
+      .input("note", sql.NVarChar, note)
       .input("parent_id", sql.Int, parent_id).query(`
         UPDATE Checkup_Consent_Form
-        SET status = @status, submitted_at = GETDATE()
+        SET status = @status, submitted_at = GETDATE(), note = @note
         WHERE checkup_id = @checkup_id AND parent_id = @parent_id
       `);
 

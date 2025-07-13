@@ -81,7 +81,7 @@ const MedicalSupply = {
 };
 
 const MedicalIncidentSchema = {
-  student_name: { type: "string", required: true },
+  student_id: { type: "int", required: true },
   description: { type: "string", required: false },
   occurred_at: { type: "string", required: true }, // ISO 8601 string
   status: {

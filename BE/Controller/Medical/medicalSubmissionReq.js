@@ -61,15 +61,16 @@ const medicationSubmissionReq = async (req, res, next) => {
 
 //API hủy đơn yêu cầu gửi thuốc từ phụ huynh
 const cancelMedicationSubmissionReq = async (req, res, next) => {
-  const ReqId = req.params.ReqId;
+  const id_req = req.params.id_req;
+  const user_id = req.user?.user_id;
   const pool = await sqlServerPool;
 
   try {
     //  Kiểm tra trạng thái hiện tại
-    const checkStatus = await pool.request().input("id_req", sql.Int, ReqId).query(`
-        SELECT status
+    const checkStatus = await pool.request().input("id_req", sql.Int, id_req).input("user_id", sql.Int, user_id).query(`
+        SELECT status, student_id
         FROM Medication_Submisstion_Request 
-        WHERE id_req = @id_req
+        WHERE id_req = @id_req AND parent_id = @user_id
       `);
 
     if (checkStatus.recordset.length === 0) {
@@ -80,6 +81,7 @@ const cancelMedicationSubmissionReq = async (req, res, next) => {
     }
 
     const { status: currentStatus } = checkStatus.recordset[0];
+    const { student_id } = checkStatus.recordset[0];
 
     if (currentStatus !== "PENDING") {
       return res.status(400).json({
@@ -89,9 +91,9 @@ const cancelMedicationSubmissionReq = async (req, res, next) => {
     }
 
     //  Cập nhật trạng thái thành "CANCELLED"
-    await pool.request().input("id_req", sql.Int, ReqId).input("updated_at", sql.DateTime, new Date()).query(`
+    await pool.request().input("id_req", sql.Int, id_req).input("updated_at", sql.DateTime, new Date()).query(`
         UPDATE Medication_Submisstion_Request
-        SET status = 'CANCELLED', updated_at = @updated_at
+        SET status = 'CANCELLED'
         WHERE id_req = @id_req
       `);
 
@@ -231,15 +233,27 @@ const updateMedicationSubmissionReqByNurse = async (req, res, next) => {
     return day === 0 || day === 6;
   }
 
+<<<<<<< HEAD
+=======
+  if (!["ACCEPTED", "DECLINED"].includes(status)) {
+    return res.status(400).json({ message: "Invalid status value. Must be 'ACCEPTED' or 'DECLINED'." });
+  }
+
+>>>>>>> e86cea7 (parent page)
   try {
     // Cập nhật trạng thái cho bản ghi
     const result = await pool
       .request()
       .input("id_req", sql.Int, ReqId)
       .input("nurse_id", sql.Int, nurseId)
-      .input("status", sql.NVarChar, status).query(`
+      .input("status", sql.NVarChar, status)
+      .input("updated_at", sql.DateTime, new Date()).query(`
         UPDATE Medication_Submisstion_Request
+<<<<<<< HEAD
         SET status = @status, nurse_id = @nurse_id
+=======
+        SET status = @status, nurse_id = @nurse_id, updated_at = @updated_at
+>>>>>>> e86cea7 (parent page)
         WHERE id_req = @id_req
       `);
 
@@ -276,7 +290,11 @@ const updateMedicationSubmissionReqByNurse = async (req, res, next) => {
                 .request()
                 .input("id_req", sql.Int, ReqId)
                 .input("nurse_id", sql.Int, reqData.nurse_id)
+<<<<<<< HEAD
                 .input("date", sql.DateTime, new Date(current)) // Clone ngày hiện tại
+=======
+                .input("date", sql.DateTime, current.toISOString().split("T")[0]) // ✅ chuẩn ngày không lệch
+>>>>>>> e86cea7 (parent page)
                 .input("note", sql.NVarChar, reqData.note)
                 .input("updated_at", sql.DateTime, new Date())
                 .input("image_url", sql.NVarChar, reqData.image_url || null).query(`

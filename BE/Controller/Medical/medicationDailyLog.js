@@ -2,6 +2,10 @@
 const sql = require("mssql");
 const sqlServerPool = require("../../Utils/connectMySql");
 const sendEmail = require("../../Utils/mailer");
+<<<<<<< HEAD
+=======
+const sendNotification = require("../../Utils/sendNotification");
+>>>>>>> e86cea7 (parent page)
 
 // Hàm cập nhật trạng thái nhật ký uống thuốc
 const updateStatusMedicationDailyLog = async (req, res, next) => {
@@ -19,6 +23,12 @@ const updateStatusMedicationDailyLog = async (req, res, next) => {
 
   try {
     const pool = await sqlServerPool;
+    if (!["GIVEN", "NOT GIVEN"].includes(status)) {
+      return res.status(400).json({
+        status: "fail",
+        message: "Invalid status value. Must be 'GIVEN' or 'NOT GIVEN'.",
+      });
+    }
 
     // 2. Kiểm tra xem nhật ký có tồn tại với id_req không
     const checkLog = await pool
@@ -45,6 +55,27 @@ const updateStatusMedicationDailyLog = async (req, res, next) => {
             updated_at = @updated_at 
         WHERE id_req = @id_req
       `);
+
+    const parentId = await pool
+      .request()
+      .input("id_req", sql.Int, ReqId)
+      .query(`SELECT parent_id FROM Medication_Submisstion_Request WHERE id_req = @id_req`);
+
+    if (status === "GIVEN") {
+      sendNotification(
+        pool,
+        parentId.recordset[0].parent_id,
+        "Cập nhật trạng thái uống thuốc",
+        "Y tá đã cập nhật trạng thái uống thuốc cho học sinh"
+      );
+    } else if (status === "NOT GIVEN") {
+      sendNotification(
+        pool,
+        parentId.recordset[0].parent_id,
+        "Cập nhật trạng thái uống thuốc",
+        "Y tá đã cập nhật trạng thái chưa cho học sinh uống thuốc"
+      );
+    }
 
     // 4. Trả về phản hồi thành công
     res.status(200).json({
@@ -110,6 +141,7 @@ const checkUnupdatedMedicationLogs = async () => {
   }
 };
 
+<<<<<<< HEAD
 // Hàm lấy nhật ký uống thuốc theo ID yêu cầu và ID y tá
 const getLogsByRequestIdAndNurse = async (req, res) => {
   const { id_req, nurse_id } = req.query;
@@ -120,6 +152,16 @@ const getLogsByRequestIdAndNurse = async (req, res) => {
       .request()
       .input("id_req", sql.Int, id_req)
       .input("nurse_id", sql.Int, nurse_id).query(`
+=======
+// Hàm lấy nhật ký uống thuốc theo ID yêu cầu
+const getLogsByRequestIdAndUserId = async (req, res) => {
+  const user_id = req.user?.user_id;
+  const { id_req } = req.params;
+  const pool = await sqlServerPool;
+
+  try {
+    const result = await pool.request().input("id_req", sql.Int, id_req).input("nurse_id", sql.Int, user_id).query(`
+>>>>>>> e86cea7 (parent page)
         SELECT 
           log.*,
           stu.full_name,
@@ -131,7 +173,11 @@ const getLogsByRequestIdAndNurse = async (req, res) => {
         JOIN Medication_Submisstion_Request req ON log.id_req = req.id_req
         JOIN Student_Information stu ON req.student_id = stu.student_id
         JOIN Users u ON req.parent_id = u.user_id
+<<<<<<< HEAD
         WHERE log.id_req = @id_req AND req.nurse_id = @nurse_id
+=======
+        WHERE log.id_req = @id_req AND u.user_id = @user_id
+>>>>>>> e86cea7 (parent page)
         ORDER BY log.date ASC;
       `);
 
@@ -142,6 +188,52 @@ const getLogsByRequestIdAndNurse = async (req, res) => {
   }
 };
 
+<<<<<<< HEAD
+=======
+// Hàm lấy nhật ký uống thuốc theo ID yêu cầu
+const getLogsByRequestIdAndUserIdAndStudentId = async (req, res) => {
+  const user_id = req.user?.user_id;
+  const { id_req, student_id } = req.params;
+  const pool = await sqlServerPool;
+  try {
+    const idReqInt = parseInt(id_req);
+    const studentIdInt = parseInt(student_id);
+
+    const result = await pool
+      .request()
+      .input("id_req", sql.Int, idReqInt)
+      .input("user_id", sql.Int, user_id)
+      .input("student_id", sql.Int, studentIdInt).query(`
+        SELECT 
+          log.*,
+          stu.full_name,
+          stu.class_name,
+          u.fullname AS parent_name,
+          u.phone AS parent_phone,
+          u.email AS parent_email
+        FROM Medication_Daily_Log log
+        JOIN Medication_Submisstion_Request req ON log.id_req = req.id_req
+        JOIN Student_Information stu ON req.student_id = stu.student_id
+        JOIN Users u ON req.parent_id = u.user_id
+        WHERE log.id_req = @id_req AND u.user_id = @user_id AND req.student_id = @student_id
+        ORDER BY log.date ASC;
+      `);
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json({
+        status: "not_found",
+        message: "Không tìm thấy log nào cho yêu cầu này.",
+      });
+    }
+
+    res.status(200).json({ status: "success", data: result.recordset });
+  } catch (err) {
+    console.error("Error:", err);
+    res.status(500).json({ status: "error", message: "Internal Server Error" });
+  }
+};
+
+>>>>>>> e86cea7 (parent page)
 // Hàm lấy nhật ký uống thuốc theo ID nhật ký
 const getLogByLogId = async (req, res) => {
   const { log_id } = req.params; // ví dụ: /api/logs/1l;
@@ -175,6 +267,7 @@ const getLogByLogId = async (req, res) => {
 
 // Hàm lấy nhật ký uống thuốc theo ngày và ID y tá
 const getLogsByDateAndNurse = async (req, res) => {
+<<<<<<< HEAD
   const { date, nurse_id } = req.query;
   const pool = await sqlServerPool;
 
@@ -183,6 +276,14 @@ const getLogsByDateAndNurse = async (req, res) => {
       .request()
       .input("log_date", sql.Date, date)
       .input("nurse_id", sql.Int, nurse_id).query(`
+=======
+  const nurse_id = req.user?.user_id;
+  const { date } = req.body;
+  const pool = await sqlServerPool;
+
+  try {
+    const result = await pool.request().input("log_date", sql.Date, date).input("nurse_id", sql.Int, nurse_id).query(`
+>>>>>>> e86cea7 (parent page)
         SELECT 
           log.*,
           stu.full_name,
@@ -209,7 +310,14 @@ const getLogsByDateAndNurse = async (req, res) => {
 module.exports = {
   updateStatusMedicationDailyLog,
   checkUnupdatedMedicationLogs,
+<<<<<<< HEAD
   getLogsByRequestIdAndNurse,
   getLogByLogId,
   getLogsByDateAndNurse,
+=======
+  getLogsByRequestIdAndUserId,
+  getLogByLogId,
+  getLogsByDateAndNurse,
+  getLogsByRequestIdAndUserIdAndStudentId,
+>>>>>>> e86cea7 (parent page)
 };

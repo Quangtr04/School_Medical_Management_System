@@ -228,10 +228,40 @@ const getCheckupParticipationById = async (req, res, next) => {
       .input("id", sql.Int, id)
       .input("student_id", sql.Int, student_id)
       .input("parent_id", sql.Int, parent_id).query(`
-        SELECT CP.checkup_id, CP.id, CP.consent_form_id, CP.checked_at, CP.blood_pressure, CP.notes, CP.abnormal_signs, CP.needs_counseling,
-        ld.* FROM Checkup_Participation CP JOIN 
-        (SELECT SI.parent_id, SI.full_name, SI.student_code, SI.class_name, SI.date_of_birth, SI.gender, SH.* FROM Student_Information SI JOIN Student_Health SH ON SI.student_id = SH.student_id) as ld ON CP.student_id = ld.student_id
-        WHERE CP.checkup_id = @id AND CP.student_id = @student_id AND ld.parent_id = @parent_id
+        SELECT 
+          CP.checkup_id,
+          CP.id,
+          CP.consent_form_id,
+          CP.checked_at,
+          CP.blood_pressure,
+          CP.notes,
+          CP.abnormal_signs,
+          CP.needs_counseling,
+          SI.full_name,
+          SI.student_code,
+          SI.class_name,
+          SI.date_of_birth,
+          SI.gender,
+          SI.parent_id,
+          SH.height_cm,
+          SH.weight_kg,
+          SH.vision_left,
+          SH.vision_right,
+          SH.hearing_left,
+          SH.hearing_right,
+          SH.blood_type,
+          SH.chronic_disease,
+          SH.allergy
+        FROM 
+          Checkup_Participation CP
+        JOIN 
+          Student_Information SI ON CP.student_id = SI.student_id
+        JOIN 
+          Student_Health SH ON SI.student_id = SH.student_id
+        WHERE 
+          CP.checkup_id = @id 
+          AND CP.student_id = @student_id 
+          AND SI.parent_id = @parent_id;
       `);
     res.status(200).json({ checkups: checkupList.recordset });
   } catch (error) {

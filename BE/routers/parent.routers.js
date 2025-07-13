@@ -58,6 +58,10 @@ const {
   getAllCheckupParticipation,
 } = require("../Controller/CheckUp/saveCheckupResult");
 const upload = require("../middlewares/multerConfig");
+<<<<<<< HEAD
+=======
+const { getLogsByRequestIdAndUserIdAndStudentId, getLogByLogId } = require("../Controller/Medical/medicationDailyLog");
+>>>>>>> e86cea7 (parent page)
 
 const parentRouter = express.Router();
 
@@ -90,33 +94,33 @@ parentRouter.get("/consents-checkups/:id", authenticateToken, getCheckupListById
 /**
  * 📋 Danh sách phiếu đồng ý khám sức khỏe chưa phản hồi
  */
-parentRouter.get("/consents-checkups/pending", authenticateToken, listPendingConsent); //đã sửa
+parentRouter.get("/consents-checkups-pending", authenticateToken, listPendingConsent); //đã sửa
 
 /**
  * 📋 Danh sách phiếu đồng ý khám sức khỏe đã chấp thuận
  */
-parentRouter.get("/consents-checkups/agree", authenticateToken, listAgreeConsent); //đã sửa
+parentRouter.get("/consents-checkups-agree", authenticateToken, listAgreeConsent); //đã sửa
 
 /**
  * 📋 Danh sách phiếu đồng ý khám sức khỏe đã từ chối
  */
-parentRouter.get("/consents-checkups/declined", authenticateToken, listDeclineConsent); //đã sửa
+parentRouter.get("/consents-checkups-declined", authenticateToken, listDeclineConsent); //đã sửa
 
 /**
  * ✅ Phản hồi phiếu đồng ý khám sức khỏe (AGREED / DECLINED)
  */
-parentRouter.post("/consents-checkups/:form_id/respond", authenticateToken, respondConsent); //done
+parentRouter.post("/consents-checkup/:form_id/respond", authenticateToken, respondConsent); //done
 
 /**
  * 📝 Phụ huynh cập nhật lại trạng thái đồng ý/từ chối cho 1 lịch khám cụ thể
  */
 parentRouter.patch("/checkups/:checkup_id/consent", authenticateToken, UpdateStatusCheckupParent); //done
 
-parentRouter.get("/consents-checkups/students", authenticateToken, getAllCheckupParticipation); // đã sửa
+parentRouter.get("/consents-checkup/students", authenticateToken, getAllCheckupParticipation); // đã sửa
 
-parentRouter.get("/consents-checkups/:id/students", authenticateToken, getCheckupParticipation);
+parentRouter.get("/consents-checkup/:id/students", authenticateToken, getCheckupParticipation);
 
-parentRouter.get("/consents-checkups/:id/students/:student_id", authenticateToken, getCheckupParticipationById); //đã sửa
+parentRouter.get("/consents-checkup/:id/students/:student_id", authenticateToken, getCheckupParticipationById); //đã sửa
 
 // --- Nhóm các API liên quan đến Khai báo y tế (Health Declarations) ---
 /**
@@ -185,8 +189,15 @@ parentRouter.get("/medical-submissions", authenticateToken, getAllMedicationSubm
 // Xem chi tiết đơn yêu cầu gửi thuốc
 parentRouter.get("/medical-submissions/:id_req", authenticateToken, getAllMedicationSubmissionReqByParentIdAndId);
 
+// Lấy thông tin các buổi uống thuốc
+parentRouter.get(
+  "/medical-daily-log/:id_req/students/:student_id",
+  authenticateToken,
+  getLogsByRequestIdAndUserIdAndStudentId
+);
+
 // Xóa đơn đã gửi
-parentRouter.delete("/medical-submissions/:id_req", authenticateToken, cancelMedicationSubmissionReq); // đang sai
+parentRouter.patch("/medical-submissions/:id_req/cancel", authenticateToken, cancelMedicationSubmissionReq);
 
 // Lấy tất cả lịch tiêm chủng về
 parentRouter.get("/vaccine-campaigns", authenticateToken, getConsentVaccineByParentId);
