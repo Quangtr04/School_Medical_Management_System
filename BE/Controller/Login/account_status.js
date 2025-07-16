@@ -23,7 +23,7 @@ const deleteAccountById = async (req, res, next) => {
 };
 
 const adminUpdateUserById = async (req, res, next) => {
-  const userId = req.params.userId;
+  const userId = req.params.user_id;
   const { email, phone, address, major, is_active } = req.body;
   const pool = await sqlServerPool;
 
@@ -69,6 +69,7 @@ const adminUpdateUserById = async (req, res, next) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
 const parentUpdateUserById = async (req, res, next) => {
   const userId = req.user?.user_id;
   const { address, major } = req.body;
@@ -80,9 +81,17 @@ const parentUpdateUserById = async (req, res, next) => {
       .input("userId", sql.Int, userId)
       .input("address", sql.VarChar, address)
       .input("major", sql.VarChar, major)
-      .query("UPDATE Users SET address = @address, major = @major WHERE user_id = @userId");
+      .query(
+        "UPDATE Users SET address = @address, major = @major WHERE user_id = @userId"
+      );
 
     if (result.rowsAffected[0] > 0) {
+      await pool
+        .request()
+        .input("userId", sql.Int, userId)
+        .query(
+          "UPDATE Student_Information SET address = @address WHERE parent_id = @userId"
+        );
       res.status(200).json({ message: "User updated successfully" });
     } else {
       res.status(404).json({ error: "User not found" });

@@ -1,0 +1,501 @@
+// src/pages/NursePage/MedicalSuppliesPage.jsx
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  Table,
+  Input,
+  Button,
+  Space,
+  Select,
+  Tag,
+  Modal,
+  Form,
+  message,
+  Tooltip,
+  Spin,
+  Empty,
+  Card,
+  DatePicker,
+  InputNumber,
+  Divider,
+} from "antd";
+import {
+  SearchOutlined,
+  EyeOutlined,
+  LoadingOutlined,
+  BarcodeOutlined,
+  TagOutlined,
+  FolderOutlined,
+  MinusSquareOutlined,
+  ContainerOutlined,
+  FileTextOutlined,
+  CalendarOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  SyncOutlined,
+  ClockCircleOutlined,
+  ExclamationCircleOutlined,
+} from "@ant-design/icons";
+import { FiPlusCircle } from "react-icons/fi";
+import { IoStorefront } from "react-icons/io5";
+import dayjs from "dayjs";
+import { format, parseISO } from "date-fns";
+import {
+  addNewMedicalSupply,
+  fetchMedicalSupplies,
+  setMedicalSuppliesPagination,
+  updateExpiredDate,
+} from "../../redux/nurse/medicalSupplies/medicalSupplies";
+import { toast } from "react-toastify";
+
+const fontFamily = { fontFamily: "Poppins, Roboto, sans-serif" };
+const cardNeumorph = {
+  borderRadius: 24,
+  boxShadow: "8px 8px 24px #e0f0ff, -8px -8px 24px #fff",
+  background: "#fff",
+  border: "1.5px solid #e0f0ff",
+  transition: "box-shadow 0.2s, transform 0.2s",
+};
+const statIconStyle = {
+  borderRadius: "50%",
+  background: "#FFFBEA",
+  boxShadow: "0 2px 8px #e0f0ff",
+  width: 56,
+  height: 56,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: 28,
+};
+
+// Helper: Status Tag
+function getStatusTag(status) {
+  if (typeof status === "boolean") {
+    return status ? (
+      <Tag icon={<CheckCircleOutlined />} color="green">
+        Còn nhiều
+      </Tag>
+    ) : (
+      <Tag icon={<CloseCircleOutlined />} color="red">
+        Hết hàng
+      </Tag>
+    );
+  }
+  const map = {
+    Resolved: ["green", <CheckCircleOutlined />, "Đã giải quyết"],
+    "In Progress": ["orange", <SyncOutlined spin />, "Đang tiến hành"],
+    New: ["blue", <ClockCircleOutlined />, "Mới"],
+    Warning: ["volcano", <ExclamationCircleOutlined />, "Cảnh báo"],
+  };
+  const [color, icon, text] = map[status] || ["default", null, status];
+  return (
+    <Tag icon={icon} color={color}>
+      {text}
+    </Tag>
+  );
+}
+
+// Helper: Generate next supply id
+function generateNextSupplyId(supplies) {
+  if (!supplies || supplies.length === 0) return 1;
+  return supplies.length + 2;
+}
+
+export default function MedicalSuppliesPage() {
+  const dispatch = useDispatch();
+  const { supplies, loading, error, pagination } = useSelector(
+    (s) => s.medicalSupplies
+  );
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isStockModalVisible, setIsStockModalVisible] = useState(false);
+  const [stockForm] = Form.useForm();
+  const [addForm] = Form.useForm();
+  const [isSubmittingStock, setIsSubmittingStock] = useState(false);
+  const [selectedSupply, setSelectedSupply] = useState(null);
+  const [updatingDate, setUpdatingDate] = useState(false);
+
+  useEffect(() => {
+    if (error) message.error(error);
+  }, [error]);
+
+  useEffect(() => {
+    dispatch(
+      fetchMedicalSupplies({
+        page: pagination.current,
+        pageSize: pagination.pageSize,
+        search: searchQuery,
+      })
+    );
+  }, [dispatch, pagination.current, pagination.pageSize, searchQuery]);
+
+  const handleTableChange = useCallback((pagination) => {
+    dispatch(
+      setMedicalSuppliesPagination({
+        current: pagination.current,
+        pageSize: pagination.pageSize,
+      })
+    );
+  }, [dispatch]);
+
+  const showStockModal = useCallback(() => {
+    const nextId = generateNextSupplyId(supplies);
+    stockForm.resetFields();
+    addForm.resetFields();
+    addForm.setFieldsValue({
+      supply_id: nextId,
+    });
+    setIsStockModalVisible(true);
+  }, [addForm, stockForm, supplies]);
+
+  // Thêm loại thuốc mới
+  const handleAddNewSubmit = useCallback(async (values) => {
+    setIsSubmittingStock(true);
+    try {
+      await dispatch(
+        addNewMedicalSupply({
+          ...values,
+          is_active: true,
+        })
+      ).unwrap();
+      message.success("✅ Thêm vật tư mới thành công!");
+      setIsStockModalVisible(false);
+      dispatch(
+        fetchMedicalSupplies({
+          page: pagination.current,
+          pageSize: pagination.pageSize,
+          search: searchQuery,
+        })
+      );
+    } catch (error) {
+      message.error(error || "❌ Thêm vật tư thất bại!");
+    } finally {
+      setIsSubmittingStock(false);
+    }
+  }, [dispatch, pagination.current, pagination.pageSize, searchQuery]);
+
+  // Cập nhật ngày hết hạn
+  const handleUpdateExpiredDate = useCallback(async (values) => {
+    try {
+      setUpdatingDate(true);
+      const isActive = values.quantity > 0 ? values.is_active : false;
+      await dispatch(
+        updateExpiredDate({
+          supplyId: selectedSupply.supply_id,
+          expired_date: values.expired_date.format("YYYY-MM-DD"),
+          quantity: values.quantity,
+          is_active: isActive,
+        })
+      ).unwrap();
+      toast.success("✅ Cập nhật thành công");
+      setSelectedSupply(null);
+      await dispatch(
+        fetchMedicalSupplies({
+          page: pagination.current,
+          pageSize: pagination.pageSize,
+          search: searchQuery,
+        })
+      );
+    } catch (err) {
+      message.error(err || "❌ Cập nhật thất bại");
+    } finally {
+      setUpdatingDate(false);
+    }
+  }, [dispatch, selectedSupply, pagination.current, pagination.pageSize, searchQuery]);
+
+  // Tìm kiếm
+  const handleSearchChange = useCallback((value) => {
+    setSearchQuery(value.trim());
+  }, []);
+
+  // Filter supplies (client-side)
+  const filteredSupplies = useMemo(() => {
+    const keyword = searchQuery.toLowerCase();
+    return supplies.filter((supply) =>
+      supply.name?.toLowerCase().includes(keyword) ||
+      supply.description?.toLowerCase().includes(keyword) ||
+      String(supply.supply_id).includes(keyword)
+    );
+  }, [supplies, searchQuery]);
+
+  const columns = useMemo(() => [
+    {
+      title: (
+        <Space>
+          <BarcodeOutlined style={{ color: "#1890ff" }} />
+          Mã vật tư
+        </Space>
+      ),
+      dataIndex: "supply_id",
+      key: "supply_id",
+      align: "center",
+    },
+    {
+      title: (
+        <Space>
+          <TagOutlined style={{ color: "#52c41a" }} />
+          Tên
+        </Space>
+      ),
+      dataIndex: "name",
+      key: "name",
+      align: "center",
+    },
+    {
+      title: (
+        <Space>
+          <FolderOutlined style={{ color: "#faad14" }} />
+          Thể loại
+        </Space>
+      ),
+      dataIndex: "type",
+      key: "type",
+      align: "center",
+    },
+    {
+      title: (
+        <Space>
+          <MinusSquareOutlined style={{ color: "#eb2f96" }} />
+          Đơn vị
+        </Space>
+      ),
+      dataIndex: "unit",
+      key: "unit",
+      align: "center",
+    },
+    {
+      title: (
+        <Space>
+          <ContainerOutlined style={{ color: "#722ed1" }} />
+          Số lượng
+        </Space>
+      ),
+      dataIndex: "quantity",
+      key: "quantity",
+      align: "center",
+    },
+    {
+      title: (
+        <Space>
+          <FileTextOutlined style={{ color: "#d43808" }} />
+          Mô tả
+        </Space>
+      ),
+      dataIndex: "description",
+      key: "description",
+      align: "center",
+    },
+    {
+      title: (
+        <Space>
+          <CalendarOutlined style={{ color: "#08979c" }} />
+          Ngày hết hạn
+        </Space>
+      ),
+      dataIndex: "expired_date",
+      key: "expired_date",
+      align: "center",
+      render: (date) => (
+        <div className="text-center">
+          {date ? format(parseISO(date), "yyyy-MM-dd") : "N/A"}
+        </div>
+      ),
+    },
+    {
+      title: (
+        <Space>
+          <CheckCircleOutlined style={{ color: "#13c2c2" }} />
+          Trạng thái
+        </Space>
+      ),
+      dataIndex: "is_active",
+      key: "status",
+      align: "center",
+      render: (value) => (
+        <div className="flex justify-center">{getStatusTag(value)}</div>
+      ),
+    },
+    {
+      title: (
+        <Space>
+          <CalendarOutlined style={{ color: "#08979c" }} />
+          Hành động
+        </Space>
+      ),
+      key: "actions",
+      align: "center",
+      render: (_, record) => (
+        <div className="flex justify-center">
+          <Tooltip title="Cập nhật hạn dùng">
+            <Button
+              icon={<CalendarOutlined />}
+              onClick={() => setSelectedSupply(record)}
+            />
+          </Tooltip>
+        </div>
+      ),
+    },
+  ], [setSelectedSupply]);
+
+  return (
+    <div
+      className="min-h-screen p-6 bg-fixed"
+      style={{
+        background: "#E0F0FF",
+        fontFamily: "Poppins, Roboto, sans-serif",
+        minHeight: "100vh",
+      }}
+    >
+      <div className="max-w-7xl mx-auto">
+        <header
+          className="mb-6 p-4 flex justify-between items-center"
+          style={{
+            borderRadius: 24,
+            background: "#fff",
+            boxShadow: "8px 8px 24px #e0f0ff, -8px -8px 24px #fff",
+            border: "1.5px solid #e0f0ff",
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <div style={{ ...statIconStyle, fontSize: 36, background: '#FFFBEA', color: '#FFC107' }}>
+              <IoStorefront />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold" style={fontFamily}>Kho vật tư y tế</h1>
+              <p className="text-sm text-gray-600" style={fontFamily}>
+                ✨ Quản lý nhập kho & theo dõi vật tư
+              </p>
+            </div>
+          </div>
+          <Button
+            type="primary"
+            icon={<FiPlusCircle />}
+            onClick={showStockModal}
+            className="flex items-center gap-1 px-4 py-2 !rounded-lg !bg-yellow-500 hover:!bg-yellow-600 hover:shadow-lg hover:scale-105 transition-all duration-200"
+            style={fontFamily}
+          >
+            Nhập kho
+          </Button>
+        </header>
+        <Divider style={{ borderColor: '#e0f0ff', margin: '24px 0' }} />
+        <Card style={cardNeumorph} bodyStyle={{ padding: 24 }}>
+          <Input
+            placeholder="Tìm theo tên, mã, mô tả..."
+            prefix={<SearchOutlined />}
+            value={searchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            allowClear
+            style={{
+              width: 320,
+              marginBottom: 10,
+            }}
+          />
+          {loading ? (
+            <Spin tip="Đang tải...">
+              <Table
+                columns={columns}
+                dataSource={filteredSupplies}
+                rowKey="supply_id"
+                pagination={{
+                  current: pagination.current,
+                  pageSize: pagination.pageSize,
+                  total: pagination.total,
+                  onChange: (page, pageSize) => {
+                    dispatch(
+                      setMedicalSuppliesPagination({
+                        current: page,
+                        pageSize,
+                      })
+                    );
+                  },
+                }}
+                onChange={handleTableChange}
+                locale={{
+                  emptyText: <Empty description="Không có vật tư" />, 
+                }}
+                className="rounded-lg"
+                style={{
+                  borderRadius: 16,
+                  boxShadow: "0 2px 8px #e0f0ff",
+                  fontFamily: 'Poppins, Roboto, sans-serif',
+                  background: '#fff',
+                }}
+              />
+            </Spin>
+          ) : (
+            <Table
+              columns={columns}
+              dataSource={filteredSupplies}
+              rowKey="supply_id"
+              pagination={pagination}
+              onChange={handleTableChange}
+              locale={{ emptyText: <Empty description="Không có vật tư" /> }}
+              className="rounded-lg"
+              style={{
+                borderRadius: 16,
+                boxShadow: "0 2px 8px #e0f0ff",
+                fontFamily: 'Poppins, Roboto, sans-serif',
+                background: '#fff',
+              }}
+            />
+          )}
+        </Card>
+      </div>
+      {/* Modal nhập vật tư mới vào kho */}
+      <Modal
+        title="➕ Thêm vật tư mới vào kho"
+        open={isStockModalVisible}
+        footer={null}
+        onCancel={() => setIsStockModalVisible(false)}
+        style={{ borderRadius: 24 }}
+        bodyStyle={{ borderRadius: 24, background: '#F8FBFF', fontFamily: 'Poppins, Roboto, sans-serif' }}
+        maskStyle={{ background: 'rgba(224,240,255,0.5)' }}
+      >
+        <Form
+          form={addForm}
+          layout="vertical"
+          onFinish={handleAddNewSubmit}
+          requiredMark={false}
+          style={fontFamily}
+        >
+          {/* Các Form.Item giữ nguyên, chỉ style input/select neumorph */}
+          <Form.Item name="supply_id" label="🆔 Mã vật tư" rules={[{ required: true }]}> <Input readOnly style={{ borderRadius: 12, background: '#E0F0FF' }} /> </Form.Item>
+          <Form.Item name="name" label="🏷️ Tên vật tư" rules={[{ required: true }]}> <Input placeholder="Nhập tên vật tư (ví dụ: Găng tay y tế)" style={{ borderRadius: 12, background: '#E0F0FF' }} /> </Form.Item>
+          <Form.Item name="type" label="📦 Loại vật tư" rules={[{ required: true }]}> <Select placeholder="Chọn loại vật tư" style={{ borderRadius: 12, background: '#E0F0FF' }}> <Select.Option value="Thuốc">💊 Thuốc</Select.Option> <Select.Option value="Vật tư">🧰 Vật tư</Select.Option> </Select> </Form.Item>
+          <Form.Item name="unit" label="⚖️ Đơn vị tính" rules={[{ required: true }]}> <Select placeholder="Chọn đơn vị" style={{ borderRadius: 12, background: '#E0F0FF' }}> <Select.Option value="vỉ">🧃 Vỉ</Select.Option> <Select.Option value="hộp">📦 Hộp</Select.Option> <Select.Option value="viên">💊 Viên</Select.Option> </Select> </Form.Item>
+          <Form.Item name="quantity" label="🔢 Số lượng" rules={[{ required: true, type: "number", min: 1 }]}> <InputNumber type="number" min={1} placeholder="Nhập số lượng cần nhập kho" style={{ width: "100%", borderRadius: 12, background: '#E0F0FF' }} /> </Form.Item>
+          <Form.Item name="expired_date" label="📅 Ngày hết hạn" rules={[{ required: true }]}> <DatePicker style={{ width: "100%", borderRadius: 12, background: '#E0F0FF' }} disabledDate={(d) => d && d < dayjs().startOf("day")} placeholder="Chọn ngày hết hạn" /> </Form.Item>
+          <Form.Item name="description" label="📝 Mô tả chi tiết"> <Input.TextArea rows={3} placeholder="Ghi chú thêm nếu có (ví dụ: chỉ dùng trong trường hợp khẩn cấp)" style={{ borderRadius: 12, background: '#E0F0FF' }} /> </Form.Item>
+          <Form.Item> <Button type="primary" htmlType="submit" loading={isSubmittingStock} block icon={<FiPlusCircle />} className="hover:shadow-lg hover:scale-105 transition-all duration-200" style={{ borderRadius: 12, fontFamily: 'Poppins, Roboto, sans-serif' }}> Thêm mới vật tư </Button> </Form.Item>
+        </Form>
+      </Modal>
+      {/* Modal cập nhập ngày hết hạn */}
+      <Modal
+        title="🛠️ Cập nhật ngày hết hạn"
+        open={!!selectedSupply}
+        onCancel={() => setSelectedSupply(null)}
+        footer={null}
+        style={{ borderRadius: 24 }}
+        bodyStyle={{ borderRadius: 24, background: '#F8FBFF', fontFamily: 'Poppins, Roboto, sans-serif' }}
+        maskStyle={{ background: 'rgba(224,240,255,0.5)' }}
+      >
+        <Form
+          layout="vertical"
+          onFinish={handleUpdateExpiredDate}
+          initialValues={{
+            expired_date: selectedSupply?.expired_date
+              ? dayjs(selectedSupply.expired_date)
+              : null,
+          }}
+          key={selectedSupply?.supply_id}
+          style={fontFamily}
+        >
+          <Form.Item name="quantity" label="🔢Cập nhập lại số lượng" rules={[{ required: true }]}> <InputNumber min={0} style={{ width: 470, borderRadius: 12, background: '#E0F0FF' }} /> </Form.Item>
+          <Form.Item name="expired_date" label="📅 Ngày hết hạn mới" rules={[{ required: true }]}> <DatePicker style={{ width: "100%", borderRadius: 12, background: '#E0F0FF' }} disabledDate={(d) => d && d < dayjs().startOf("day")} /> </Form.Item>
+          <Form.Item hidden name="is_active" label="🔘 Trạng thái" initialValue={true} rules={[{ required: true, message: "Vui lòng chọn trạng thái!" }]}> <Select style={{ borderRadius: 12, background: '#E0F0FF' }}> <Select.Option value={true}>🟢Còn thuốc</Select.Option> <Select.Option value={false}>🔴Hết thuốc</Select.Option> </Select> </Form.Item>
+          <Form.Item> <Button type="primary" htmlType="submit" block loading={updatingDate} className="hover:shadow-lg hover:scale-105 transition-all duration-200" style={{ borderRadius: 12, fontFamily: 'Poppins, Roboto, sans-serif' }}> ✅ Cập nhật </Button> </Form.Item>
+        </Form>
+      </Modal>
+    </div>
+  );
+}

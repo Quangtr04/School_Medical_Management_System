@@ -2,18 +2,28 @@
 const sql = require("mssql");
 const sqlServerPool = require("../../Utils/connectMySql");
 const sendEmail = require("../../Utils/mailer");
-<<<<<<< HEAD
-=======
 const sendNotification = require("../../Utils/sendNotification");
->>>>>>> e86cea7 (parent page)
+
+// Hàm chuẩn hóa ngày về múi giờ Việt Nam (GMT+7)
+function normalizeDateVN(dateInput) {
+  let date;
+  if (dateInput instanceof Date) {
+    date = new Date(dateInput.getTime());
+  } else if (typeof dateInput === "string") {
+    date = new Date(dateInput);
+  } else {
+    throw new Error("Invalid date input");
+  }
+  const offset = 7 * 60 * 60 * 1000; // Cộng thêm 7 tiếng
+  return new Date(date.getTime() + offset);
+}
 
 // Hàm cập nhật trạng thái nhật ký uống thuốc
 const updateStatusMedicationDailyLog = async (req, res, next) => {
   const nurse_id = req.user?.user_id;
-  const ReqId = req.params.ReqId; // ID của yêu cầu uống thuốc
+  const ReqId = req.params.ReqId;
   const { status } = req.body;
 
-  // 1. Kiểm tra nếu không có status được gửi lên
   if (!status) {
     return res.status(400).json({
       status: "fail",
@@ -23,6 +33,7 @@ const updateStatusMedicationDailyLog = async (req, res, next) => {
 
   try {
     const pool = await sqlServerPool;
+
     if (!["GIVEN", "NOT GIVEN"].includes(status)) {
       return res.status(400).json({
         status: "fail",
@@ -30,12 +41,14 @@ const updateStatusMedicationDailyLog = async (req, res, next) => {
       });
     }
 
-    // 2. Kiểm tra xem nhật ký có tồn tại với id_req không
+    // Kiểm tra log
     const checkLog = await pool
       .request()
       .input("id_req", sql.Int, ReqId)
       .input("nurse_id", sql.Int, nurse_id)
-      .query("SELECT id_req FROM Medication_Daily_Log WHERE id_req = @id_req AND nurse_id = @nurse_id");
+      .query(
+        "SELECT id_req FROM Medication_Daily_Log WHERE id_req = @id_req AND nurse_id = @nurse_id"
+      );
 
     if (checkLog.recordset.length === 0) {
       return res.status(404).json({
@@ -44,47 +57,63 @@ const updateStatusMedicationDailyLog = async (req, res, next) => {
       });
     }
 
-    // 3. Cập nhật trạng thái và thời gian cập nhật
+    // Cập nhật trạng thái và thời gian
     await pool
       .request()
       .input("id_req", sql.Int, ReqId)
       .input("status", sql.NVarChar, status)
-      .input("updated_at", sql.DateTime, new Date()).query(` 
+      .input("updated_at", sql.DateTime, normalizeDateVN(new Date())).query(`
         UPDATE Medication_Daily_Log 
         SET status = @status, 
             updated_at = @updated_at 
         WHERE id_req = @id_req
       `);
 
-    const parentId = await pool
-      .request()
-      .input("id_req", sql.Int, ReqId)
-      .query(`SELECT parent_id FROM Medication_Submisstion_Request WHERE id_req = @id_req`);
+    // Lấy thông tin phụ huynh
+    const parentInfo = await pool.request().input("id_req", sql.Int, ReqId)
+      .query(`
+        SELECT u.user_id AS parent_id, u.email, u.full_name
+        FROM Medication_Submisstion_Request r
+        JOIN Users u ON r.parent_id = u.user_id
+        WHERE r.id_req = @id_req
+      `);
 
-    if (status === "GIVEN") {
-      sendNotification(
-        pool,
-        parentId.recordset[0].parent_id,
-        "Cập nhật trạng thái uống thuốc",
-        "Y tá đã cập nhật trạng thái uống thuốc cho học sinh"
-      );
-    } else if (status === "NOT GIVEN") {
-      sendNotification(
-        pool,
-        parentId.recordset[0].parent_id,
-        "Cập nhật trạng thái uống thuốc",
-        "Y tá đã cập nhật trạng thái chưa cho học sinh uống thuốc"
-      );
+    const parent = parentInfo.recordset[0];
+    if (!parent) {
+      return res.status(404).json({
+        status: "fail",
+        message: "Parent information not found",
+      });
     }
 
-    // 4. Trả về phản hồi thành công
-    res.status(200).json({
+    let notifyTitle = "Cập nhật trạng thái uống thuốc";
+    let notifyMessage = "";
+    let emailSubject = "📢 Thông báo cập nhật uống thuốc";
+    let emailContent = "";
+
+    if (status === "GIVEN") {
+      notifyMessage = "Y tá đã xác nhận học sinh đã được uống thuốc.";
+      emailContent = `Kính gửi quý phụ huynh ${parent.full_name},\n\nY tá đã cập nhật rằng học sinh đã được uống thuốc đúng theo yêu cầu trong hôm nay.\n\nTrân trọng,\nBan Y Tế Nhà Trường.`;
+    } else if (status === "NOT GIVEN") {
+      notifyMessage = "Y tá đã cập nhật rằng học sinh chưa được uống thuốc.";
+      emailContent = `Kính gửi quý phụ huynh ${parent.full_name},\n\nHệ thống ghi nhận rằng học sinh chưa được uống thuốc theo yêu cầu trong hôm nay.\nVui lòng liên hệ với y tế nhà trường nếu cần hỗ trợ thêm.\n\nTrân trọng,\nBan Y Tế Nhà Trường.`;
+    }
+
+    // Gửi thông báo
+    await sendNotification(pool, parent.parent_id, notifyTitle, notifyMessage);
+
+    // Gửi email
+    if (parent.email) {
+      await sendEmail(parent.email, emailSubject, emailContent);
+    }
+
+    return res.status(200).json({
       status: "success",
       message: "Medication Daily Log status updated successfully",
     });
   } catch (error) {
     console.error("Error updating Medication Daily Log status:", error);
-    res.status(500).json({
+    return res.status(500).json({
       status: "error",
       message: "Server error while updating Medication Daily Log status",
     });
@@ -96,63 +125,57 @@ const checkUnupdatedMedicationLogs = async () => {
   try {
     const pool = await sqlServerPool;
 
-    // Truy vấn lấy tất cả nhật ký hôm nay có status là 'PENDING' và chưa có ảnh, sau 18:00
     const result = await pool.request().query(`
       SELECT 
-          log.log_id,
-          log.date,
-          log.status,
-          log.image_url,
-          req.parent_id,
-          u.full_name AS parent_name,
-          u.email AS parent_email
+        log.log_id,
+        log.date,
+        log.status,
+        log.image_url,
+        req.parent_id,
+        u.full_name AS parent_name,
+        u.email AS parent_email
       FROM Medication_Daily_Log log
       JOIN Medication_Submisstion_Request req ON log.id_req = req.id_req
       JOIN Users u ON req.parent_id = u.user_id
       WHERE 
-          log.date = CAST(GETDATE() AS DATE) -- chỉ lấy bản ghi hôm nay
-          AND log.status = 'PENDING'         -- y tá chưa cập nhật trạng thái
-          AND log.image_url IS NULL          -- chưa có ảnh xác nhận
-          AND CAST(GETDATE() AS TIME) > '18:00:00' -- chỉ gửi sau 6 giờ tối
+        log.date = CAST(GETDATE() AS DATE)
+        AND log.status = 'PENDING'
+        AND log.image_url IS NULL
+        AND CAST(GETDATE() AS TIME) > '18:00:00'
     `);
 
-    const logs = result.recordset; // Danh sách kết quả truy vấn
+    const logs = result.recordset;
 
-    // Lặp qua từng bản ghi để gửi email
     for (const log of logs) {
-      const subject = "🔔 Cảnh báo: Chưa cập nhật nhật ký uống thuốc";
+      const { parent_email, parent_name, parent_id, date } = log;
 
-      const message =
-        `Kính gửi phụ huynh ${log.parent_name},\n\n` +
-        `Y tá hiện chưa cập nhật trạng thái và ảnh xác nhận cho học sinh vào ngày ${log.date}.\n` +
-        `Vui lòng kiểm tra hoặc liên hệ với y tá nếu cần thiết.\n
-        \nTrân trọng,
-        \nPIEDTEAM 👨‍⚕️`;
+      const emailSubject =
+        "Thông tin cập nhật liên quan đến nhật ký uống thuốc";
+      const emailContent =
+        `Kính gửi quý phụ huynh ${parent_name},\n\n` +
+        `Chúng tôi xin thông báo rằng hiện tại y tá vẫn chưa cập nhật trạng thái và hình ảnh xác nhận việc uống thuốc cho học sinh vào ngày ${date}.\n\n` +
+        `Nếu quý phụ huynh có bất kỳ thắc mắc nào, xin vui lòng liên hệ với y tá hoặc nhà trường để được hỗ trợ.\n\n` +
+        `Trân trọng,\nBan Y Tế Nhà Trường`;
 
-      // Gửi email cho phụ huynh
-      await sendEmail(log.parent_email, subject, message);
+      const notifyTitle = "Thông tin nhật ký uống thuốc chưa được cập nhật";
+      const notifyMessage =
+        "Nhật ký uống thuốc của học sinh hôm nay hiện chưa được cập nhật trạng thái và hình ảnh xác nhận từ y tá.";
+
+      if (parent_email) {
+        await sendEmail(parent_email, emailSubject, emailContent);
+      }
+
+      if (parent_id) {
+        await sendNotification(pool, parent_id, notifyTitle, notifyMessage);
+      }
     }
 
-    // Ghi log sau khi xử lý xong
-    console.log(`✅ Đã gửi thông báo cho ${logs.length} phụ huynh.`);
+    console.log(`📩 Đã gửi thông báo nhắc nhở cho ${logs.length} phụ huynh.`);
   } catch (error) {
-    // Xử lý lỗi
-    console.error("❌ Lỗi khi kiểm tra nhật ký thuốc:", error);
+    console.error("⚠️ Lỗi khi gửi thông báo nhắc nhở nhật ký thuốc:", error);
   }
 };
 
-<<<<<<< HEAD
-// Hàm lấy nhật ký uống thuốc theo ID yêu cầu và ID y tá
-const getLogsByRequestIdAndNurse = async (req, res) => {
-  const { id_req, nurse_id } = req.query;
-  const pool = await sqlServerPool;
-
-  try {
-    const result = await pool
-      .request()
-      .input("id_req", sql.Int, id_req)
-      .input("nurse_id", sql.Int, nurse_id).query(`
-=======
 // Hàm lấy nhật ký uống thuốc theo ID yêu cầu
 const getLogsByRequestIdAndUserId = async (req, res) => {
   const user_id = req.user?.user_id;
@@ -160,8 +183,10 @@ const getLogsByRequestIdAndUserId = async (req, res) => {
   const pool = await sqlServerPool;
 
   try {
-    const result = await pool.request().input("id_req", sql.Int, id_req).input("nurse_id", sql.Int, user_id).query(`
->>>>>>> e86cea7 (parent page)
+    const result = await pool
+      .request()
+      .input("id_req", sql.Int, id_req)
+      .input("nurse_id", sql.Int, user_id).query(`
         SELECT 
           log.*,
           stu.full_name,
@@ -173,11 +198,7 @@ const getLogsByRequestIdAndUserId = async (req, res) => {
         JOIN Medication_Submisstion_Request req ON log.id_req = req.id_req
         JOIN Student_Information stu ON req.student_id = stu.student_id
         JOIN Users u ON req.parent_id = u.user_id
-<<<<<<< HEAD
-        WHERE log.id_req = @id_req AND req.nurse_id = @nurse_id
-=======
         WHERE log.id_req = @id_req AND u.user_id = @user_id
->>>>>>> e86cea7 (parent page)
         ORDER BY log.date ASC;
       `);
 
@@ -188,8 +209,6 @@ const getLogsByRequestIdAndUserId = async (req, res) => {
   }
 };
 
-<<<<<<< HEAD
-=======
 // Hàm lấy nhật ký uống thuốc theo ID yêu cầu
 const getLogsByRequestIdAndUserIdAndStudentId = async (req, res) => {
   const user_id = req.user?.user_id;
@@ -233,7 +252,6 @@ const getLogsByRequestIdAndUserIdAndStudentId = async (req, res) => {
   }
 };
 
->>>>>>> e86cea7 (parent page)
 // Hàm lấy nhật ký uống thuốc theo ID nhật ký
 const getLogByLogId = async (req, res) => {
   const { log_id } = req.params; // ví dụ: /api/logs/1l;
@@ -267,8 +285,8 @@ const getLogByLogId = async (req, res) => {
 
 // Hàm lấy nhật ký uống thuốc theo ngày và ID y tá
 const getLogsByDateAndNurse = async (req, res) => {
-<<<<<<< HEAD
-  const { date, nurse_id } = req.query;
+  const nurse_id = req.user?.user_id;
+  const { date } = req.body;
   const pool = await sqlServerPool;
 
   try {
@@ -276,14 +294,6 @@ const getLogsByDateAndNurse = async (req, res) => {
       .request()
       .input("log_date", sql.Date, date)
       .input("nurse_id", sql.Int, nurse_id).query(`
-=======
-  const nurse_id = req.user?.user_id;
-  const { date } = req.body;
-  const pool = await sqlServerPool;
-
-  try {
-    const result = await pool.request().input("log_date", sql.Date, date).input("nurse_id", sql.Int, nurse_id).query(`
->>>>>>> e86cea7 (parent page)
         SELECT 
           log.*,
           stu.full_name,
@@ -310,14 +320,8 @@ const getLogsByDateAndNurse = async (req, res) => {
 module.exports = {
   updateStatusMedicationDailyLog,
   checkUnupdatedMedicationLogs,
-<<<<<<< HEAD
-  getLogsByRequestIdAndNurse,
-  getLogByLogId,
-  getLogsByDateAndNurse,
-=======
   getLogsByRequestIdAndUserId,
   getLogByLogId,
   getLogsByDateAndNurse,
   getLogsByRequestIdAndUserIdAndStudentId,
->>>>>>> e86cea7 (parent page)
 };

@@ -5,7 +5,9 @@ function validateInput(schemaDefinitions, schemaName) {
     const schema = schemaDefinitions[schemaName];
 
     if (!schema) {
-      return res.status(400).json({ status: "fail", message: "Schema not found." });
+      return res
+        .status(400)
+        .json({ status: "fail", message: "Schema not found." });
     }
 
     for (const key in schema) {
@@ -17,7 +19,10 @@ function validateInput(schemaDefinitions, schemaName) {
         continue;
       }
 
-      if (!required && (value === undefined || value === null || value === "")) {
+      if (
+        !required &&
+        (value === undefined || value === null || value === "")
+      ) {
         continue;
       }
 
@@ -39,14 +44,30 @@ function validateInput(schemaDefinitions, schemaName) {
             for (const prop in items.properties) {
               const propDef = items.properties[prop];
               const propValue = item[prop];
-              if (propDef.required && (propValue === undefined || propValue === null || propValue === "")) {
+              if (
+                propDef.required &&
+                (propValue === undefined ||
+                  propValue === null ||
+                  propValue === "")
+              ) {
                 errors.push(`Missing field: ${key}[${index}].${prop}`);
               } else if (!isValidType(propValue, propDef.type)) {
-                errors.push(`Invalid type in ${key}[${index}].${prop}. Expected ${propDef.type}.`);
+                errors.push(
+                  `Invalid type in ${key}[${index}].${prop}. Expected ${propDef.type}.`
+                );
               }
             }
           });
+        } else if (items && items.type !== "object") {
+          value.forEach((item, index) => {
+            if (!isValidType(item, items.type)) {
+              errors.push(
+                `Invalid type in ${key}[${index}]. Expected ${items.type}.`
+              );
+            }
+          });
         }
+
         continue; // ✅ Đã kiểm tra xong array, bỏ qua kiểm tra thường
       }
 
@@ -55,7 +76,10 @@ function validateInput(schemaDefinitions, schemaName) {
       }
     }
 
-    if (data.email && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(data.email)) {
+    if (
+      data.email &&
+      !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(data.email)
+    ) {
       errors.push("Invalid email format.");
     }
 
@@ -91,7 +115,9 @@ function isValidType(value, type) {
     case "array":
       return Array.isArray(value);
     case "object":
-      return typeof value === "object" && !Array.isArray(value) && value !== null;
+      return (
+        typeof value === "object" && !Array.isArray(value) && value !== null
+      );
     default:
       return false;
   }

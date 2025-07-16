@@ -54,16 +54,26 @@ const StudentInformation = {
   gender: { type: "string", required: true },
   day_of_birth: { type: "date", required: true },
   class_name: { type: "string", required: true },
-  address: { type: "string", required: true },
-  parent_name: { type: "string", required: true },
+  parent_id: { type: "int", required: true },
 };
 
 const MedicalSubmissionRequest = {
   student_id: { type: "int", required: true },
-  status: { type: "string", required: true, enum: ["DECLINED", "ACCEPTED"], default: "PENDING" },
+  status: {
+    type: "string",
+    required: true,
+    enum: ["DECLINED", "ACCEPTED"],
+    default: "PENDING",
+  },
   nurse_id: { type: "int", required: false },
   note: { type: "string", required: false },
-  image_url: { type: "string", required: true },
+  image_urls: {
+    type: "array",
+    required: true,
+    items: {
+      type: "string",
+    },
+  },
   start_date: { type: "date", required: true },
   end_date: { type: "date", required: true },
 };
@@ -87,7 +97,7 @@ const MedicalIncidentSchema = {
   status: {
     type: "string",
     required: true,
-    enum: ["NEW", "IN_PROGRESS", "RESOLVED", "MONITORING"],
+    enum: ["IN_PROGRESS", "RESOLVED", "MONITORING"],
   },
   description_detail: { type: "string", required: true },
   resolution_notes: { type: "string", required: false },

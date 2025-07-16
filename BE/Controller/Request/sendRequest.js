@@ -1,18 +1,11 @@
 const sql = require("mssql");
 const sqlServerPool = require("../../Utils/connectMySql");
 const sendNotification = require("../../Utils/sendNotification");
+const sendEmail = require("../../Utils/mailer");
 
 const sendRequest = async (req, res, next) => {
   try {
-    const {
-      full_name,
-      email,
-      phone,
-      req_type,
-      title,
-      text,
-      target_role_id
-    } = req.body;
+    const { full_name, email, phone, req_type, title, text, target_role_id } = req.body;
 
     // 1. Kiểm tra đầu vào
     if (!full_name || !email || !phone || !req_type || !title || !text || !target_role_id) {
@@ -25,10 +18,7 @@ const sendRequest = async (req, res, next) => {
     const pool = await sqlServerPool;
 
     // 2. Xác thực người dùng
-    const userCheck = await pool
-      .request()
-      .input("full_name", sql.NVarChar, full_name)
-      .query(`
+    const userCheck = await pool.request().input("full_name", sql.NVarChar, full_name).query(`
         SELECT TOP 1 email, phone
         FROM Users
         WHERE LOWER(fullname) = LOWER(@full_name)
@@ -63,8 +53,7 @@ const sendRequest = async (req, res, next) => {
       .input("req_type", sql.VarChar, req_type)
       .input("text", sql.NVarChar, text)
       .input("status", sql.VarChar, "ĐANG XỬ LÝ")
-      .input("target_role_id", sql.Int, target_role_id)
-      .query(`
+      .input("target_role_id", sql.Int, target_role_id).query(`
         INSERT INTO UserRequest (fullname, email, phone, title, req_type, text, status, target_role_id)
         VALUES (@fullname, @email, @phone, @title, @req_type, @text, @status, @target_role_id)
       `);
@@ -76,15 +65,30 @@ const sendRequest = async (req, res, next) => {
       .query("SELECT user_id FROM Users WHERE role_id = @role_id");
 
     for (const { user_id } of result.recordset) {
+      const emailUser = await pool
+        .request()
+        .input("user_id", sql.Int, user_id)
+        .query("SELECT email FROM Users WHERE user_id = @user_id");
+
       await sendNotification(
         pool,
         user_id,
         `Yêu cầu mới: ${title}`,
         `
-Yêu cầu từ ${full_name}:
-- Loại: ${req_type}
-- Tiêu đề: ${title}
-- Nội dung: ${text}
+        Yêu cầu từ ${full_name}:
+        - Loại: ${req_type}
+        - Tiêu đề: ${title}
+        - Nội dung: ${text}
+        `.trim()
+      );
+      await sendEmail(
+        emailUser.recordset[0].email,
+        `Yêu cầu mới: ${title}`,
+        `
+        Yêu cầu từ ${full_name}:
+        - Loại: ${req_type}
+        - Tiêu đề: ${title}
+        - Nội dung: ${text}
         `.trim()
       );
     }
@@ -94,7 +98,6 @@ Yêu cầu từ ${full_name}:
       status: "success",
       message: "Yêu cầu đã được gửi và thông báo đã được gửi đến đúng vai trò.",
     });
-
   } catch (error) {
     console.error("❌ Lỗi xử lý yêu cầu:", error);
     res.status(500).json({
@@ -105,5 +108,5 @@ Yêu cầu từ ${full_name}:
 };
 
 module.exports = {
-  sendRequest
+  sendRequest,
 };

@@ -1,6 +1,7 @@
 const sql = require("mssql");
 const sqlServerPool = require("../../Utils/connectMySql");
 const sendNotification = require("../../Utils/sendNotification");
+const sendEmail = require("../../Utils/mailer");
 
 const createVaccinationCampaign = async (req, res) => {
   try {
@@ -174,14 +175,34 @@ const responseVaccinationCampaign = async (req, res) => {
                   INSERT INTO Vaccination_Consent_Form (student_id, parent_id, campaign_id, status, submitted_at)
                   VALUES (@student_id, @parent_id, @campaign_id, 'PENDING', NULL)
                 `);
+        // Notify all parents about the approved campaign
+        await sendNotification(
+          pool,
+          stu.parent_id,
+          "Cần xác nhận lịch tiêm chủng",
+          `Vui lòng xác nhận lịch tiêm chủng cho học sinh lớp ${className}.`
+        );
+
+        // const emailResult = await pool
+        //   .request()
+        //   .input("user_id", sql.Int, stu.parent_id)
+        //   .query("SELECT email FROM Users WHERE user_id = @user_id");
+
+        // if (
+        //   emailResult.recordset.length > 0 &&
+        //   emailResult.recordset[0].email &&
+        //   emailResult.recordset[0].email.trim() !== ""
+        // ) {
+        //   await sendEmail(
+        //     emailResult.recordset[0].email,
+        //     "Cần xác nhận lịch tiêm chủng",
+        //     `Vui lòng xác nhận lịch tiêm chủng cho học sinh lớp ${className}.`
+        //   );
+        // } else {
+        //   console.warn(`⚠️ Không tìm thấy email cho parent_id: ${stu.parent_id}`);
+        // }
       }
-      // Notify all parents about the approved campaign
-      await sendNotification(
-        pool,
-        stu.parent_id,
-        "Cần xác nhận lịch tiêm chủng",
-        `Vui lòng xác nhận lịch tiêm chủng cho học sinh lớp ${className}.`
-      );
+      res.status(200).json({ message: "Vaccination campaign approved" });
     }
   } catch (error) {
     console.error("Error updating vaccination campaign status:", error);
