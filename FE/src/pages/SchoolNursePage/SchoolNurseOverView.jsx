@@ -168,6 +168,14 @@ export default function NurseDashboardPage() {
   const campaigns = useSelector((state) => state.vaccination.campaigns);
   const examinations = useSelector((state) => state.examination.records);
 
+  // Lấy trạng thái loading từ các slice
+  const studentLoading = useSelector((state) => state.studentRecord.loading);
+  const incidentsLoading = useSelector((state) => state.medicalIncidents.loading);
+  const suppliesLoading = useSelector((state) => state.medicalSupplies.loading);
+  const vaccinationLoading = useSelector((state) => state.vaccination.loading);
+  const examinationLoading = useSelector((state) => state.examination.loading);
+  const loading = studentLoading || incidentsLoading || suppliesLoading || vaccinationLoading || examinationLoading;
+
   // State cho các số liệu tổng quan (có thể lấy từ API nếu cần)
   const [summary] = useState({
     totalStudentsChange: 0,
@@ -205,7 +213,6 @@ export default function NurseDashboardPage() {
 
   const [studentHealthAlerts] = useState([]);
   
-  const [loading] = useState(false);
 
   const renderLoadingState = () => (
     <div className="text-center py-8 flex flex-col items-center justify-center gap-4" style={fontFamily}>
@@ -214,7 +221,9 @@ export default function NurseDashboardPage() {
     </div>
   );
 
-  return (
+  return loading ? (
+    renderLoadingState()
+  ) : (
     <div
       className="min-h-screen p-6 bg-fixed"
       style={{
@@ -467,7 +476,7 @@ export default function NurseDashboardPage() {
                           return (
                             <List.Item
                               style={{
-                            
+                              
                                 marginBottom: 12,
                                 background: '#fff',
                                 cursor: 'pointer',
