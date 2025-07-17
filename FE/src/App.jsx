@@ -71,17 +71,21 @@ function App() {
   const dispatch = useDispatch();
   const token = localStorage.getItem("accessToken");
 
+  // Gom các dispatch fetch vào một hàm riêng
+  const fetchInitialData = () => {
+    dispatch(fetchAllVaccineCampaigns());
+    dispatch(fetchAllStudentHealthRecords());
+    dispatch(fetchMedicalSupplies());
+    dispatch(fetchAllMedicalIncidents({ page: 1, limit: 10 }));
+    dispatch(fetchAllHealthExaminations());
+    dispatch(fetchManagerNotifications({ page: 1, limit: 10 }));
+    dispatch(fetchNurseNotifications());
+  };
+
   useEffect(() => {
     dispatch(initializeAuth());
     if (token) {
-      // Fetch all initial data if logged in
-      dispatch(fetchAllVaccineCampaigns());
-      dispatch(fetchAllStudentHealthRecords());
-      dispatch(fetchMedicalSupplies());
-      dispatch(fetchAllMedicalIncidents({ page: 1, limit: 10 }));
-      dispatch(fetchAllHealthExaminations());
-      dispatch(fetchManagerNotifications({ page: 1, limit: 10 }));
-      dispatch(fetchNurseNotifications());
+      fetchInitialData();
     }
   }, [dispatch, token]);
 

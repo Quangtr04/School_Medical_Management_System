@@ -196,7 +196,7 @@ export default function Vaccination() {
     return campaigns.filter((item) => {
       if (!item || !item.scheduled_date || item.approval_status !== "APPROVED") return false;
       // So sánh fullname của người tạo với user.fullname
-      if (!user || !item.fullname || item.fullname !== user.fullname) return false;
+      // if (!user || !item.fullname || item.fullname !== user.fullname) return false;
       const parsedDate = parseISO(item.scheduled_date);
       return (
         isAfter(parsedDate, today) ||
@@ -442,11 +442,18 @@ export default function Vaccination() {
       align: "center",
       render: (status) => {
         let color = "default";
-        if (status === "APPROVED") color = "green";
-        else if (status === "PENDING") color = "orange";
-        else if (status === "REJECTED") color = "red";
-
-        return <Tag color={color}>{status || "Chưa xác định"}</Tag>;
+        let text = "Chưa xác định";
+        if (status === "APPROVED") {
+          color = "green";
+          text = "Đã duyệt";
+        } else if (status === "PENDING") {
+          color = "orange";
+          text = "Đang chờ";
+        } else if (status === "REJECTED") {
+          color = "red";
+          text = "Từ chối";
+        }
+        return <Tag color={color}>{text}</Tag>;
       },
       className: "!text-gray-700 !font-medium",
     },
