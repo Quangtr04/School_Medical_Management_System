@@ -37,6 +37,7 @@ import {
   FiBox,
 } from "react-icons/fi";
 import { format, parseISO, isWithinInterval, startOfDay, addDays } from "date-fns";
+import { vi } from "date-fns/locale";
 import { NavLink } from "react-router-dom";
 import { IoWarningOutline } from "react-icons/io5";
 import { useSelector } from "react-redux";
@@ -52,10 +53,7 @@ const cardNeumorph = {
   border: "1.5px solid #e0f0ff",
   transition: "box-shadow 0.2s, transform 0.2s",
 };
-const cardNeumorphHover = {
-  boxShadow: "0 8px 32px #b3d8ff",
-  transform: "translateY(-4px) scale(1.02)",
-};
+
 
 const statIconStyle = {
   borderRadius: "50%",
@@ -148,6 +146,21 @@ function getUpcomingAppointments(campaigns, examinations) {
   );
 }
 
+// Hàm format ngày tháng theo tiếng Việt
+const formatDateVN = (dateString) => {
+  if (!dateString) return "";
+  return format(parseISO(dateString), "dd MMMM, yyyy HH:mm", { locale: vi });
+};
+
+// Hàm kiểm tra trạng thái sức khỏe bình thường
+const isNormalHealthStatus = (status) => {
+  if (!status) return false;
+  const normalized = status.toLowerCase().trim();
+  return [
+    "bình thường", "tốt", "bình thu?ng", "t?t", "healthy"
+  ].includes(normalized);
+};
+
 export default function NurseDashboardPage() {
   const children = useSelector((state) => state.studentRecord.healthRecords);
   const medicalIncidents = useSelector((state) => state.medicalIncidents.records);
@@ -164,19 +177,34 @@ export default function NurseDashboardPage() {
     nearlyExpiredSuppliesChange: 0,
   });
 
-  const countDangerHealthStatus = useMemo(() =>
+  // State cho phân trang cảnh báo sức khỏe học sinh
+  const [studentHealthPage, setStudentHealthPage] = useState(1);
+  const pageSize = 5;
+
+  // Lọc học sinh có vấn đề sức khỏe
+  const studentWithDangerHealth = useMemo(() =>
     children.filter((child) => {
-      const status = child.health?.health_status?.toLowerCase().trim();
-      return status !== "khỏe mạnh" && status !== "healthy";
-    }).length,
+      const status = child.health?.health_status;
+      return !isNormalHealthStatus(status);
+    }),
     [children]
   );
+
+  // Dữ liệu phân trang cho cảnh báo sức khỏe học sinh
+  const paginatedStudentWithDangerHealth = useMemo(() => {
+    const start = (studentHealthPage - 1) * pageSize;
+    return studentWithDangerHealth.slice(start, start + pageSize);
+  }, [studentWithDangerHealth, studentHealthPage]);
+
+  console.log(studentWithDangerHealth);
+  
 
   const lowOrExpiredSupplies = useMemo(() => getLowOrExpiredSupplies(medicalSupplies), [medicalSupplies]);
   const recentMedicalIncidents = useMemo(() => getRecentMedicalIncidents(medicalIncidents), [medicalIncidents]);
   const upcomingAppointments = useMemo(() => getUpcomingAppointments(campaigns, examinations), [campaigns, examinations]);
 
   const [studentHealthAlerts] = useState([]);
+  
   const [loading] = useState(false);
 
   const renderLoadingState = () => (
@@ -233,7 +261,7 @@ export default function NurseDashboardPage() {
               <Col xs={24} sm={12} lg={6}>
                 <Tooltip title="Tổng số học sinh trong trường">
                   <Card
-                    className="stat-card hover:shadow-xl hover:scale-105 transition-all duration-200"
+                    className="stat-card"
                     style={cardNeumorph}
                     bodyStyle={{ padding: 24 }}
                   >
@@ -254,7 +282,7 @@ export default function NurseDashboardPage() {
               <Col xs={24} sm={12} lg={6}>
                 <Tooltip title="Số học sinh có vấn đề sức khỏe">
                   <Card
-                    className="stat-card hover:shadow-xl hover:scale-105 transition-all duration-200"
+                    className="stat-card"
                     style={cardNeumorph}
                     bodyStyle={{ padding: 24 }}
                   >
@@ -264,7 +292,7 @@ export default function NurseDashboardPage() {
                       </div>
                       <div className="text-center">
                         <div className="text-gray-700 text-base font-medium mb-1" >Học sinh có vấn đề sức khỏe</div>
-                        <div className="text-gray-900 text-3xl font-bold leading-none" style={fontFamily}>{countDangerHealthStatus}</div>
+                        <div className="text-gray-900 text-3xl font-bold leading-none" style={fontFamily}>{studentWithDangerHealth.length}</div>
                         <PercentageChange value={summary.studentsWithHealthIssuesChange} />
                       </div>
                     </div>
@@ -275,7 +303,7 @@ export default function NurseDashboardPage() {
               <Col xs={24} sm={12} lg={6}>
                 <Tooltip title="Tổng số sự cố y tế đã ghi nhận">
                   <Card
-                    className="stat-card hover:shadow-xl hover:scale-105 transition-all duration-200"
+                    className="stat-card"
                     style={cardNeumorph}
                     bodyStyle={{ padding: 24 }}
                   >
@@ -296,7 +324,7 @@ export default function NurseDashboardPage() {
               <Col xs={24} sm={12} lg={6}>
                 <Tooltip title="Số vật tư y tế hết hoặc sắp hết hạn">
                   <Card
-                    className="stat-card hover:shadow-xl hover:scale-105 transition-all duration-200"
+                    className="stat-card"
                     style={cardNeumorph}
                     bodyStyle={{ padding: 24 }}
                   >
@@ -332,8 +360,7 @@ export default function NurseDashboardPage() {
                       Lịch khám và lịch tiêm chủng sắp tới
                     </span>
                   }
-                  className="!rounded-lg !shadow-md !border !border-gray-200 hover:shadow-xl hover:scale-105 transition-all duration-200"
-                  style={cardNeumorph}
+                  className="!rounded-lg !shadow-md !border !border-gray-200"
                   bodyStyle={{ padding: 24 }}
                 >
                   {upcomingAppointments.length > 0 ? (
@@ -353,7 +380,7 @@ export default function NurseDashboardPage() {
                             description={
                               <div className="flex items-center gap-2 text-gray-600" style={fontFamily}>
                                 <CalendarOutlined />
-                                {format(parseISO(item.appointmentTime), "dd MMM, yyyy HH:mm")}
+                                {formatDateVN(item.appointmentTime)}
                                 <Tag color={item.type === "Tiêm chủng" ? "blue" : "green"} className="uppercase">
                                   {item.type}
                                 </Tag>
@@ -377,7 +404,7 @@ export default function NurseDashboardPage() {
                       <FiAlertTriangle className="text-red-600" /> Các sự cố y khoa gần đây
                     </span>
                   }
-                  className="!rounded-lg !shadow-md !border !border-gray-200 hover:shadow-xl hover:scale-105 transition-all duration-200"
+                  className="!rounded-lg !shadow-md !border !border-gray-200"
                   style={cardNeumorph}
                   bodyStyle={{ padding: 24 }}
                   extra={
@@ -399,7 +426,7 @@ export default function NurseDashboardPage() {
                               <div className="flex flex-col text-gray-600 gap-1" style={fontFamily}>
                                 <div className="flex items-center gap-2">
                                   <CalendarOutlined />
-                                  {format(parseISO(item.incidentTime), "dd MMM, yyyy HH:mm")}
+                                  {formatDateVN(item.incidentTime)}
                                   <Tag color="red">{item.severity}</Tag>
                                 </div>
                                 <div>💊 {item.medication_used}</div>
@@ -422,34 +449,84 @@ export default function NurseDashboardPage() {
                       <FiBell className="text-orange-500" /> Cảnh báo sức khỏe học sinh
                     </span>
                   }
-                  className="!rounded-lg !shadow-md !border !border-gray-200 hover:shadow-xl hover:scale-105 transition-all duration-200"
+                  className="!rounded-lg !shadow-md !border !border-gray-200"
                   style={cardNeumorph}
                   bodyStyle={{ padding: 24 }}
-                  extra={
-                    <Button type="link" className="!text-orange-500" href="/nurse/health-alerts" style={fontFamily}>
-                      Xem tất cả <RightOutlined />
-                    </Button>
-                  }
                 >
-                  {studentHealthAlerts.length > 0 ? (
-                    <List
-                      itemLayout="horizontal"
-                      dataSource={studentHealthAlerts}
-                      renderItem={(item) => (
-                        <List.Item>
-                          <List.Item.Meta
-                            avatar={<Avatar icon={<ExclamationCircleOutlined />} style={{ backgroundColor: '#faad14', color: '#fff' }} />}
-                            title={<Text strong className="text-gray-900" style={fontFamily}>{item.studentName} - {item.alertType}</Text>}
-                            description={
-                              <div className="flex items-center gap-2 text-gray-600" style={fontFamily}>
-                                <Text className="text-gray-700" style={fontFamily}>{item.details}</Text>
-                                <Tag color="orange">Mức độ ưu tiên: {item.priority}</Tag>
-                              </div>
-                            }
-                          />
-                        </List.Item>
-                      )}
-                    />
+                  {studentWithDangerHealth.length > 0 ? (
+                    <>
+                      <List
+                        itemLayout="horizontal"
+                        dataSource={paginatedStudentWithDangerHealth}
+                        renderItem={(item) => {
+                          // Xác định màu tag cho health_status
+                          let healthColor = 'orange';
+                          const status = item.health?.health_status?.toLowerCase() || '';
+                          if (["bình thường", "tốt", "bình thu?ng", "t?t", "healthy"].includes(status)) healthColor = 'green';
+                          if (["nguy kịch", "nguy hiểm", "critical", "danger"].includes(status)) healthColor = 'red';
+                          return (
+                            <List.Item
+                              style={{
+                            
+                                marginBottom: 12,
+                                background: '#fff',
+                                cursor: 'pointer',
+                                width: "100%",
+                              }}
+                              className="hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
+                            >
+                              <List.Item.Meta
+                                avatar={<Avatar icon={<ExclamationCircleOutlined />} style={{ backgroundColor: '#faad14', color: '#fff', fontSize: 22 }} size={48} />}
+                                title={
+                                  <Text strong className="text-gray-900" style={{ ...fontFamily, fontSize: 20 }}>
+                                    {item.student_name}
+                                  </Text>
+                                }
+                                description={
+                                  <div className="flex flex-col gap-1 text-gray-600" style={fontFamily}>
+                                    <div className="flex items-center gap-2">
+                                      <span role="img" aria-label="school">🏫</span>
+                                      <b>Lớp:</b> <span className="ml-1">{item.class_name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <CalendarOutlined style={{ color: '#1890ff' }} />
+                                      <b>Ngày sinh:</b> <span className="ml-1">{formatDateVN(item.student_date_of_birth)}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <b>Trạng thái sức khỏe:</b>
+                                      <Tag color={healthColor} style={{ fontWeight: 500, fontSize: 15, borderRadius: 8, marginLeft: 4 }}>
+                                        {item.health?.health_status ===  "C?n theo dõi" ?  "Cần theo dõi" : "N/A"}
+                                      </Tag>
+                                    </div>
+                                  </div>
+                                }
+                              />
+                            </List.Item>
+                          );
+                        }}
+                      />
+                      
+                      {/* Phân trang */}
+                      <div className="flex justify-center mt-4">
+                        <Button
+                          disabled={studentHealthPage === 1}
+                          onClick={() => setStudentHealthPage((p) => p - 1)}
+                          style={{ marginRight: 8 }}
+                        >
+                          Trang trước
+                        </Button>
+                        <span style={{ lineHeight: '32px', minWidth: 60, textAlign: 'center' }}>
+                          Trang {studentHealthPage} / {Math.ceil(studentWithDangerHealth.length / pageSize)}
+                        </span>
+                        <Button
+                          disabled={studentHealthPage >= Math.ceil(studentWithDangerHealth.length / pageSize)}
+                          onClick={() => setStudentHealthPage((p) => p + 1)}
+                          style={{ marginLeft: 8 }}
+                        >
+                          Trang sau
+                        </Button>
+                      </div>
+                    </>
                   ) : (
                     <Empty description="Không có cảnh báo sức khỏe học sinh" image={Empty.PRESENTED_IMAGE_SIMPLE} />
                   )}

@@ -25,8 +25,8 @@ export const respondToCheckupRequest = createAsyncThunk(
       await api.post(`/manager/checkups/${requestId}/respond`, {
         status: action,
       });
-      toast.success(`Đã ${action === "APPROVED" ? "duyệt" : "từ chối"} yêu cầu khám!`);
-      dispatch(fetchPendingCheckupRequests());
+      await new Promise(res => setTimeout(res, 800));
+      await dispatch(fetchPendingCheckupRequests());
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || "Không thể xử lý yêu cầu khám.");
     }
@@ -40,7 +40,7 @@ export const fetchPendingVaccineCampaigns = createAsyncThunk(
     try {
       const response = await api.get("/manager/vaccine-campaigns-pending");
       console.log(response.data);
-
+      
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || "Không thể tải danh sách chiến dịch tiêm chủng.");
@@ -56,8 +56,8 @@ export const respondToVaccineRequest = createAsyncThunk(
       await api.post(`/manager/vaccine-campaigns/${campaign_id}/respond`, {
         status: action,
       });
-      toast.success(`Đã ${action === "APPROVED" ? "duyệt" : "từ chối"} chiến dịch tiêm!`);
-      dispatch(fetchPendingVaccineCampaigns());
+     await new Promise(res => setTimeout(res, 800));
+      await dispatch(fetchPendingVaccineCampaigns());
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || "Không thể xử lý yêu cầu chiến dịch tiêm.");
     }
@@ -168,10 +168,13 @@ const managerSlice = createSlice({
       .addCase(fetchPendingVaccineCampaigns.rejected, (state, action) => {
         state.loadingVaccineCampaigns = false;
         state.vaccineCampaignError = action.payload;
+        
+
+        // Nếu lỗi khác, giữ nguyên mảng cũ
       })
 
       // --- Respond Vaccine Campaign ---
-      .addCase(respondToVaccineRequest.rejected, (state, action) => {
+      .addCase(respondToVaccineRequest.rejected, (state, action) => {        
         toast.error(action.payload);
       })
 
