@@ -43,6 +43,7 @@ import { IoWarningOutline } from "react-icons/io5";
 import { useSelector } from "react-redux";
 import { FaSyringe, FaStethoscope } from "react-icons/fa";
 import { TbNurse } from "react-icons/tb";
+import { useNavigate } from "react-router-dom";
 
 const { Title, Text } = Typography;
 
@@ -174,7 +175,10 @@ export default function NurseDashboardPage() {
   const suppliesLoading = useSelector((state) => state.medicalSupplies.loading);
   const vaccinationLoading = useSelector((state) => state.vaccination.loading);
   const examinationLoading = useSelector((state) => state.examination.loading);
+
   const loading = studentLoading || incidentsLoading || suppliesLoading || vaccinationLoading || examinationLoading;
+
+const navigate = useNavigate();
 
   // State cho các số liệu tổng quan (có thể lấy từ API nếu cần)
   const [summary] = useState({
@@ -468,6 +472,7 @@ export default function NurseDashboardPage() {
                         itemLayout="horizontal"
                         dataSource={paginatedStudentWithDangerHealth}
                         renderItem={(item) => {
+                          
                           // Xác định màu tag cho health_status
                           let healthColor = 'orange';
                           const status = item.health?.health_status?.toLowerCase() || '';
@@ -490,7 +495,9 @@ export default function NurseDashboardPage() {
                                   <Text strong className="text-gray-900" style={{ ...fontFamily, fontSize: 20 }}>
                                     {item.student_name}
                                   </Text>
+                                  
                                 }
+
                                 description={
                                   <div className="flex flex-col gap-1 text-gray-600" style={fontFamily}>
                                     <div className="flex items-center gap-2">
@@ -509,6 +516,7 @@ export default function NurseDashboardPage() {
                                     </div>
                                   </div>
                                 }
+                                onClick={() => navigate(`/nurse/students-record/${item.student_id}`)}
                               />
                             </List.Item>
                           );
