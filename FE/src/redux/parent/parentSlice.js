@@ -221,15 +221,13 @@ export const getParentProfile = createAsyncThunk(
 
 export const updateParentProfile = createAsyncThunk(
   "parent/updateProfile",
-  async ({ profileData, token }, { rejectWithValue }) => {
+  async (profileData, { rejectWithValue }) => {
     try {
       console.log("Sending profile update with data:", profileData);
       console.log("To endpoint: /parent/profile");
 
-      const response = await api.patch("/parent/profile", {
-        profileData,
-        token,
-      });
+      // Đảm bảo dữ liệu được gửi đúng định dạng mà BE mong đợi
+      const response = await api.patch("/parent/profile", profileData);
 
       console.log("Update response:", response);
       return response.data;

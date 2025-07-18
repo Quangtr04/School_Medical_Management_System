@@ -2,7 +2,11 @@ import axios from "axios";
 
 // Create API instance
 const api = axios.create({
+<<<<<<< HEAD
   baseURL: "http://192.168.101.8:3000/api",
+=======
+  baseURL: "http://192.168.1.188:3000/api",
+>>>>>>> 3d5961f (upload file)
   headers: {
     "Content-Type": "application/json",
   },

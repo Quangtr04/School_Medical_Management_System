@@ -102,7 +102,6 @@ function MedicineRequestPage() {
 
   // Fetch all medication requests on mount
   useEffect(() => {
-    console.log("Fetching all medication requests...");
     // Truyền accessToken vào thunk nếu cần cho việc xác thực
     dispatch(getAllMedicationRequest({ accessToken })).unwrap();
   }, [dispatch, accessToken]); // Thêm accessToken vào dependencies
@@ -114,7 +113,7 @@ function MedicineRequestPage() {
   }, [dispatch, user]);
 
   useEffect(() => {
-    console.log("Children data:", children);
+    // Removed console.log
   }, [children]);
 
   // Handle success from API for new submission
@@ -246,11 +245,6 @@ function MedicineRequestPage() {
   };
 
   const handleSubmit = async (values) => {
-    console.log("=== FORM SUBMIT DEBUG ===");
-    console.log("Form values:", values);
-    console.log("FileList state:", fileList);
-    console.log("Prescription from form:", values.prescription);
-
     let startDate, endDate;
 
     if (dateType === "single") {
@@ -280,8 +274,6 @@ function MedicineRequestPage() {
       ?.map((file) => file.originFileObj)
       .filter((file) => !!file);
 
-    console.log("Extracted files:", files);
-
     if (!files || files.length === 0) {
       toast.error("Vui lòng chọn ít nhất một ảnh đơn thuốc.");
       return;
@@ -300,14 +292,8 @@ function MedicineRequestPage() {
     });
 
     setSubmitting(true);
-    console.log(formData);
 
     try {
-      console.log("---- FormData Content ----");
-      for (let [key, value] of formData.entries()) {
-        console.log(`${key}:`, value);
-      }
-
       await dispatch(submitMedicationRequest(formData));
       toast.success("Gửi yêu cầu thành công!");
     } catch (error) {
@@ -467,7 +453,6 @@ function MedicineRequestPage() {
 
   // Hàm xử lý hiển thị chi tiết yêu cầu thuốc
   const viewMedicationDetails = async (record) => {
-    console.log("Viewing details for record:", record);
     const reqId = record.id_req; // Đảm bảo dùng đúng trường ID
 
     if (reqId) {
@@ -485,7 +470,6 @@ function MedicineRequestPage() {
 
         // unwrap() sẽ xử lý cả fulfilled và rejected
         const details = resultAction; // resultAction.payload chính là dữ liệu trả về từ thunk nếu thành công
-        console.log("Medication request details:", details);
 
         if (details) {
           setSelectedMedicationRequest(details);
@@ -497,38 +481,32 @@ function MedicineRequestPage() {
         console.error("Error fetching medication request details:", err);
         setModalError(err.message || "Lỗi không xác định khi tải chi tiết.");
         toast.error(
-          `Không thể tải chi tiết yêu cầu thuốc: ${
-            err.message || "Lỗi không xác định"
-          }`
+          "Không thể tải chi tiết yêu cầu: " +
+            (err.message || "Vui lòng thử lại sau.")
         );
       } finally {
-        setModalLoading(false); // Kết thúc loading
+        setModalLoading(false); // Kết thúc loading cho modal
       }
-    } else {
-      toast.warn("Không tìm thấy ID yêu cầu thuốc.");
     }
   };
 
   const openGiveMedicineModal = async (medicationRequest) => {
-    console.log("Viewing details for record:", medicationRequest);
-    const reqId = medicationRequest.id_req; // Đảm bảo dùng đúng trường ID
+    const reqId = medicationRequest.id_req;
 
     if (reqId) {
       setModalLoading(true);
       setModalError(null);
-      setSelectedMedicationRequest(null);
+      setCurrentMedicationForGiving(null);
 
       try {
         const resultAction = await dispatch(
-          getMedicationDailyLog({
+          getMedicationRequestDetail({
             id_req: reqId,
             accessToken: localStorage.getItem("accessToken"),
-            studentId: medicationRequest.student_id,
           })
         ).unwrap();
 
         const details = resultAction;
-        console.log("Medication request details:", details);
 
         if (details) {
           setCurrentMedicationForGiving(details);
@@ -537,18 +515,14 @@ function MedicineRequestPage() {
           toast.warn("Không tìm thấy chi tiết yêu cầu thuốc.");
         }
       } catch (err) {
-        console.error("Error fetching medication request details:", err);
-        setModalError(err.message || "Lỗi không xác định khi tải chi tiết.");
+        console.error("Error fetching medication details:", err);
         toast.error(
-          `Không thể tải chi tiết yêu cầu thuốc: ${
-            err.message || "Lỗi không xác định"
-          }`
+          "Không thể tải chi tiết yêu cầu: " +
+            (err.message || "Vui lòng thử lại sau.")
         );
       } finally {
-        setModalLoading(false); // Kết thúc loading
+        setModalLoading(false);
       }
-    } else {
-      toast.warn("Không tìm thấy ID yêu cầu thuốc.");
     }
   };
 
