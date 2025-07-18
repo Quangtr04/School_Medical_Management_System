@@ -585,9 +585,29 @@ export default function NurseManagementPage() {
                   required: true,
                   message: "Vui lòng chọn Ngày tháng năm sinh!",
                 },
+                {
+                  validator: (_, value) => {
+                    if (!value) return Promise.resolve();
+
+                    const today = dayjs();
+                    const age = today.diff(value, "year");
+
+                    if (age < 20) {
+                      return Promise.reject("Y tá phải đủ 20 tuổi trở lên");
+                    }
+                    return Promise.resolve();
+                  },
+                },
               ]}
             >
-              <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
+              <DatePicker
+                style={{ width: "100%" }}
+                format="YYYY-MM-DD"
+                disabledDate={(current) => {
+                  // Disable dates less than 19 years ago (nurse must be at least 19 years old)
+                  return current && current > dayjs().subtract(19, "year");
+                }}
+              />
             </Form.Item>
 
             {/* Major */}
