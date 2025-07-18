@@ -51,10 +51,12 @@ import ChildrenInfoPage from "./pages/ParentPage/ChildrenInfoPage";
 import HealthRecordsPage from "./pages/ParentPage/HealthRecordsPage";
 import VaccinationsPage from "./pages/ParentPage/VaccinationsPage";
 import MedicineRequestPage from "./pages/ParentPage/MedicineRequestPage";
+import AppointmentRequestPage from "./pages/ParentPage/AppointmentRequestPage";
 import ParentProfilePage from "./pages/ParentPage/ParentProfilePage";
 import ParentNotificationsPage from "./pages/ParentPage/ParentNotificationsPage";
 import MedicalIncidentsPage from "./pages/ParentPage/MedicalIncidentsPage";
 import ParentCheckUp from "./pages/ParentPage/ParentCheckUp";
+import SupportRequestPage from "./pages/ParentPage/SupportRequestPage";
 
 // Shared
 import RoleProtectedRoute from "./RoleProtectedRoute";
@@ -127,8 +129,14 @@ function App() {
       >
         <Route index element={<SchoolNurseOverView />} />
         <Route path="students-record" element={<StudentRecordPage />} />
-        <Route path="students-record/:id" element={<StudentRecordPageDetail />} />
-        <Route path="medical-supplies" element={<SchoolNurseMedicalSupplyPage />} />
+        <Route
+          path="students-record/:id"
+          element={<StudentRecordPageDetail />}
+        />
+        <Route
+          path="medical-supplies"
+          element={<SchoolNurseMedicalSupplyPage />}
+        />
         <Route path="medical-incidents" element={<MedicalIncident />} />
         <Route path="vaccinations" element={<Vaccinations />} />
         <Route path="checkups" element={<Examinations />} />
@@ -148,7 +156,10 @@ function App() {
         }
       >
         <Route index element={<ManagerOverViewPage />} />
-        <Route path="appoinment-apporve" element={<ManagerApprovalRequestsPage />} />
+        <Route
+          path="appoinment-apporve"
+          element={<ManagerApprovalRequestsPage />}
+        />
       </Route>
 
       {/* Parent Routes */}
@@ -167,9 +178,14 @@ function App() {
         <Route path="health-records" element={<HealthRecordsPage />} />
         <Route path="vaccinations" element={<VaccinationsPage />} />
         <Route path="medicine-request" element={<MedicineRequestPage />} />
+        <Route
+          path="appointment-request"
+          element={<AppointmentRequestPage />}
+        />
         <Route path="notifications" element={<ParentNotificationsPage />} />
         <Route path="medical-incidents" element={<MedicalIncidentsPage />} />
         <Route path="checkup" element={<ParentCheckUp />} />
+        <Route path="support-request" element={<SupportRequestPage />} />
       </Route>
 
       {/* Catch-all route for unmatched paths (404) */}

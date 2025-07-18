@@ -6,34 +6,53 @@ const sendNotification = require("../../Utils/sendNotification");
 // Thêm một vật tư y tế mới
 const medicalSupply = async (req, res, next) => {
   const medicalSupplyData = req.body; // Dữ liệu vật tư được gửi từ client
+  const nurse_id = req.user?.user_id; // Lấy nurse_id từ user đã xác thực
+
+  if (!nurse_id) {
+    return res.status(401).json({
+      status: "fail",
+      message: "Unauthorized: Nurse ID is required",
+    });
+  }
+
   const pool = await sqlServerPool;
 
-  // Thực hiện thêm bản ghi vào bảng Medical_Supply
-  const result = await pool
-    .request()
-    .input("name", sql.NVarChar, medicalSupplyData.name)
-    .input("type", sql.NVarChar, medicalSupplyData.type)
-    .input("unit", sql.NVarChar, medicalSupplyData.unit)
-    .input("quantity", sql.Int, medicalSupplyData.quantity)
-    .input("description", sql.NVarChar, medicalSupplyData.description)
-    .input("expired_date", sql.Date, medicalSupplyData.expired_date)
-    .input("is_active", sql.Bit, medicalSupplyData.is_active)
-    .input("usage_note", sql.NVarChar, medicalSupplyData.usage_note)
-    .query(
-      `INSERT INTO Medical_Supply (name, type, unit, quantity, description, expired_date, is_active, usage_note)
-       VALUES (@name, @type, @unit, @quantity, @description, @expired_date, @is_active, @usage_note)`
-    );
+  try {
+    // Thực hiện thêm bản ghi vào bảng Medical_Supply
+    const result = await pool
+      .request()
+      .input("name", sql.NVarChar, medicalSupplyData.name)
+      .input("type", sql.NVarChar, medicalSupplyData.type)
+      .input("unit", sql.NVarChar, medicalSupplyData.unit)
+      .input("quantity", sql.Int, medicalSupplyData.quantity)
+      .input("description", sql.NVarChar, medicalSupplyData.description || "")
+      .input("expired_date", sql.Date, medicalSupplyData.expired_date)
+      .input("is_active", sql.Bit, medicalSupplyData.is_active)
+      .input("nurse_id", sql.Int, nurse_id) // Thêm nurse_id từ user đã xác thực
+      .input("usage_note", sql.NVarChar, medicalSupplyData.usage_note || "")
+      .query(
+        `INSERT INTO Medical_Supply (name, type, unit, quantity, description, expired_date, is_active, nurse_id, usage_note)
+         VALUES (@name, @type, @unit, @quantity, @description, @expired_date, @is_active, @nurse_id, @usage_note)`
+      );
 
-  // Kiểm tra kết quả và trả về phản hồi
-  if (result.rowsAffected.length > 0) {
-    res.status(200).json({
-      status: "success",
-      message: "Medical supply added successfully",
-    });
-  } else {
-    res.status(400).json({
-      status: "fail",
-      message: "Failed to add medical supply",
+    // Kiểm tra kết quả và trả về phản hồi
+    if (result.rowsAffected.length > 0) {
+      res.status(200).json({
+        status: "success",
+        message: "Medical supply added successfully",
+      });
+    } else {
+      res.status(400).json({
+        status: "fail",
+        message: "Failed to add medical supply",
+      });
+    }
+  } catch (error) {
+    console.error("Error adding medical supply:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Server error while adding medical supply",
+      error: error.message,
     });
   }
 };
@@ -131,7 +150,12 @@ const getNearExpiryMedicalSupplies = async (req, res, next) => {
     `);
 
     for (let nur of nurse_id.recordset) {
-      await sendNotification(pool, nur.user_id, "Thuốc sắp hết hạn", `Vật tư y tế sắp hết hạn`);
+      await sendNotification(
+        pool,
+        nur.user_id,
+        "Thuốc sắp hết hạn",
+        `Vật tư y tế sắp hết hạn`
+      );
     }
 
     res.status(200).json({

@@ -3,7 +3,6 @@ const sqlServerPool = require("../../Utils/connectMySql");
 const sendNotification = require("../../Utils/sendNotification");
 const sendEmail = require("../../Utils/mailer");
 
-
 // Hàm chuẩn hóa ngày về múi giờ Việt Nam (GMT+7)
 function normalizeDateVN(dateInput) {
   let date;
@@ -37,10 +36,12 @@ const medicationSubmissionReq = async (req, res, next) => {
       .input("note", sql.NVarChar, medicationSubmissionReqData.note)
       .input("image_url", sql.NVarChar, imageUrlsString)
       .input("start_date", sql.Date, medicationSubmissionReqData.start_date)
-      .input("end_date", sql.Date, medicationSubmissionReqData.end_date).query(`
+      .input("end_date", sql.Date, medicationSubmissionReqData.end_date)
+      .input("nurse_id", sql.Int, medicationSubmissionReqData.nurse_id || 3) // Default to nurse_id = 3 if not provided
+      .query(`
         INSERT INTO Medication_Submisstion_Request 
         (parent_id, student_id, status, created_at, note, image_url, start_date, end_date, nurse_id)
-        VALUES (@parent_id, @student_id, @status, @created_at, @note, @image_url, @start_date, @end_date, null)
+        VALUES (@parent_id, @student_id, @status, @created_at, @note, @image_url, @start_date, @end_date, @nurse_id)
       `);
 
     if (result.rowsAffected[0] > 0) {

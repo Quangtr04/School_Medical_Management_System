@@ -72,33 +72,55 @@ const adminUpdateUserById = async (req, res, next) => {
 
 const parentUpdateUserById = async (req, res, next) => {
   const userId = req.user?.user_id;
-  const { address, major } = req.body;
+  const { fullname, email, phone, address, gender, dayOfBirth } = req.body;
   const pool = await sqlServerPool;
 
   try {
+    // Validate that required fields are present
+    if (!address) {
+      return res.status(400).json({ error: "Address is required" });
+    }
+
+    // Update user information
     const result = await pool
       .request()
       .input("userId", sql.Int, userId)
-      .input("address", sql.VarChar, address)
-      .input("major", sql.VarChar, major)
+      .input("address", sql.NVarChar(500), address)
+      .input("phone", sql.VarChar, phone || null)
+      .input("email", sql.VarChar, email || null)
+      .input("fullname", sql.NVarChar(100), fullname || null)
+      .input("gender", sql.NVarChar(10), gender || null)
+      .input("dayOfBirth", sql.Date, dayOfBirth || null)
       .query(
-        "UPDATE Users SET address = @address, major = @major WHERE user_id = @userId"
+        "UPDATE Users SET address = @address, phone = @phone, email = @email, fullname = @fullname, gender = @gender, dayOfBirth = @dayOfBirth WHERE user_id = @userId"
       );
 
     if (result.rowsAffected[0] > 0) {
+      // Also update student information address if this user is a parent
       await pool
         .request()
         .input("userId", sql.Int, userId)
+        .input("address", sql.NVarChar(500), address)
         .query(
           "UPDATE Student_Information SET address = @address WHERE parent_id = @userId"
         );
-      res.status(200).json({ message: "User updated successfully" });
+      
+      // Return success with updated user data
+      const userData = await pool
+        .request()
+        .input("userId", sql.Int, userId)
+        .query("SELECT * FROM Users WHERE user_id = @userId");
+        
+      res.status(200).json({ 
+        message: "User updated successfully",
+        data: userData.recordset[0]
+      });
     } else {
       res.status(404).json({ error: "User not found" });
     }
   } catch (error) {
     console.error("Error updating user:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: "Internal server error", details: error.message });
   }
 };
 

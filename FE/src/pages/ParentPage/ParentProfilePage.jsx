@@ -119,8 +119,8 @@ export default function ParentProfilePage() {
           updatedChild.gender === "Male"
             ? "Nam"
             : updatedChild.gender === "Female"
-              ? "Nữ"
-              : updatedChild.gender || "",
+            ? "Nữ"
+            : updatedChild.gender || "",
         date_of_birth:
           updatedChild.date_of_birth || updatedChild.student_date_of_birth
             ? moment(
@@ -158,8 +158,8 @@ export default function ParentProfilePage() {
           child.gender === "Male"
             ? "Nam"
             : child.gender === "Female"
-              ? "Nữ"
-              : child.gender || "",
+            ? "Nữ"
+            : child.gender || "",
         date_of_birth:
           child.date_of_birth || child.student_date_of_birth
             ? moment(child.date_of_birth || child.student_date_of_birth)
@@ -267,8 +267,8 @@ export default function ParentProfilePage() {
                 child.gender === "Male"
                   ? "Nam"
                   : child.gender === "Female"
-                    ? "Nữ"
-                    : child.gender || "";
+                  ? "Nữ"
+                  : child.gender || "";
 
               const updatedChild = {
                 ...child,
@@ -640,12 +640,21 @@ export default function ParentProfilePage() {
       console.log("save values:", formValues);
       const token = localStorage.getItem("accessToken");
 
+      // Validate the address field
+      if (!formValues.address || formValues.address.trim() === "") {
+        message.error({
+          content: "Địa chỉ không được để trống!",
+          key: "updateProfile",
+        });
+        return;
+      }
+
       // Format lại ngày tháng nếu có
       const formattedValues = {
         fullname: formValues.fullname,
         email: formValues.email,
         phone: formValues.phone,
-        address: formValues.address,
+        address: formValues.address.trim(), // Ensure address is trimmed
         gender: formValues.gender,
         dayOfBirth: formValues.dayOfBirth
           ? formValues.dayOfBirth.format("YYYY-MM-DD")
@@ -694,8 +703,25 @@ export default function ParentProfilePage() {
       }
     } catch (error) {
       console.error("Save error:", error);
+      let errorMessage = "Lỗi khi cập nhật thông tin";
+
+      if (error.response) {
+        console.error("Error response:", error.response.data);
+        if (
+          error.response.data &&
+          error.response.data.error === "Address is required"
+        ) {
+          errorMessage = "Địa chỉ là bắt buộc";
+        } else {
+          errorMessage =
+            error.response.data?.message ||
+            error.response.data?.error ||
+            `Lỗi máy chủ: ${error.response.status}`;
+        }
+      }
+
       message.error({
-        content: "Lỗi khi cập nhật thông tin",
+        content: errorMessage,
         key: "updateProfile",
       });
     }
@@ -852,9 +878,9 @@ export default function ParentProfilePage() {
               mergedChild.gender === "Male" || mergedChild.gender === "male"
                 ? "Nam"
                 : mergedChild.gender === "Female" ||
-                    mergedChild.gender === "female"
-                  ? "Nữ"
-                  : mergedChild.gender || "";
+                  mergedChild.gender === "female"
+                ? "Nữ"
+                : mergedChild.gender || "";
 
             // Create a properly structured child object with all required fields
             const processedChild = {
@@ -899,8 +925,8 @@ export default function ParentProfilePage() {
               child.gender === "Male" || child.gender === "male"
                 ? "Nam"
                 : child.gender === "Female" || child.gender === "female"
-                  ? "Nữ"
-                  : child.gender || "";
+                ? "Nữ"
+                : child.gender || "";
 
             // Create a properly structured child object with all required fields
             const processedChild = {
