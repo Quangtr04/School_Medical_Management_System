@@ -29,11 +29,6 @@ const getVaccinationCampaignById = async (req, res) => {
             SELECT VC.*, U.fullname FROM Vaccination_Campaign VC JOIN Users U ON VC.created_by = U.user_id
             WHERE VC.campaign_id = @id
         `);
-    // If the campaign does not exist, return 404
-    if (check.recordset.length === 0) {
-      return res.status(404).json({ message: "Vaccination campaign not found" });
-    }
-    // Return the campaign details
     res.status(200).json(check.recordset[0]);
   } catch (error) {
     console.error("Error getting vaccination campaign:", error);
@@ -49,11 +44,6 @@ const getVaccinationCampaignPending = async (req, res) => {
             SELECT VC.*, U.fullname FROM Vaccination_Campaign VC JOIN Users U ON VC.created_by = U.user_id 
             WHERE VC.approval_status = 'PENDING'
         `);
-    // If the campaign does not exist, return 404
-    if (check.recordset.length === 0) {
-      return res.status(404).json({ message: "No pending vaccination campaigns found" });
-    }
-    // Return the pending campaigns
     res.status(200).json(check.recordset);
   } catch (error) {
     console.error("Error getting vaccination campaign:", error);
@@ -64,16 +54,10 @@ const getVaccinationCampaignPending = async (req, res) => {
 const getVaccinationCampaignApprove = async (req, res) => {
   try {
     const pool = await sqlServerPool;
-    // Check if the campaign exists
     const check = await pool.request().query(`
             SELECT VC.*, U.fullname FROM Vaccination_Campaign VC JOIN Users U ON VC.created_by = U.user_id 
             WHERE VC.approval_status = 'APPROVED'
         `);
-    // If the campaign does not exist, return 404
-    if (check.recordset.length === 0) {
-      return res.status(404).json({ message: "No pending vaccination campaigns found" });
-    }
-    // Return the pending campaigns
     res.status(200).json(check.recordset);
   } catch (error) {
     console.error("Error getting vaccination campaign:", error);
@@ -89,11 +73,6 @@ const getVaccinationCampaignDeclined = async (req, res) => {
             SELECT VC.*, U.fullname FROM Vaccination_Campaign VC JOIN Users U ON VC.created_by = U.user_id 
             WHERE VC.approval_status = 'DECLINED'
         `);
-    // If the campaign does not exist, return 404
-    if (check.recordset.length === 0) {
-      return res.status(404).json({ message: "No pending vaccination campaigns found" });
-    }
-    // Return the pending campaigns
     res.status(200).json(check.recordset);
   } catch (error) {
     console.error("Error getting vaccination campaign:", error);
