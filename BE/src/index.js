@@ -22,7 +22,6 @@ const corsOptions = {
     "http://192.168.1.160:5173",
     "http://172.20.10.4:5173",
     "http://172.20.10.2:5173",
-
   ],
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   optionsSuccessStatus: 204,
@@ -56,7 +55,9 @@ app.listen(port, "0.0.0.0", () => {
     .flat()
     .forEach((iface) => {
       if (iface.family === "IPv4" && !iface.internal) {
-        console.log(`🌐 Server may be accessible via: http://${iface.address}:${port}`);
+        console.log(
+          `🌐 Server may be accessible via: http://${iface.address}:${port}`
+        );
       }
     });
 

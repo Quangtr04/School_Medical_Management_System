@@ -69,26 +69,29 @@ export default function ReportsPage() {
   const dispatch = useDispatch();
 
   // Lấy dữ liệu từ Redux store
-  const studentRecords = useSelector(state => state.studentRecord.healthRecords);
-  const medicalIncidents = useSelector(state => state.medicalIncidents.records);
-  const vaccineCampaigns = useSelector(state => state.vaccination.campaigns);
-  const healthExaminations = useSelector(state => state.examination.records);
-
-
+  const studentRecords = useSelector(
+    (state) => state.studentRecord.healthRecords
+  );
+  const medicalIncidents = useSelector(
+    (state) => state.medicalIncidents.records
+  );
+  const vaccineCampaigns = useSelector((state) => state.vaccination.campaigns);
+  const healthExaminations = useSelector((state) => state.examination.records);
 
   //studentRecords
   const healthStatus = Array.from(
-    new Set(studentRecords?.map(child => child?.health?.health_status).filter(Boolean))
+    new Set(
+      studentRecords
+        ?.map((child) => child?.health?.health_status)
+        .filter(Boolean)
+    )
   );
   const healthStatusData = healthStatus.map(
-    status => studentRecords.filter(child => child?.health?.health_status === status).length
+    (status) =>
+      studentRecords.filter((child) => child?.health?.health_status === status)
+        .length
   );
 
-
-  
-  
-  
-  
   // Gom fetch API vào 1 hàm duy nhất
   const fetchReportData = useCallback(async () => {
     setLoading(true);
@@ -371,11 +374,10 @@ export default function ReportsPage() {
                 >
                   <div className="flex-grow flex items-center justify-center">
                     <Pie
-                    width={300}
-                    height={300}
+                      width={300}
+                      height={300}
                       data={studentHealthData}
                       options={studentHealthOptions}
-          
                     />
                   </div>
                 </Card>
@@ -386,11 +388,16 @@ export default function ReportsPage() {
                 <Card
                   title={
                     <span className="flex items-center gap-2 text-gray-800 font-semibold">
-                      <BarChartOutlined className="text-red-500" /> 🚑 Sự cố y tế trong trường
+                      <BarChartOutlined className="text-red-500" /> 🚑 Sự cố y
+                      tế trong trường
                     </span>
                   }
                   className="!rounded-lg !shadow-md !border !border-gray-200 h-96 flex flex-col"
-                  extra={<span className="text-xs text-gray-500">Thống kê số lượng sự cố, sơ cứu, chuyển viện</span>}
+                  extra={
+                    <span className="text-xs text-gray-500">
+                      Thống kê số lượng sự cố, sơ cứu, chuyển viện
+                    </span>
+                  }
                 >
                   <div className="flex-grow flex items-center justify-center">
                     {/* Placeholder: Replace with real chart/data */}
@@ -401,7 +408,12 @@ export default function ReportsPage() {
                           {
                             label: "Số sự cố",
                             data: [8, 3, 1, 2],
-                            backgroundColor: ["#F87171", "#FBBF24", "#60A5FA", "#A78BFA"],
+                            backgroundColor: [
+                              "#F87171",
+                              "#FBBF24",
+                              "#60A5FA",
+                              "#A78BFA",
+                            ],
                           },
                         ],
                       }}
@@ -420,7 +432,8 @@ export default function ReportsPage() {
                 <Card
                   title={
                     <span className="flex items-center gap-2 text-gray-800 font-semibold">
-                      <PieChartOutlined className="text-green-500" /> 💉 Các đợt tiêm chủng đã tiến hành
+                      <PieChartOutlined className="text-green-500" /> 💉 Các đợt
+                      tiêm chủng đã tiến hành
                     </span>
                   }
                   className="!rounded-lg !shadow-md !border !border-gray-200 h-96 flex flex-col"
@@ -455,17 +468,29 @@ export default function ReportsPage() {
                 <Card
                   title={
                     <span className="flex items-center gap-2 text-gray-800 font-semibold">
-                      <LineChartOutlined className="text-blue-600" /> 🩻 Khám sức khỏe định kỳ
+                      <LineChartOutlined className="text-blue-600" /> 🩻 Khám sức
+                      khỏe định kỳ
                     </span>
                   }
                   className="!rounded-lg !shadow-md !border !border-gray-200 h-96 flex flex-col"
-                  extra={<span className="text-xs text-gray-500">Số lượng học sinh đã khám, phát hiện vấn đề qua khám</span>}
+                  extra={
+                    <span className="text-xs text-gray-500">
+                      Số lượng học sinh đã khám, phát hiện vấn đề qua khám
+                    </span>
+                  }
                 >
                   <div className="flex-grow flex items-center justify-center">
                     {/* Placeholder: Replace with real chart/data */}
                     <Line
                       data={{
-                        labels: ["Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6"],
+                        labels: [
+                          "Tháng 1",
+                          "Tháng 2",
+                          "Tháng 3",
+                          "Tháng 4",
+                          "Tháng 5",
+                          "Tháng 6",
+                        ],
                         datasets: [
                           {
                             label: "Đã khám",
@@ -498,11 +523,16 @@ export default function ReportsPage() {
                 <Card
                   title={
                     <span className="flex items-center gap-2 text-gray-800 font-semibold">
-                      <BarChartOutlined className="text-green-600" /> 🏫 Phân bố BMI theo khối lớp
+                      <BarChartOutlined className="text-green-600" /> 🏫 Phân bố
+                      BMI theo khối lớp
                     </span>
                   }
                   className="mb-6 !rounded-lg !shadow-md !border !border-gray-200 h-96 flex flex-col"
-                  extra={<span className="text-xs text-gray-500">Tỷ lệ học sinh thiếu cân, bình thường, thừa cân, béo phì</span>}
+                  extra={
+                    <span className="text-xs text-gray-500">
+                      Tỷ lệ học sinh thiếu cân, bình thường, thừa cân, béo phì
+                    </span>
+                  }
                 >
                   <div className="flex-grow flex items-center justify-center">
                     <Bar data={bmiData} options={bmiOptions} />
@@ -516,47 +546,85 @@ export default function ReportsPage() {
               {/* Medicine & Supplies */}
               <Col xs={24} lg={8}>
                 <Card
-                  title={<span className="flex items-center gap-2 text-gray-800 font-semibold"><FilePdfOutlined className="text-blue-500" /> 💊 Quản lý thuốc & vật tư</span>}
+                  title={
+                    <span className="flex items-center gap-2 text-gray-800 font-semibold">
+                      <FilePdfOutlined className="text-blue-500" /> 💊 Quản lý
+                      thuốc & vật tư
+                    </span>
+                  }
                   className="!rounded-lg !shadow-md !border !border-gray-200 h-60 flex flex-col"
-                  extra={<span className="text-xs text-gray-500">Số lượng thuốc, vật tư đã sử dụng, tồn kho</span>}
+                  extra={
+                    <span className="text-xs text-gray-500">
+                      Số lượng thuốc, vật tư đã sử dụng, tồn kho
+                    </span>
+                  }
                 >
                   <div className="flex flex-col items-center justify-center h-full">
                     {/* Placeholder: Replace with real data */}
-                    <p className="text-lg font-semibold text-green-600">Tồn kho: 120 hộp thuốc, 50 băng gạc</p>
-                    <p className="text-sm text-gray-500">Đã sử dụng tháng này: 30 hộp thuốc, 10 băng gạc</p>
+                    <p className="text-lg font-semibold text-green-600">
+                      Tồn kho: 120 hộp thuốc, 50 băng gạc
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Đã sử dụng tháng này: 30 hộp thuốc, 10 băng gạc
+                    </p>
                   </div>
                 </Card>
               </Col>
               {/* Prescription Requests */}
               <Col xs={24} lg={8}>
                 <Card
-                  title={<span className="flex items-center gap-2 text-gray-800 font-semibold"><FilePdfOutlined className="text-pink-500" /> 📝 Đơn thuốc & chăm sóc đặc biệt</span>}
+                  title={
+                    <span className="flex items-center gap-2 text-gray-800 font-semibold">
+                      <FilePdfOutlined className="text-pink-500" /> 📝 Đơn thuốc
+                      & chăm sóc đặc biệt
+                    </span>
+                  }
                   className="!rounded-lg !shadow-md !border !border-gray-200 h-60 flex flex-col"
-                  extra={<span className="text-xs text-gray-500">Số đơn thuốc, học sinh cần uống thuốc tại trường</span>}
+                  extra={
+                    <span className="text-xs text-gray-500">
+                      Số đơn thuốc, học sinh cần uống thuốc tại trường
+                    </span>
+                  }
                 >
                   <div className="flex flex-col items-center justify-center h-full">
                     {/* Placeholder: Replace with real data */}
-                    <p className="text-lg font-semibold text-blue-600">Đơn thuốc tháng này: 12</p>
-                    <p className="text-sm text-gray-500">Học sinh cần uống thuốc tại trường: 5</p>
+                    <p className="text-lg font-semibold text-blue-600">
+                      Đơn thuốc tháng này: 12
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Học sinh cần uống thuốc tại trường: 5
+                    </p>
                   </div>
                 </Card>
               </Col>
               {/* Health Education */}
               <Col xs={24} lg={8}>
                 <Card
-                  title={<span className="flex items-center gap-2 text-gray-800 font-semibold"><FilePdfOutlined className="text-yellow-500" /> 📢 Truyền thông & giáo dục sức khỏe</span>}
+                  title={
+                    <span className="flex items-center gap-2 text-gray-800 font-semibold">
+                      <FilePdfOutlined className="text-yellow-500" /> 📢 Truyền
+                      thông & giáo dục sức khỏe
+                    </span>
+                  }
                   className="!rounded-lg !shadow-md !border !border-gray-200 h-60 flex flex-col"
-                  extra={<span className="text-xs text-gray-500">Các buổi truyền thông, giáo dục sức khỏe đã tổ chức</span>}
+                  extra={
+                    <span className="text-xs text-gray-500">
+                      Các buổi truyền thông, giáo dục sức khỏe đã tổ chức
+                    </span>
+                  }
                 >
                   <div className="flex flex-col items-center justify-center h-full">
                     {/* Placeholder: Replace with real data */}
-                    <p className="text-lg font-semibold text-purple-600">Số buổi truyền thông: 3</p>
-                    <p className="text-sm text-gray-500">Chủ đề: Vệ sinh cá nhân, phòng chống dịch, dinh dưỡng</p>
+                    <p className="text-lg font-semibold text-purple-600">
+                      Số buổi truyền thông: 3
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Chủ đề: Vệ sinh cá nhân, phòng chống dịch, dinh dưỡng
+                    </p>
                   </div>
                 </Card>
               </Col>
             </Row>
-          
           </>
         )}
       </div>

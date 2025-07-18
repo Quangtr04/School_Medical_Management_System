@@ -18,7 +18,9 @@ const {
   getCheckupById,
   getCheckupListPending,
 } = require("../Controller/CheckUp/getCheckup");
-const { getNotifications } = require("../Controller/Notification/getNotification");
+const {
+  getNotifications,
+} = require("../Controller/Notification/getNotification");
 const {
   createMedicalIncident,
   getAllIncidents,
@@ -40,15 +42,22 @@ const {
   getVaccinationCampaignApprove,
   getVaccinationCampaignDeclined,
 } = require("../Controller/Vaccine/getVaccineCampaign");
-const { createVaccinationCampaign } = require("../Controller/Vaccine/VaccineController");
+const {
+  createVaccinationCampaign,
+} = require("../Controller/Vaccine/VaccineController");
 const {
   getStudentVaccineList,
   getStudentVaccineListById,
   updateResultVaccine,
   getStudentVaccineListByCampaignId,
 } = require("../Controller/Vaccine/UpdateVaccineResult");
-const { getAllStudentInfo, getStudentInfoById } = require("../Controller/Infomation/getInformation");
-const { updateHealthDeclarationByStudentId } = require("../Controller/Health/healthDeclaration");
+const {
+  getAllStudentInfo,
+  getStudentInfoById,
+} = require("../Controller/Infomation/getInformation");
+const {
+  updateHealthDeclarationByStudentId,
+} = require("../Controller/Health/healthDeclaration");
 const { getProfileByUserId } = require("../Controller/Infomation/getUser");
 const { parentUpdateUserById } = require("../Controller/Login/account_status");
 const {
@@ -62,7 +71,10 @@ const {
   getLogsByRequestIdAndUserIdAndStudentId,
 } = require("../Controller/Medical/medicationDailyLog");
 
-const { getLogByLogId, getLogsByDateAndNurse } = require("../Controller/Medical/medicationDailyLog");
+const {
+  getLogByLogId,
+  getLogsByDateAndNurse,
+} = require("../Controller/Medical/medicationDailyLog");
 
 const nurseRouter = express.Router();
 
@@ -82,12 +94,18 @@ nurseRouter.get("/checkups", getCheckupList);
 nurseRouter.get("/checkups/:id", getCheckupById);
 
 // 📌 Lấy danh sách học sinh đã được duyệt (để thực hiện khám)
-nurseRouter.get("/checkups-approved/students/:checkup_id", getCheckupParticipation);
+nurseRouter.get(
+  "/checkups-approved/students/:checkup_id",
+  getCheckupParticipation
+);
 
 // Lấy danh học sinh đã được duyệt
-nurseRouter.get("/checkups-approved/:id/students/:student_id", getCheckupParticipationById);
+nurseRouter.get(
+  "/checkups-approved/:id/students/:student_id",
+  getCheckupParticipationById
+);
 
-// 📌 Lưu kết quả khám sức khỏe cho học sinh
+// 📌 Lấu kết quả khám sức khỏe cho học sinh
 nurseRouter.post(
   "/checkups/:checkup_id/students/:student_id/result",
   validateInput(Schemas, "Checkup_Result"),
@@ -95,7 +113,10 @@ nurseRouter.post(
 );
 
 // 📌 Cập nhật ghi chú (note) cho học sinh trong lịch khám
-nurseRouter.patch("/checkups/:checkup_id/students/:student_id/note", updateCheckup);
+nurseRouter.patch(
+  "/checkups/:checkup_id/students/:student_id/note",
+  updateCheckup
+);
 
 // Lấy lịch khám đã được duyệt (để thực hiện khám)
 nurseRouter.get("/checkups-approved", getCheckupListApproved);
@@ -127,10 +148,19 @@ nurseRouter.get("/incidents/user", authenticateToken, getIncidentsByUserId);
 nurseRouter.get("/incidents/student/:student_id", getIncidentByStudentId);
 
 // Cập nhật sự cố y tế
-nurseRouter.patch("/incidents/student/:event_id/update", authenticateToken, updateIncident);
+nurseRouter.patch(
+  "/incidents/student/:event_id/update",
+  authenticateToken,
+  updateIncident
+);
 
 // Thêm vật tư y tế
-nurseRouter.post("/medical-supplies/create", validateInput(Schemas, "MedicalSupply"), medicalSupply);
+nurseRouter.post(
+  "/medical-supplies/create",
+  authenticateToken,
+  validateInput(Schemas, "MedicalSupply"),
+  medicalSupply
+);
 
 // Lấy danh sách vật tư y tế
 nurseRouter.get("/medical-supplies", getAllMedicalSupplies);
@@ -157,16 +187,29 @@ nurseRouter.get("/vaccine-campaigns-declined", getVaccinationCampaignDeclined);
 nurseRouter.get("/vaccine-campaigns-approved", getVaccinationCampaignApprove);
 
 // Tạo lịch tiêm chủng
-nurseRouter.post("/vaccine-campaigns/create", authenticateToken, createVaccinationCampaign);
+nurseRouter.post(
+  "/vaccine-campaigns/create",
+  authenticateToken,
+  createVaccinationCampaign
+);
 
 // Lấy danh sách học sinh đã duyệt theo id campaign
-nurseRouter.get("/vaccine-campaigns-list-student/:campaign_id", getStudentVaccineListByCampaignId);
+nurseRouter.get(
+  "/vaccine-campaigns-list-student/:campaign_id",
+  getStudentVaccineListByCampaignId
+);
 
 // Lấy thông tin chi tiết học sinh được duyệt
-nurseRouter.get("/vaccine-campaigns-students/:campaign_id/students/:vaccine_id", getStudentVaccineListById);
+nurseRouter.get(
+  "/vaccine-campaigns-students/:campaign_id/students/:vaccine_id",
+  getStudentVaccineListById
+);
 
 // Cập nhật thÔng tin vaccine của học sinh
-nurseRouter.patch("/vaccine-campaigns-students/students/:vaccine_id/update", updateResultVaccine);
+nurseRouter.patch(
+  "/vaccine-campaigns-students/students/:vaccine_id/update",
+  updateResultVaccine
+);
 
 // Lấy danh sách sức khỏe học sinh
 nurseRouter.get("/students/health-declaration", getAllStudentInfo);
@@ -185,10 +228,17 @@ nurseRouter.patch(
 nurseRouter.get("/medication-submissions", getAllMedicationSubmissionReq);
 
 // Lấy danh sách đơn thuốc được gửi theo id
-nurseRouter.get("/medication-submissions/:ReqId", getMedicationSubmissionReqByID);
+nurseRouter.get(
+  "/medication-submissions/:ReqId",
+  getMedicationSubmissionReqByID
+);
 
 // Cập nhật trạng thái đơn thuốc được gửi
-nurseRouter.patch("/medication-submissions/:ReqId/update", authenticateToken, updateMedicationSubmissionReqByNurse);
+nurseRouter.patch(
+  "/medication-submissions/:ReqId/update",
+  authenticateToken,
+  updateMedicationSubmissionReqByNurse
+);
 
 // Cập nhật trạng thái đơn thuốc mỗi ngày
 nurseRouter.patch(
@@ -201,7 +251,11 @@ nurseRouter.patch(
 nurseRouter.get("/notifications", authenticateToken, getNotifications);
 
 // Lấy nhật ký uống thuốc theo ID yêu cầu và ID y tá
-nurseRouter.get("/logs/by-request/:id_req", authenticateToken, getLogsByRequestIdAndUserId);
+nurseRouter.get(
+  "/logs/by-request/:id_req",
+  authenticateToken,
+  getLogsByRequestIdAndUserId
+);
 
 // Lấy nhật ký uống thuốc theo ID yêu cầu và ID y tá và ID học sinh
 nurseRouter.get(

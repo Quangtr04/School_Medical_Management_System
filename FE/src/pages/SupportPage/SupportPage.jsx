@@ -16,8 +16,7 @@ import AppointmentSection from "./AppointmentSection";
 export default function SupportPage() {
   const HeroSection = () => {
     return (
-      <section className="bg-blue-600 text-white text-center py-10 md:mt-16==">
-        {" "}
+      <section className="bg-blue-600 text-white text-center py-10 md:mt-16">
         {/* Adjust mt- to account for fixed header */}
         {/* The icon and its circular background, now positioned above the h1 */}
         <div className="flex justify-center mb-6">
