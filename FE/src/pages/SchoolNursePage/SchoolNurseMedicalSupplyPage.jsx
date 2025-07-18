@@ -151,6 +151,8 @@ export default function MedicalSuppliesPage() {
   // Thêm loại thuốc mới
   const handleAddNewSubmit = useCallback(async (values) => {
     setIsSubmittingStock(true);
+    console.log(values);
+    
     try {
       await dispatch(
         addNewMedicalSupply({
@@ -441,6 +443,7 @@ export default function MedicalSuppliesPage() {
           )}
         </Card>
       </div>
+          
       {/* Modal nhập vật tư mới vào kho */}
       <Modal
         title="➕ Thêm vật tư mới vào kho"
