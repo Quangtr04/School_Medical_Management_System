@@ -19,41 +19,50 @@ import {
 import { fetchAllStudentHealthRecords } from "../../redux/nurse/studentRecords/studentRecord";
 import { toast } from "react-toastify";
 
-// Helper: render trạng thái
-const renderStatusTag = (status) => {
-  const tagStyle = {
-    display: "flex",
-    alignItems: "center",
-    gap: "4px",
-    fontSize: "16px",
-  };
-  switch ((status || "").toLowerCase()) {
-    case "pending":
-      return (
-        <Tag icon={<FaExclamationCircle />} color="warning" style={tagStyle}>
-          Đang chờ
-        </Tag>
-      );
-    case "accepted":
-      return (
-        <Tag icon={<FaCheckCircle />} color="success" style={tagStyle}>
-          Đã duyệt
-        </Tag>
-      );
-    case "declined":
-      return (
-        <Tag icon={<FaTimesCircle />} color="error" style={tagStyle}>
-          Từ chối
-        </Tag>
-      );
-    default:
-      return (
-        <Tag color="default" style={tagStyle}>
-          Không xác định
-        </Tag>
-      );
-  }
+// Đưa style ra ngoài
+const tagStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "4px",
+  fontSize: "16px",
 };
+
+const statusMap = {
+  pending: { icon: <FaExclamationCircle />, color: "warning", text: "Đang chờ" },
+  accepted: { icon: <FaCheckCircle />, color: "success", text: "Đã duyệt" },
+  declined: { icon: <FaTimesCircle />, color: "error", text: "Từ chối" },
+};
+
+const renderStatusTag = (status) => {
+  const s = (status || "").toLowerCase();
+  const map = statusMap[s];
+  if (map) {
+    return (
+      <Tag icon={map.icon} color={map.color} style={tagStyle}>
+        {map.text}
+      </Tag>
+    );
+  }
+  return (
+    <Tag color="default" style={tagStyle}>
+      Không xác định
+    </Tag>
+  );
+};
+
+const renderDate = (text, icon) => (
+  <div className="flex items-center gap-2">
+    {icon}
+    <span>{text ? new Date(text).toLocaleDateString("vi-VN") : "N/A"}</span>
+  </div>
+);
+
+const renderNote = (text) => (
+  <div className="flex items-center gap-2">
+    📝
+    <span className="truncate max-w-[150px]">{text || "Không có"}</span>
+  </div>
+);
 
 export default function MedicalSubmission() {
   const dispatch = useDispatch();
@@ -65,7 +74,6 @@ export default function MedicalSubmission() {
     studentDetailsLoading,
     studentDetailsError,
   } = useSelector((state) => state.medicationSubmission);
-  const students = useSelector((state) => state.studentRecord.healthRecords);
   const token = localStorage.getItem("accessToken");
 
   const [isStudentModalVisible, setIsStudentModalVisible] = useState(false);
@@ -78,10 +86,8 @@ export default function MedicalSubmission() {
   }, [dispatch]);
 
   useEffect(() => {
-    if (error) {
+    if (error) {      
       toast.error(error);
-    } else if (!loading && Array.isArray(data) && data.length === 0) {
-      toast.error("Không có dữ liệu");
     }
   }, [error, data, loading]);
 
@@ -111,7 +117,7 @@ export default function MedicalSubmission() {
 
   const columns = useMemo(() => [
     {
-      title: "ID Yêu Cầu",
+      title: <span><MdNotes className="inline text-blue-500 mr-1" />ID Yêu Cầu</span>,
       dataIndex: ["_id"],
       key: "id_req",
       render: (text, record) => (
@@ -122,17 +128,19 @@ export default function MedicalSubmission() {
       ),
     },
     {
-      title: "Học Sinh",
+      title: <span>👦 Học Sinh</span>,
       dataIndex: "student",
       key: "student",
+      render: (text) => <span>👦 {text}</span>,
     },
     {
-      title: "Phụ Huynh",
+      title: <span>👨‍👩‍👧 Phụ Huynh</span>,
       dataIndex: "fullname",
       key: "parent",
+      render: (text) => <span>👨‍👩‍👧 {text}</span>,
     },
     {
-      title: "Y Tá",
+      title: <span><FaUserNurse className="inline text-green-500 mr-1" />Y Tá</span>,
       dataIndex: ["nurse_id", "name"],
       key: "nurse",
       render: (text, record) => (
@@ -143,57 +151,37 @@ export default function MedicalSubmission() {
       ),
     },
     {
-      title: "Ngày Gửi",
+      title: <span><FaCalendarAlt className="inline text-gray-500 mr-1" />Ngày Gửi</span>,
       dataIndex: "created_at",
       key: "created_at",
-      render: (text) => (
-        <div className="flex items-center gap-2">
-          <FaCalendarAlt className="text-gray-500" />
-          <span>{text ? new Date(text).toLocaleDateString("vi-VN") : "N/A"}</span>
-        </div>
-      ),
+      render: (text) => renderDate(text, <FaCalendarAlt className="text-gray-500" />),
     },
     {
-      title: "Ngày Bắt Đầu",
+      title: <span><MdOutlineDateRange className="inline text-indigo-500 mr-1" />Ngày Bắt Đầu</span>,
       dataIndex: "start_date",
       key: "start_date",
-      render: (text) => (
-        <div className="flex items-center gap-2">
-          <MdOutlineDateRange className="text-indigo-500" />
-          <span>{text ? new Date(text).toLocaleDateString("vi-VN") : "N/A"}</span>
-        </div>
-      ),
+      render: (text) => renderDate(text, <MdOutlineDateRange className="text-indigo-500" />),
     },
     {
-      title: "Ngày Kết Thúc",
+      title: <span><BsCalendar2DateFill className="inline text-red-500 mr-1" />Ngày Kết Thúc</span>,
       dataIndex: "end_date",
       key: "end_date",
-      render: (text) => (
-        <div className="flex items-center gap-2">
-          <BsCalendar2DateFill className="text-red-500" />
-          <span>{text ? new Date(text).toLocaleDateString("vi-VN") : "N/A"}</span>
-        </div>
-      ),
+      render: (text) => renderDate(text, <BsCalendar2DateFill className="text-red-500" />),
     },
     {
-      title: "Ghi Chú",
+      title: <span>📌 Ghi Chú</span>,
       dataIndex: "note",
       key: "note",
-      render: (text) => (
-        <div className="flex items-center gap-2">
-          📝
-          <span className="truncate max-w-[150px]">{text || "Không có"}</span>
-        </div>
-      ),
+      render: renderNote,
     },
     {
-      title: "Trạng Thái",
+      title: <span>📦 Trạng Thái</span>,
       dataIndex: "status",
       key: "status",
       render: renderStatusTag,
     },
     {
-      title: "Hành Động",
+      title: <span>⚡ Hành Động</span>,
       key: "actions",
       render: (_, record) => (
         <div className="flex gap-2">

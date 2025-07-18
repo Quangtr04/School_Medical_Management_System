@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, Typography, Spin, Empty, Button, Table, Tag, Space } from "antd";
 import {
   FiFileText,
@@ -24,6 +24,7 @@ import {
   respondToCheckupRequest,
   respondToVaccineRequest,
 } from "../../redux/manager/managerSlice";
+import { toast } from "react-toastify";
 
 const { Text } = Typography;
 
@@ -45,7 +46,7 @@ const getColumns = (handleReviewRequest) => [
         <UserOutlined style={{ color: "#52c41a" }} /> Người tạo đơn
       </Space>
     ),
-    dataIndex: "nurseName",
+    dataIndex: "fullname",
     key: "nurseName",
   },
   {
@@ -143,24 +144,50 @@ export default function ManagerDashboardPage() {
     loadingVaccineCampaigns,
   } = useSelector((state) => state.manager);
 
+  // State loading cho từng request
+  const [processingId, setProcessingId] = useState(null);
+  const [processingType, setProcessingType] = useState(null);
+
   useEffect(() => {
     dispatch(fetchPendingCheckupRequests());
     dispatch(fetchPendingVaccineCampaigns());
   }, [dispatch]);
 
+
+
   const handleReviewRequest = React.useCallback(
-    (record, action) => {
+    (record, action) => {       
+      setProcessingId(record.checkup_id  ? record.checkup_id : record.campaign_id);
+      setProcessingType(record.type);
       if (record.type === "CHECKUP") {
-        dispatch(
-          respondToCheckupRequest({ requestId: record.checkup_id, action })
-        );
-      } else if (record.type === "VACCINE") {
-        dispatch(
-          respondToVaccineRequest({
-            campaign_id: record.campaign_id,
-            action,
+        dispatch(respondToCheckupRequest({ requestId: record.checkup_id, action }))
+          .unwrap()
+          .then(() => {
+            toast.success(`Đã ${action === "APPROVED" ? "duyệt" : "từ chối"} lịch khám thành công`); 
+            setProcessingId(null);
+            setProcessingType(null);
           })
-        );
+          .catch((err) => {            
+            toast.error(`Đã ${action === "APPROVED" ? "duyệt" : "từ chối"}  lịch khám thất bại`)
+            setProcessingId(null);
+            setProcessingType(null);
+          });
+      } else if (record.type === "VACCINE") {
+        dispatch(respondToVaccineRequest({
+          campaign_id: record.campaign_id,
+          action,
+        }))
+          .unwrap()
+          .then(() => {
+            toast.success(`Đã ${action === "APPROVED" ? "duyệt" : "từ chối"} chiến dịch tiêm thành công`);   
+            setProcessingId(null);
+            setProcessingType(null);
+          })
+          .catch((err) => {
+            toast.error(`Đã ${action === "APPROVED" ? "duyệt" : "từ chối"} chiến dịch tiêm thất bại`)
+            setProcessingId(null);
+            setProcessingType(null);
+          });
       }
     },
     [dispatch]
@@ -168,21 +195,77 @@ export default function ManagerDashboardPage() {
 
   const combinedRequests = React.useMemo(
     () => [
-      ...(pendingCheckupRequests || []).map((item) => ({
-        ...item,
-        type: "CHECKUP",
-      })),
-      ...(pendingVaccineCampaigns || []).map((item) => ({
-        ...item,
-        type: "VACCINE",
-      })),
+      ...(pendingCheckupRequests || [])
+        .filter(item => item.approval_status === "PENDING")
+        .map((item) => ({
+          ...item,
+          type: "CHECKUP",
+        })),
+      ...(pendingVaccineCampaigns || [])
+        .filter(item => item.approval_status === "PENDING")
+        .map((item) => ({
+          ...item,
+          type: "VACCINE",
+        })),
     ],
     [pendingCheckupRequests, pendingVaccineCampaigns]
   );
 
+  // Reset loading khi hết đơn
+  useEffect(() => {    
+    if (combinedRequests.length === 0) {
+      setProcessingId(null);
+      setProcessingType(null);
+    }
+  }, [combinedRequests]);
+
   const columns = React.useMemo(
-    () => getColumns(handleReviewRequest),
-    [handleReviewRequest]
+    () => [
+      ...getColumns((record, action) => handleReviewRequest(record, action)).map(col =>
+        col.key === 'actions'
+          ? {
+              ...col,
+              render: (_, record) => (
+                <div className="flex flex-col gap-2 items-center">
+                  <Button
+                    type="primary"
+                    icon={<FiCheckCircle />}
+                    onClick={() => handleReviewRequest(record, "APPROVED")}
+                    className="!bg-green-500 hover:!bg-green-600"
+                    loading={
+                      processingId === (record.checkup_id ? record.checkup_id : record.campaign_id) &&
+                      processingType === record.type
+                    }
+                    disabled={
+                      (processingId && processingId !== (record.checkup_id ? record.checkup_id : record.campaign_id)) ||
+                      (processingType && processingType !== record.type)
+                    }
+                  >
+                    Duyệt
+                  </Button>
+                  <Button
+                    type="default"
+                    icon={<FiXCircle />}
+                    onClick={() => handleReviewRequest(record, "DECLINED")}
+                    danger
+                    loading={
+                      processingId === (record.checkup_id ? record.checkup_id : record.campaign_id) &&
+                      processingType === record.type
+                    }
+                    disabled={
+                      (processingId && processingId !== (record.checkup_id ? record.checkup_id : record.campaign_id)) ||
+                      (processingType && processingType !== record.type)
+                    }
+                  >
+                    Từ chối
+                  </Button>
+                </div>
+              ),
+            }
+          : col
+      ),
+    ],
+    [handleReviewRequest, processingId, processingType]
   );
 
   const isLoading = loading || loadingVaccineCampaigns;

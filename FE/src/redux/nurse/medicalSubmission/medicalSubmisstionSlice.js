@@ -8,8 +8,7 @@ export const fetchAllMedicationSubmissions = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await api.get("/nurse/medication-submissions");
-      console.log(response.data.data);
-
+      
       return response.data.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
@@ -82,9 +81,9 @@ const medicationSubmissionSlice = createSlice({
         state.loading = false;
         state.data = action.payload;
       })
-      .addCase(fetchAllMedicationSubmissions.rejected, (state, action) => {      
+      .addCase(fetchAllMedicationSubmissions.rejected, (state, action) => {           
         state.loading = false;
-        state.error = "Tải dữ liệu thất bại";
+        state.error = "Chưa có đơn thuốc";
       })
       // Xử lý fetchMedicationSubmissionById
       .addCase(fetchMedicationSubmissionById.pending, (state) => {

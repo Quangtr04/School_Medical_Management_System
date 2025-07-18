@@ -405,38 +405,42 @@ export default function Examination() {
 
   return (
     <div
-      className={`min-h-screen bg-white p-6 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc0MCcgaGVpZ2h0PSc0MCcgdmlld0JveD0nMCAwIDQwIDQwJz48ZyBmaWxsPSdyZ2JhKDEzLDExMCwyNTMsMC4xKScgZmlsbC1ydWxlPSdldmVub2RkJz48Y2lyY2xlIGN4PScyMCcgY3k9JzIwJyByPScyJy8+PC9nPg==')] bg-fixed`}
+      className={`min-h-screen p-6 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc0MCcgaGVpZ2h0PSc0MCcgdmlld0JveD0nMCAwIDQwIDQwJz48ZyBmaWxsPSdyZ2JhKDEzLDExMCwyNTMsMC4xKScgZmlsbC1ydWxlPSdldmVub2RkJz48Y2lyY2xlIGN4PScyMCcgY3k9JzIwJyByPScyJy8+PC9nPjwvc3ZnPg==')] bg-fixed`}
+      style={{ fontFamily: 'Poppins, Roboto, sans-serif', background: '#F8FBFF' }}
     >
       <div className="max-w-7xl mx-auto">
         <header
-          className={`mb-5 p-4 rounded-lg bg-blue-500/[.10] to-transparent flex items-center justify-between`}
+          className="mb-5 p-4 flex items-center justify-between"
+          style={{
+            borderRadius: 24,
+            background: '#fff',
+            boxShadow: '8px 8px 24px #e0f0ff, -8px -8px 24px #fff',
+            border: '1.5px solid #e0f0ff',
+          }}
         >
           <div className="flex items-center gap-3">
-            <div
-              className={`p-3 bg-blue-500/[.10] rounded-full border border-blue-500`}
-            >
-              <FiFilePlus className={`w-10 h-10 text-3xl text-blue-600`} />
+            <div style={{ borderRadius: '50%', background: '#E0F0FF', boxShadow: '0 2px 8px #e0f0ff', width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
+              <FiFilePlus className="text-blue-600" style={{ fontSize: 36 }} />
             </div>
             <div>
-              <h1 className={`text-gray-900 font-bold text-3xl mb-2`}>
+              <h1 className="text-gray-900 font-bold text-3xl mb-2" style={{ fontFamily: 'Poppins, Roboto, sans-serif' }}>
                 Đơn khám sức khỏe
               </h1>
-              <p className={`text-gray-500 flex items-center gap-2 text-sm`}>
+              <p className="text-gray-500 flex items-center gap-2 text-sm" style={{ fontFamily: 'Poppins, Roboto, sans-serif' }}>
                 <span>📝</span>
                 Quản lý các đợt khám sức khỏe định kỳ của học sinh
               </p>
             </div>
           </div>
-          <Space>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => showModal()}
-              className="flex items-center gap-1 px-4 py-2 !rounded-lg !bg-blue-500 hover:!bg-blue-600 !transition-colors"
-            >
-              Tạo đơn khám sức khỏe định kỳ
-            </Button>
-          </Space>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => showModal()}
+            className="flex items-center gap-1 px-4 py-2 !rounded-lg !bg-blue-600 hover:!bg-blue-700 hover:shadow-lg hover:scale-105 transition-all duration-200"
+            style={{ fontFamily: 'Poppins, Roboto, sans-serif', borderRadius: 16 }}
+          >
+            Tạo đơn khám sức khỏe định kỳ
+          </Button>
         </header>
 
         {loading && upcomingExaminations.length === 0 ? (
@@ -454,7 +458,8 @@ export default function Examination() {
                       </span>
                     </div>
                   }
-                  className="!rounded-lg !shadow-md !border !border-gray-200 mt-4"
+                  className="!rounded-2xl !shadow-md !border !border-gray-200 mt-4"
+                  bodyStyle={{ borderRadius: 24, background: '#fff', fontFamily: 'Poppins, Roboto, sans-serif' }}
                 >
                   {upcomingExaminations.length > 0 ? (
                     <List
@@ -463,10 +468,11 @@ export default function Examination() {
                       renderItem={(item) => (
                         <List.Item
                           actions={[
-                            <Button type="link" key="view-details">
+                            <Button type="link" key="view-details" style={{ color: '#1677ff', fontWeight: 500 }}>
                               Xem chi tiết
                             </Button>,
                           ]}
+                          style={{ borderRadius: 16, background: '#F8FBFF', marginBottom: 8, boxShadow: '0 2px 8px #e0f0ff' }}
                         >
                           <List.Item.Meta
                             avatar={
@@ -482,7 +488,7 @@ export default function Examination() {
                             description={
                               <div className="text-gray-600">
                                 <p>
-                                  Ngày khám:{" "}
+                                  Ngày khám: {" "}
                                   <Text className="font-semibold text-green-600">
                                     {item.scheduled_date
                                       ? `${format(
@@ -505,34 +511,35 @@ export default function Examination() {
                     <Empty
                       description="Không có lịch khám sức khỏe sắp tới"
                       image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      style={{ fontFamily: 'Poppins, Roboto, sans-serif' }}
                     />
                   )}
                 </Card>
               </Col>
             </Row>
 
-            <Card className="!rounded-lg !shadow-md !border !border-gray-200">
-              <div className="flex flex-wrap items-center gap-4  mb-6">
+            <Card className="!rounded-2xl !shadow-md !border !border-gray-200" bodyStyle={{ borderRadius: 24, background: '#fff', fontFamily: 'Poppins, Roboto, sans-serif' }}>
+              <div className="flex flex-wrap items-center gap-4 mb-6">
                 <Input
                   placeholder="Tìm kiếm đơn khám (Tiêu đề, Mô tả...)"
                   prefix={<SearchOutlined className="text-gray-400" />}
-                  className="flex-grow max-w-sm rounded-lg h-10"
+                  className="flex-grow max-w-sm rounded-xl h-10"
+                  style={{ borderRadius: 16, background: '#F8FBFF', fontFamily: 'Poppins, Roboto, sans-serif' }}
                   onPressEnter={(e) => handleSearch(e.target.value)}
                   onBlur={(e) => handleSearch(e.target.value)}
                 />
-                {/* Select cho trạng thái */}
                 <Select
                   placeholder="Lọc theo trạng thái"
                   onChange={handleStatusFilterChange}
                   allowClear
-                  className="w-40 rounded-lg h-10"
-                  value={statusFilter} // Đảm bảo hiển thị giá trị đã chọn
+                  className="w-40 rounded-xl h-10"
+                  style={{ borderRadius: 16, background: '#F8FBFF', fontFamily: 'Poppins, Roboto, sans-serif' }}
+                  value={statusFilter}
                 >
                   <Option value="PENDING">Đang chờ</Option>
                   <Option value="APPROVED">Đã duyệt</Option>
                   <Option value="DECLINED">Đã từ chối</Option>
                 </Select>
-                {/* Select cho lớp áp dụng */}
               </div>
               <Table
                 columns={columns}
@@ -548,16 +555,18 @@ export default function Examination() {
                 onChange={handleTableChange}
                 className="custom-table"
                 loading={loading}
+                style={{ borderRadius: 24, fontFamily: 'Poppins, Roboto, sans-serif', background: '#fff' }}
                 locale={{
                   emptyText: (
                     <Empty
                       description="Không tìm thấy đơn khám sức khỏe nào"
                       image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      style={{ fontFamily: 'Poppins, Roboto, sans-serif' }}
                     />
                   ),
                 }}
               />
-              <div className="text-sm text-gray-600 mt-4">
+              <div className="text-sm text-gray-600 mt-4" style={{ fontFamily: 'Poppins, Roboto, sans-serif' }}>
                 Hiển thị {pagination.current * pagination.pageSize - pagination.pageSize + 1}
                 -
                 {Math.min(pagination.current * pagination.pageSize, pagination.total)}

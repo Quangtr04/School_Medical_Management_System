@@ -146,6 +146,9 @@ export default function StudentRecordPage() {
     return filteredHealthRecords.slice(startIdx, startIdx + pagination.pageSize);
   }, [filteredHealthRecords, pagination.current, pagination.pageSize]);
 
+  console.log(paginatedHealthRecords);
+  
+
   const handleTableChange = useCallback((newPagination) => {
     setPagination((prev) => ({
       ...prev,
@@ -471,7 +474,7 @@ export default function StudentRecordPage() {
                 placeholder="Thêm tình trạng sức khỏe"
               />
             </Form.Item>
-            <Form.Item name="last_visit_date" label="Ngày khám cuối cùng">
+            <Form.Item name="last_visit_date" >
               <Form.Item
                 name="last_visit_date"
                 label={<span><span role="img" aria-label="visit">📅</span> Ngày khám cuối cùng</span>}

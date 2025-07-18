@@ -18,14 +18,10 @@ require("dotenv").config();
 const corsOptions = {
   origin: [
     "http://localhost:5173",
-    "http://192.168.1.168:5173",
+    "http://192.168.1.6:5173",
     "http://192.168.1.160:5173",
     "http://172.20.10.4:5173",
     "http://172.20.10.2:5173",
-    "http://192.168.111.6:3000",
-    "http://172.20.10.2:3000",
-    // Thêm IP mới ở đây
-    // "http://192.168.xxx.xxx:5173",
   ],
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   optionsSuccessStatus: 204,

@@ -65,6 +65,7 @@ import {
   setMedicalSuppliesPagination,
 } from "../../redux/nurse/medicalSupplies/medicalSupplies";
 import VaccinesOutlinedIcon from '@mui/icons-material/VaccinesOutlined';
+import moment from "moment";
 
 const { Option } = Select;
 const { Title, Text } = Typography;
@@ -98,6 +99,29 @@ const statIconStyle = {
   fontSize: 28,
 };
 
+// Định nghĩa các style dùng chung ở đầu file (sau các import)
+const modalStyle = { borderRadius: 24 };
+const modalStyles = {
+  background: 'rgba(224,240,255,0.5)',
+  fontFamily: 'Poppins, Roboto, sans-serif',
+  borderRadius: 24,
+};
+const modalStudentListStyles = {
+  backgroundColor: '#f9fafe',
+  padding: '24px',
+  borderRadius: 16,
+  fontFamily: 'Poppins, Roboto, sans-serif',
+  backdropFilter: 'blur(5px)'
+};
+const modalStudentListStyle = { borderRadius: 16, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)' };
+const modalViewStudentStyles = {
+  background: 'rgba(224,240,255,0.5)',
+  borderRadius: 16,
+  fontFamily: 'Poppins, Roboto, sans-serif',
+};
+const modalViewStudentStyle = { borderRadius: 16 };
+
+
 export default function Vaccination() {
   const dispatch = useDispatch();
   const { campaigns, loading } = useSelector((state) => state.vaccination);
@@ -112,6 +136,10 @@ export default function Vaccination() {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [formCreateNewSchedule] = Form.useForm();
   const [formUpdateStudentDetail] = Form.useForm();
+
+  const user = useSelector((state) => state.auth.user);  
+  console.log(user);
+
 
   const debouncedSearch = useMemo(() => {
     return debounce((value) => {
@@ -167,6 +195,8 @@ export default function Vaccination() {
     const today = startOfDay(new Date());
     return campaigns.filter((item) => {
       if (!item || !item.scheduled_date || item.approval_status !== "APPROVED") return false;
+      // So sánh fullname của người tạo với user.fullname
+      // if (!user || !item.fullname || item.fullname !== user.fullname) return false;
       const parsedDate = parseISO(item.scheduled_date);
       return (
         isAfter(parsedDate, today) ||
@@ -174,8 +204,11 @@ export default function Vaccination() {
         isWithinInterval(parsedDate, { start: today, end: addDays(today, 7) })
       );
     });
-  }, [campaigns]);
+  }, [campaigns, user]);
 
+  
+  console.log(upcomingVaccinations);
+  
   const handleTableChange = useCallback((newPagination) => {
     setPagination((prev) => ({
       ...prev,
@@ -318,7 +351,7 @@ export default function Vaccination() {
           <span className="text-purple-600 font-semibold">Được tạo bởi</span>
         </Space>
       ),
-      dataIndex: "created_by",
+      dataIndex: "fullname",
       key: "created_by",
       align: "center",
       className: "!text-gray-700 !font-medium",
@@ -409,11 +442,18 @@ export default function Vaccination() {
       align: "center",
       render: (status) => {
         let color = "default";
-        if (status === "APPROVED") color = "green";
-        else if (status === "PENDING") color = "orange";
-        else if (status === "REJECTED") color = "red";
-
-        return <Tag color={color}>{status || "Chưa xác định"}</Tag>;
+        let text = "Chưa xác định";
+        if (status === "APPROVED") {
+          color = "green";
+          text = "Đã duyệt";
+        } else if (status === "PENDING") {
+          color = "orange";
+          text = "Đang chờ";
+        } else if (status === "REJECTED") {
+          color = "red";
+          text = "Từ chối";
+        }
+        return <Tag color={color}>{text}</Tag>;
       },
       className: "!text-gray-700 !font-medium",
     },
@@ -464,6 +504,8 @@ export default function Vaccination() {
       .slice((pagination.current - 1) * pagination.pageSize, pagination.current * pagination.pageSize);
   }, [campaigns, searchQuery, scheduleTypeFilter, pagination]);
 
+  console.log(filteredAndPaginatedCampaigns);
+  
   return (
     <div
       className="min-h-screen p-6 bg-fixed"
@@ -640,9 +682,8 @@ export default function Vaccination() {
           okText="Tạo lịch trình"
           cancelText="Hủy"
           confirmLoading={loading}
-          style={{ borderRadius: 24 }}
-          bodyStyle={{ borderRadius: 24, background: '#F8FBFF', fontFamily: 'Poppins, Roboto, sans-serif' }}
-          maskStyle={{ background: 'rgba(224,240,255,0.5)' }}
+          style={modalStyle}
+          styles={modalStyles}
         >
           <Form
             form={formCreateNewSchedule}
@@ -672,7 +713,12 @@ export default function Vaccination() {
                 { required: true, message: "Vui lòng chọn ngày tiêm chủng!" },
               ]}
             >
-              <DatePicker placeholder="Chọn ngày tiêm chủng" style={{ width: "100%" }} format="YYYY-MM-DD" />
+              <DatePicker 
+                placeholder="Chọn ngày tiêm chủng" 
+                style={{ width: "100%" }} 
+                format="YYYY-MM-DD" 
+                disabledDate={(current) => current && current < moment().add(2, 'days').startOf('day')}
+              />
             </Form.Item>
 
             <Form.Item
@@ -713,9 +759,8 @@ export default function Vaccination() {
           centered
           maskClosable
           width={900}
-          style={{ borderRadius: 16, overflow: "hidden", boxShadow: "0 8px 24px rgba(0, 0, 0, 0.15)" }}
-          bodyStyle={{ backgroundColor: "#f9fafe", padding: "24px", borderRadius: 16, fontFamily: 'Poppins, Roboto, sans-serif' }}
-          maskStyle={{ backdropFilter: "blur(5px)" }}
+          style={modalStudentListStyle}
+          styles={modalStudentListStyles}
         >
           <Table
             dataSource={approvedStudents}
@@ -813,9 +858,8 @@ export default function Vaccination() {
           }}
           centered
           width={600}
-          style={{ borderRadius: 16 }}
-          bodyStyle={{ background: '#F8FBFF', borderRadius: 16, fontFamily: 'Poppins, Roboto, sans-serif' }}
-          maskStyle={{ background: 'rgba(224,240,255,0.5)' }}
+          style={modalViewStudentStyle}
+          styles={modalViewStudentStyles}
           footer={[
             <Button
               key="cancel"

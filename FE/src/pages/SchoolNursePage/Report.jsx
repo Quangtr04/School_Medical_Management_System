@@ -42,6 +42,11 @@ import {
 } from "chart.js";
 import { Pie, Line, Bar } from "react-chartjs-2";
 import api from "../../configs/config-axios";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchAllStudentHealthRecords } from "../../redux/nurse/studentRecords/studentRecord";
+import { fetchAllMedicalIncidents } from "../../redux/nurse/medicalIncidents/medicalIncidents";
+import { fetchAllVaccineCampaigns } from "../../redux/nurse/vaccinations/vaccinationSlice";
+import { fetchAllHealthExaminations } from "../../redux/nurse/heathExaminations/heathExamination";
 
 // Register Chart.js components
 ChartJS.register(
@@ -61,59 +66,64 @@ const { RangePicker } = DatePicker;
 
 export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
-  const [reportData, setReportData] = useState({
-    studentHealthStatus: {},
-    monthlyIncidentsCheckups: {},
-    bmiDistribution: {},
-    availableReports: [],
-  });
+  const dispatch = useDispatch();
 
+  // Lấy dữ liệu từ Redux store
+  const studentRecords = useSelector(
+    (state) => state.studentRecord.healthRecords
+  );
+  const medicalIncidents = useSelector(
+    (state) => state.medicalIncidents.records
+  );
+  const vaccineCampaigns = useSelector((state) => state.vaccination.campaigns);
+  const healthExaminations = useSelector((state) => state.examination.records);
+
+  //studentRecords
+  const healthStatus = Array.from(
+    new Set(
+      studentRecords
+        ?.map((child) => child?.health?.health_status)
+        .filter(Boolean)
+    )
+  );
+  const healthStatusData = healthStatus.map(
+    (status) =>
+      studentRecords.filter((child) => child?.health?.health_status === status)
+        .length
+  );
+
+  // Gom fetch API vào 1 hàm duy nhất
   const fetchReportData = useCallback(async () => {
-    setLoading(true); // Đặt loading về true khi bắt đầu fetch
+    setLoading(true);
     try {
-      // Giả lập cuộc gọi API cho từng biểu đồ và báo cáo có sẵn
-      const [
-        healthStatusRes,
-        incidentsCheckupsRes,
-        bmiDistRes,
-        reportsListRes,
-      ] = await Promise.all([
-        api.get("/api/nurse/reports/student-health-status"),
-        api.get("/api/nurse/reports/monthly-incidents-checkups"),
-        api.get("/api/nurse/reports/bmi-distribution"),
-        api.get("/api/nurse/reports/available-reports"),
+      await Promise.all([
+        dispatch(fetchAllStudentHealthRecords()),
+        dispatch(fetchAllMedicalIncidents({ page: 1, limit: 10 })),
+        dispatch(fetchAllVaccineCampaigns()),
+        dispatch(fetchAllHealthExaminations()),
       ]);
-
-      setReportData({
-        studentHealthStatus: healthStatusRes.data.data,
-        monthlyIncidentsCheckups: incidentsCheckupsRes.data.data,
-        bmiDistribution: bmiDistRes.data.data,
-        availableReports: reportsListRes.data.data,
-      });
-      message.success("Tải dữ liệu báo cáo thành công!");
+      // Có thể toast thành công ở đây nếu muốn
     } catch (error) {
-      console.error("Lỗi khi tải dữ liệu báo cáo:", error);
-      message.error("Tải dữ liệu báo cáo thất bại.");
+      // toast lỗi nếu muốn
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
     fetchReportData();
   }, [fetchReportData]);
 
-  // Data for Student Health Status Pie Chart
+  // Xử lý dữ liệu cho chart (ví dụ mẫu, bạn có thể thay bằng xử lý thực tế)
+  // Pie chart: Tình trạng sức khỏe học sinh
+
+  // Dự liệu cho Chart Pie 🩺 Trạng thái sức khỏe học sinh
   const studentHealthData = {
-    labels: reportData.studentHealthStatus.labels || [
-      "Khỏe mạnh",
-      "Vấn đề nhỏ",
-      "Cần chú ý",
-    ],
+    labels: healthStatus,
     datasets: [
       {
-        data: reportData.studentHealthStatus.data || [78, 15, 7], // Dữ liệu ví dụ
-        backgroundColor: ["#4CAF50", "#FFC107", "#F44336"], // Xanh lá, Hổ phách, Đỏ
+        data: healthStatusData,
+        backgroundColor: ["#4CAF50", "#FFC107", "#F44336"],
         borderColor: ["#ffffff", "#ffffff", "#ffffff"],
         borderWidth: 2,
       },
@@ -135,7 +145,7 @@ export default function ReportsPage() {
           generateLabels: (chart) => {
             const data = chart.data.datasets[0].data;
             return chart.data.labels.map((label, i) => ({
-              text: `${label}: ${data[i]}%`,
+              text: `${label}: ${data[i]}`,
               fillStyle: chart.data.datasets[0].backgroundColor[i],
               strokeStyle: chart.data.datasets[0].borderColor[i],
               lineWidth: 2,
@@ -150,30 +160,21 @@ export default function ReportsPage() {
           label: (context) => {
             const label = context.label || "";
             const value = context.parsed;
-            return `${label}: ${value}%`;
+            return `${label}: ${value}`;
           },
         },
       },
     },
   };
 
-  // Data for Monthly Incidents & Checkups Line Chart
+  // Monthly Incidents & Checkups Line Chart (dữ liệu giả)
   const monthlyData = {
-    labels: reportData.monthlyIncidentsCheckups.labels || [
-      "Tháng 1",
-      "Tháng 2",
-      "Tháng 3",
-      "Tháng 4",
-      "Tháng 5",
-      "Tháng 6",
-    ], // Tháng ví dụ
+    labels: ["Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6"],
     datasets: [
       {
         label: "Sự cố",
-        data: reportData.monthlyIncidentsCheckups.incidents || [
-          15, 20, 18, 12, 14, 16,
-        ], // Dữ liệu ví dụ
-        borderColor: "rgb(255, 99, 132)", // Đỏ cho sự cố
+        data: [15, 20, 18, 12, 14, 16],
+        borderColor: "rgb(255, 99, 132)",
         backgroundColor: "rgba(255, 99, 132, 0.5)",
         tension: 0.3,
         pointBackgroundColor: "rgb(255, 99, 132)",
@@ -183,10 +184,8 @@ export default function ReportsPage() {
       },
       {
         label: "Khám bệnh",
-        data: reportData.monthlyIncidentsCheckups.checkups || [
-          40, 48, 45, 52, 58, 55,
-        ], // Dữ liệu ví dụ
-        borderColor: "rgb(54, 162, 235)", // Xanh dương cho khám bệnh
+        data: [40, 48, 45, 52, 58, 55],
+        borderColor: "rgb(54, 162, 235)",
         backgroundColor: "rgba(54, 162, 235, 0.5)",
         tension: 0.3,
         pointBackgroundColor: "rgb(54, 162, 235)",
@@ -236,35 +235,29 @@ export default function ReportsPage() {
     },
   };
 
-  // Data for BMI Distribution by Grade Stacked Bar Chart
+  // BMI Distribution by Grade Stacked Bar Chart (dữ liệu giả)
   const bmiData = {
-    labels: reportData.bmiDistribution.labels || [
-      "Khối 1",
-      "Khối 2",
-      "Khối 3",
-      "Khối 4",
-      "Khối 5",
-    ], // Khối ví dụ
+    labels: ["Khối 1", "Khối 2", "Khối 3", "Khối 4", "Khối 5"],
     datasets: [
       {
         label: "Thiếu cân",
-        data: reportData.bmiDistribution.underweight || [5, 7, 6, 8, 5],
-        backgroundColor: "#60A5FA", // Xanh dương
+        data: [5, 7, 6, 8, 5],
+        backgroundColor: "#60A5FA",
       },
       {
         label: "Bình thường",
-        data: reportData.bmiDistribution.normal || [70, 75, 72, 70, 78],
-        backgroundColor: "#4CAF50", // Xanh lá
+        data: [70, 75, 72, 70, 78],
+        backgroundColor: "#4CAF50",
       },
       {
         label: "Thừa cân",
-        data: reportData.bmiDistribution.overweight || [15, 10, 12, 15, 10],
-        backgroundColor: "#FFC107", // Hổ phách/Cam
+        data: [15, 10, 12, 15, 10],
+        backgroundColor: "#FFC107",
       },
       {
         label: "Béo phì",
-        data: reportData.bmiDistribution.obese || [10, 8, 10, 7, 7],
-        backgroundColor: "#F44336", // Đỏ
+        data: [10, 8, 10, 7, 7],
+        backgroundColor: "#F44336",
       },
     ],
   };
@@ -374,19 +367,15 @@ export default function ReportsPage() {
                 <Card
                   title={
                     <span className="flex items-center gap-2 text-gray-800 font-semibold">
-                      <PieChartOutlined className="text-purple-600" /> 🩺 Tình
-                      trạng sức khỏe học sinh
+                      🩺 Trạng thái sức khỏe học sinh
                     </span>
                   }
                   className="!rounded-lg !shadow-md !border !border-gray-200 h-96 flex flex-col"
-                  extra={
-                    <span className="text-xs text-gray-500">
-                      Tổng quan sức khỏe học sinh toàn trường
-                    </span>
-                  }
                 >
                   <div className="flex-grow flex items-center justify-center">
                     <Pie
+                      width={300}
+                      height={300}
                       data={studentHealthData}
                       options={studentHealthOptions}
                     />
@@ -443,16 +432,11 @@ export default function ReportsPage() {
                 <Card
                   title={
                     <span className="flex items-center gap-2 text-gray-800 font-semibold">
-                      <PieChartOutlined className="text-green-500" /> 💉 Tiêm
-                      chủng
+                      <PieChartOutlined className="text-green-500" /> 💉 Các đợt
+                      tiêm chủng đã tiến hành
                     </span>
                   }
                   className="!rounded-lg !shadow-md !border !border-gray-200 h-96 flex flex-col"
-                  extra={
-                    <span className="text-xs text-gray-500">
-                      Tỷ lệ hoàn thành các chiến dịch tiêm chủng
-                    </span>
-                  }
                 >
                   <div className="flex-grow flex items-center justify-center">
                     {/* Placeholder: Replace with real chart/data */}
@@ -470,6 +454,7 @@ export default function ReportsPage() {
                         responsive: true,
                         plugins: { legend: { position: "bottom" } },
                       }}
+                      height={50}
                     />
                   </div>
                 </Card>

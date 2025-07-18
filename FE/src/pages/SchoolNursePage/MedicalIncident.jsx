@@ -560,6 +560,7 @@ export default function MedicalIncident() {
                 Hiển thị {pagination.current * pagination.pageSize - pagination.pageSize + 1} - {Math.min(pagination.current * pagination.pageSize, pagination.total)} trên tổng số {pagination.total} sự cố
               </div>
             </Card>
+            
             {/* Modal thêm sự cố */}
             <Modal
               title={<span>🏥 Ghi lại sự kiện y tế mới</span>}
@@ -640,7 +641,12 @@ export default function MedicalIncident() {
                   label={<span>⏰ Thời gian xảy ra</span>}
                   rules={[{ required: true, message: "Vui lòng chọn Ngày & Giờ!" }]}
                 >
-                  <DatePicker showTime format="YYYY-MM-DD HH:mm:ss" style={{ width: "100%" }} />
+                  <DatePicker 
+                    showTime 
+                    format="YYYY-MM-DD HH:mm:ss" 
+                    style={{ width: "100%" }} 
+                    disabledDate={(current) => current && current < moment().startOf('day')}
+                  />
                 </Form.Item>
                 <Form.List name="medication_used">
                   {(fields, { add, remove }) => (
@@ -726,7 +732,12 @@ export default function MedicalIncident() {
                   <Input.TextArea rows={3} />
                 </Form.Item>
                 <Form.Item name="resolved_at" label={<span>✅ Thời gian giải quyết</span>}>
-                  <DatePicker showTime format="YYYY-MM-DD HH:mm:ss" style={{ width: "100%" }} />
+                  <DatePicker 
+                    showTime 
+                    format="YYYY-MM-DD HH:mm:ss" 
+                    style={{ width: "100%" }} 
+                    disabledDate={(current) => current && current < moment().startOf('day')}
+                  />
                 </Form.Item>
                 <Form.Item name="description_detail" label={<span>📄 Mô tả chi tiết (Tùy chọn)</span>}>
                   <Input.TextArea rows={3} />
@@ -744,6 +755,7 @@ export default function MedicalIncident() {
                 </Form.Item>
               </Form>
             </Modal>
+
             {/* Modal hiển thị chi tiết sự cố ý tế */}
             <Modal
               title={<span>🔎 Chi tiết sự cố y tế</span>}
