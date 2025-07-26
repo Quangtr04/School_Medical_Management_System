@@ -1,117 +1,42 @@
 /**
  * @swagger
  * tags:
- *   - name: Manager
- *     description: API dành cho người quản lý (manager)
+ *   name: Manager
+ *   description: API dành cho Hiệu trưởng để quản lý lịch khám, tiêm chủng và thông tin
  */
 
 /**
  * @swagger
- * /profile:
+ * /manager/profile:
  *   get:
+ *     summary: Lấy thông tin cá nhân hiệu trưởng
  *     tags: [Manager]
- *     summary: Lấy thông tin hồ sơ người quản lý
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Thông tin hồ sơ người dùng
+ *         description: Trả về thông tin cá nhân
  *   patch:
+ *     summary: Cập nhật thông tin cá nhân hiệu trưởng
  *     tags: [Manager]
- *     summary: Cập nhật thông tin hồ sơ người quản lý
  *     security:
  *       - bearerAuth: []
  *     requestBody:
- *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             properties:
- *               full_name:
- *                 type: string
- *               phone:
- *                 type: string
- *               address:
- *                 type: string
  *     responses:
  *       200:
- *         description: Hồ sơ đã được cập nhật
+ *         description: Cập nhật thành công
  */
 
 /**
  * @swagger
- * /checkups/pending:
+ * /manager/checkups/pending:
  *   get:
- *     tags: [Manager]
  *     summary: Lấy danh sách lịch khám đang chờ duyệt
- *     responses:
- *       200:
- *         description: Danh sách lịch khám đang chờ duyệt
- */
-
-/**
- * @swagger
- * /checkups/{id}/respond:
- *   post:
  *     tags: [Manager]
- *     summary: Phản hồi chấp nhận hoặc từ chối lịch khám
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID của lịch khám
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               status:
- *                 type: string
- *                 enum: [APPROVED, DECLINED]
- *     responses:
- *       200:
- *         description: Phản hồi lịch khám thành công
- */
-
-/**
- * @swagger
- * /checkups/{checkup_id}/status:
- *   patch:
- *     tags: [Manager]
- *     summary: Cập nhật trạng thái lịch khám sức khỏe
- *     parameters:
- *       - in: path
- *         name: checkup_id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID của lịch khám
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               status:
- *                 type: string
- *                 enum: [APPROVED, DECLINED]
- *     responses:
- *       200:
- *         description: Trạng thái lịch khám đã được cập nhật
- */
-
-/**
- * @swagger
- * /checkups:
- *   get:
- *     tags: [Manager]
- *     summary: Lấy tất cả lịch khám
  *     responses:
  *       200:
  *         description: Danh sách lịch khám
@@ -119,163 +44,17 @@
 
 /**
  * @swagger
- * /checkups/{id}:
- *   get:
- *     tags: [Manager]
- *     summary: Lấy thông tin chi tiết lịch khám
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID của lịch khám
- *     responses:
- *       200:
- *         description: Chi tiết lịch khám
- *   delete:
- *     tags: [Manager]
- *     summary: Xóa lịch khám theo ID
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID của lịch khám
- *     responses:
- *       200:
- *         description: Lịch khám đã bị xóa
- */
-
-/**
- * @swagger
- * /checkups-approved:
- *   get:
- *     tags: [Manager]
- *     summary: Lấy danh sách lịch khám đã duyệt
- *     responses:
- *       200:
- *         description: Danh sách lịch khám đã duyệt
- */
-
-/**
- * @swagger
- * /checkups-declined:
- *   get:
- *     tags: [Manager]
- *     summary: Lấy danh sách lịch khám bị từ chối
- *     responses:
- *       200:
- *         description: Danh sách lịch khám bị từ chối
- */
-
-/**
- * @swagger
- * /vaccine-campaigns:
- *   get:
- *     tags: [Manager]
- *     summary: Lấy danh sách lịch tiêm chủng
- *     responses:
- *       200:
- *         description: Danh sách lịch tiêm chủng
- */
-
-/**
- * @swagger
- * /vaccine-campaigns/{id}:
- *   get:
- *     tags: [Manager]
- *     summary: Lấy chi tiết lịch tiêm chủng
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID chiến dịch
- *     responses:
- *       200:
- *         description: Chi tiết chiến dịch tiêm
- *   delete:
- *     tags: [Manager]
- *     summary: Xóa lịch tiêm chủng theo ID
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID chiến dịch
- *     responses:
- *       200:
- *         description: Xóa chiến dịch thành công
- */
-
-/**
- * @swagger
- * /vaccine-campaigns-declined:
- *   get:
- *     tags: [Manager]
- *     summary: Lấy danh sách lịch tiêm chủng bị từ chối
- *     responses:
- *       200:
- *         description: Danh sách lịch tiêm bị từ chối
- */
-
-/**
- * @swagger
- * /vaccine-campaigns-approved:
- *   get:
- *     tags: [Manager]
- *     summary: Lấy danh sách lịch tiêm chủng đã duyệt
- *     responses:
- *       200:
- *         description: Danh sách lịch tiêm đã duyệt
- */
-
-/**
- * @swagger
- * /vaccine-campaigns/{id}/respond:
+ * /manager/checkups/{id}/respond:
  *   post:
+ *     summary: Phản hồi (duyệt / từ chối) lịch khám
  *     tags: [Manager]
- *     summary: Phản hồi lịch tiêm chủng
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: integer
- *         description: ID chiến dịch
  *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               status:
- *                 type: string
- *     responses:
- *       200:
- *         description: Gửi phản hồi thành công
- */
-
-/**
- * @swagger
- * /vaccine-campaigns/{campaign_id}/status:
- *   patch:
- *     tags: [Manager]
- *     summary: Cập nhật trạng thái chiến dịch tiêm
- *     parameters:
- *       - in: path
- *         name: campaign_id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID chiến dịch tiêm
- *     requestBody:
- *       required: true
  *       content:
  *         application/json:
  *           schema:
@@ -286,18 +65,240 @@
  *                 enum: [APPROVED, DECLINED]
  *     responses:
  *       200:
- *         description: Cập nhật trạng thái thành công
+ *         description: Phản hồi thành công
  */
 
 /**
  * @swagger
- * /notifications:
- *   get:
+ * /manager/checkups/{checkup_id}/status:
+ *   patch:
+ *     summary: Cập nhật trạng thái lịch khám
  *     tags: [Manager]
- *     summary: Lấy danh sách thông báo của quản lý
+ *     parameters:
+ *       - in: path
+ *         name: checkup_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [APPROVED, DECLINED]
+ *     responses:
+ *       200:
+ *         description: Cập nhật thành công
+ */
+
+/**
+ * @swagger
+ * /manager/checkups:
+ *   get:
+ *     summary: Lấy danh sách tất cả lịch khám
+ *     tags: [Manager]
+ *     responses:
+ *       200:
+ *         description: Danh sách lịch khám
+ */
+
+/**
+ * @swagger
+ * /manager/checkups/{id}:
+ *   get:
+ *     summary: Lấy chi tiết lịch khám theo ID
+ *     tags: [Manager]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Chi tiết lịch khám
+ *   delete:
+ *     summary: Xóa lịch khám theo ID
+ *     tags: [Manager]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Xóa thành công
+ */
+
+/**
+ * @swagger
+ * /manager/checkups-approved:
+ *   get:
+ *     summary: Lấy lịch khám đã được duyệt
+ *     tags: [Manager]
+ *     responses:
+ *       200:
+ *         description: Danh sách lịch khám đã duyệt
+ */
+
+/**
+ * @swagger
+ * /manager/checkups-declined:
+ *   get:
+ *     summary: Lấy lịch khám đã bị từ chối
+ *     tags: [Manager]
+ *     responses:
+ *       200:
+ *         description: Danh sách lịch khám bị từ chối
+ */
+
+/**
+ * @swagger
+ * /manager/vaccine-campaigns:
+ *   get:
+ *     summary: Lấy danh sách lịch tiêm chủng
+ *     tags: [Manager]
+ *     responses:
+ *       200:
+ *         description: Danh sách chiến dịch tiêm chủng
+ */
+
+/**
+ * @swagger
+ * /manager/vaccine-campaigns/{id}:
+ *   get:
+ *     summary: Lấy chi tiết lịch tiêm chủng theo ID
+ *     tags: [Manager]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Chi tiết chiến dịch tiêm chủng
+ *   delete:
+ *     summary: Xóa chiến dịch tiêm chủng
+ *     tags: [Manager]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Xóa thành công
+ */
+
+/**
+ * @swagger
+ * /manager/vaccine-campaigns-pending:
+ *   get:
+ *     summary: Lấy danh sách chiến dịch tiêm chủng chờ duyệt
+ *     tags: [Manager]
+ *     responses:
+ *       200:
+ *         description: Danh sách chiến dịch đang chờ
+ */
+
+/**
+ * @swagger
+ * /manager/vaccine-campaigns-approved:
+ *   get:
+ *     summary: Lấy danh sách chiến dịch đã duyệt
+ *     tags: [Manager]
+ *     responses:
+ *       200:
+ *         description: Danh sách chiến dịch đã duyệt
+ */
+
+/**
+ * @swagger
+ * /manager/vaccine-campaigns-declined:
+ *   get:
+ *     summary: Lấy danh sách chiến dịch bị từ chối
+ *     tags: [Manager]
+ *     responses:
+ *       200:
+ *         description: Danh sách chiến dịch bị từ chối
+ */
+
+/**
+ * @swagger
+ * /manager/vaccine-campaigns/{id}/respond:
+ *   post:
+ *     summary: Phản hồi chiến dịch tiêm chủng
+ *     tags: [Manager]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [APPROVED, DECLINED]
+ *     responses:
+ *       200:
+ *         description: Phản hồi thành công
+ */
+
+/**
+ * @swagger
+ * /manager/vaccine-campaigns/{campaign_id}/status:
+ *   patch:
+ *     summary: Cập nhật trạng thái chiến dịch tiêm chủng
+ *     tags: [Manager]
+ *     parameters:
+ *       - in: path
+ *         name: campaign_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Cập nhật thành công
+ */
+
+/**
+ * @swagger
+ * /manager/notifications:
+ *   get:
+ *     summary: Lấy danh sách thông báo của hiệu trưởng
+ *     tags: [Manager]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Danh sách thông báo
+ */
+
+/**
+ * @swagger
+ * components:
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
  */

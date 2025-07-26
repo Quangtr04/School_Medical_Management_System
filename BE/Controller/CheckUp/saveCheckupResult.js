@@ -65,18 +65,13 @@ const saveCheckupResult = async (req, res) => {
     WHERE student_id = @student_id
   `);
 
-    let healthStatus = "Healthy";
-    if (abnormal_signs || (notes && notes.includes("ho"))) {
-      healthStatus = "Follow-up required";
-    } else if (vision_left < 1 || vision_right < 1) {
-      healthStatus = "Mild myopia";
-    } else if (hearing_left !== "Bình thường" || hearing_right !== "Bình thường") {
-      healthStatus = "Hearing Impairment";
-    } else if (blood_pressure && blood_pressure !== "120/80") {
-      healthStatus = "Needs BP monitoring";
-    } else if (needs_counseling) {
-      healthStatus = "Needs Counseling";
+    let healthStatus = "Khỏe mạnh";
+    if (abnormal_signs && needs_counseling === true) {
+      healthStatus = "Cần theo dõi";
+    } else if (needs_counseling === true) {
+      healthStatus = "Cần theo dõi";
     }
+
     await pool
       .request()
       .input("student_id", sql.Int, checkExist.recordset[0].student_id)
@@ -183,7 +178,7 @@ const updateCheckup = async (req, res) => {
   }
 };
 
-const getAllCheckupParticipation = async (req, res, next) => {
+const getAllCheckupParticipationByParentId = async (req, res, next) => {
   try {
     const parent_id = req.user?.user_id;
     const pool = await sqlServerPool;
@@ -199,7 +194,7 @@ const getAllCheckupParticipation = async (req, res, next) => {
   }
 };
 
-const getCheckupParticipation = async (req, res, next) => {
+const getCheckupParticipationByParentId = async (req, res, next) => {
   try {
     const { checkup_id } = req.params;
     const parent_id = req.user?.user_id;
@@ -218,7 +213,7 @@ const getCheckupParticipation = async (req, res, next) => {
   }
 };
 
-const getCheckupParticipationById = async (req, res, next) => {
+const getCheckupParticipationByIdByParentID = async (req, res, next) => {
   const { id, student_id } = req.params;
   const parent_id = req.user?.user_id;
   try {
@@ -270,10 +265,88 @@ const getCheckupParticipationById = async (req, res, next) => {
   }
 };
 
+const getAllCheckupParticipation = async (req, res, next) => {
+  try {
+    const pool = await sqlServerPool;
+    const checkupList = await pool.request()
+      .query(`SELECT CP.*, SI.full_name, SI.student_code, SI.date_of_birth, SI.class_name
+              FROM Checkup_Participation CP JOIN Student_Information SI ON CP.student_id = SI.student_id`);
+    res.status(200).json({ checkups: checkupList.recordset });
+  } catch (error) {
+    console.error("Error fetching checkup list:", error);
+    a;
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const getCheckupParticipation = async (req, res, next) => {
+  try {
+    const { checkup_id } = req.params;
+    const pool = await sqlServerPool;
+    const checkupList = await pool.request().input("checkup_id", sql.Int, checkup_id)
+      .query(`SELECT CP.*, SI.full_name, SI.student_code, SI.date_of_birth, SI.class_name
+              FROM Checkup_Participation CP JOIN Student_Information SI ON CP.student_id = SI.student_id
+              WHERE CP.checkup_id = @checkup_id`);
+    res.status(200).json({ checkups: checkupList.recordset });
+  } catch (error) {
+    console.error("Error fetching checkup list:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const getCheckupParticipationById = async (req, res, next) => {
+  const { id, student_id } = req.params;
+  try {
+    const pool = await sqlServerPool;
+    const checkupList = await pool.request().input("id", sql.Int, id).input("student_id", sql.Int, student_id).query(`
+        SELECT 
+          CP.checkup_id,
+          CP.id,
+          CP.consent_form_id,
+          CP.checked_at,
+          CP.blood_pressure,
+          CP.notes,
+          CP.abnormal_signs,
+          CP.needs_counseling,
+          SI.full_name,
+          SI.student_code,
+          SI.class_name,
+          SI.date_of_birth,
+          SI.gender,
+          SI.parent_id,
+          SH.height_cm,
+          SH.weight_kg,
+          SH.vision_left,
+          SH.vision_right,
+          SH.hearing_left,
+          SH.hearing_right,
+          SH.blood_type,
+          SH.chronic_disease,
+          SH.allergy
+        FROM 
+          Checkup_Participation CP
+        JOIN 
+          Student_Information SI ON CP.student_id = SI.student_id
+        JOIN 
+          Student_Health SH ON SI.student_id = SH.student_id
+        WHERE 
+          CP.checkup_id = @id 
+          AND CP.student_id = @student_id 
+      `);
+    res.status(200).json({ checkups: checkupList.recordset });
+  } catch (error) {
+    console.error("Error fetching checkup list:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 module.exports = {
   saveCheckupResult,
   updateCheckup,
   getCheckupParticipation,
   getCheckupParticipationById,
-  getAllCheckupParticipation,
+  getAllCheckupParticipationByParentId,
+  getCheckupParticipationByParentId,
+  getCheckupParticipationByIdByParentID,
+  getAllCheckupParticipation, //nurse
 };

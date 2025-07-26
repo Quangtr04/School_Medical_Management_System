@@ -10,16 +10,18 @@ const { swaggerUi, swaggerSpec } = require("../Utils/swaggerOptions");
 const app = express();
 const port = 3000;
 const path = require("path");
-// const cron = require("node-cron");
-// const checkUnupdatedMedicationLogs = require("./services/checkUnupdatedMedicationLogs");
+const cron = require("node-cron");
+const { checkUnupdatedMedicationLogs } = require("../Controller/Medical/medicationDailyLog");
+const router = require("../routers/supply.routers");
+const { updateStatusSupplyWhenExpiredDay } = require("../Controller/Medical/medicalSupply");
 
 require("dotenv").config();
 
 const corsOptions = {
   origin: [
     "http://localhost:5173",
-    "http://192.168.1.102:5173",
-    "http://192.168.1.85:5173",
+    "http://192.168.1.168:5173",
+    "http://192.168.1.204:5173",
     "http://172.20.10.4:5173",
     "http://172.20.10.2:5173",
   ],
@@ -63,8 +65,14 @@ app.listen(port, "0.0.0.0", () => {
   console.log("Swagger docs at http://localhost:3000/api-docs");
 });
 
-// // Cấu hình cron job chạy vào 18:00 mỗi ngày
-// cron.schedule("0 18 * * *", () => {
-//   console.log("🕕 Kiểm tra nhật ký uống thuốc (18:00)");
-//   checkUnupdatedMedicationLogs(); // Gọi hàm xử lý
-// });
+// Cấu hình cron job chạy vào 18:00 mỗi ngày
+cron.schedule("0 18 * * *", () => {
+  console.log("🕕 Kiểm tra nhật ký uống thuốc (18:00)");
+  checkUnupdatedMedicationLogs(); // Gọi hàm xử lý
+});
+
+// Cấu hình cron job để tự động kiểm tra vật tư y tế hết hạn mỗi ngày lúc 0h
+cron.schedule("0 0 * * *", () => {
+  console.log("🔁 Tự động kiểm tra vật tư y tế hết hạn mỗi ngày lúc 0h");
+  updateStatusSupplyWhenExpiredDay();
+});

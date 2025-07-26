@@ -39,8 +39,11 @@ const createSchedule = async (req, res, next) => {
     // ✅ Gửi thông báo cho tất cả Manager
     const managers = await pool.request().query(`SELECT user_id FROM Users WHERE role_id = 2`);
     const managerIds = managers.recordset.map((m) => m.user_id);
-    const emailManager = await pool.request().input("user_id", sql.Int, managerIds).query(`SELECT email FROM Users WHERE user_id = @user_id`)    
-    
+    const emailManager = await pool
+      .request()
+      .input("user_id", sql.Int, managerIds)
+      .query(`SELECT email FROM Users WHERE user_id = @user_id`);
+
     await sendNotification(
       pool,
       managerIds,
@@ -48,11 +51,7 @@ const createSchedule = async (req, res, next) => {
       `Có một lịch khám sức khỏe mới cần phê duyệt: "${title}".`
     );
 
-    await sendEmail(
-      emailManager,
-      "Lịch khám sức khỏe mới",
-      `Có một lịch khám sức khỏe mới cần phê duyệt: "${title}".`
-    )
+    await sendEmail(emailManager, "Lịch khám sức khỏe mới", `Có một lịch khám sức khỏe mới cần phê duyệt: "${title}".`);
 
     res.status(201).json({ message: "Schedule created", id: checkupId });
   } catch (err) {
@@ -107,22 +106,28 @@ const deleteSchedule = async (req, res, next) => {
     }
 
     for (let nursesids of nurseIds) {
-      const email = await pool.request().input("user_id", sql.Int, nurseIds).query("SELECT email FROmSELECT email FROM Users WHERE user_id = @user_id")
+      const email = await pool
+        .request()
+        .input("user_id", sql.Int, nurseIds)
+        .query("SELECT email FROmSELECT email FROM Users WHERE user_id = @user_id");
       await sendNotification(pool, nurseIds, "Lịch khám bị xóa", `Lịch khám sức khỏe (ID: ${id}) đã bị xóa.`);
-      await sendEmail(email, 'Lịch khám bị xóa', `Lịch khám sức khỏe (ID: ${id}) đã bị xóa.`)
+      await sendEmail(email, "Lịch khám bị xóa", `Lịch khám sức khỏe (ID: ${id}) đã bị xóa.`);
     }
 
     // 5. Gửi thông báo đến các phụ huynh nếu đã duyệt
     if (approvalStatus === "APPROVED") {
       for (let parentId of parentIds) {
-        const email = await pool.request().input("user_id", sql.Int, parentIds).query("SELECT email FROmSELECT email FROM Users WHERE user_id = @user_id")
+        const email = await pool
+          .request()
+          .input("user_id", sql.Int, parentIds)
+          .query("SELECT email FROmSELECT email FROM Users WHERE user_id = @user_id");
         await sendNotification(
           pool,
           parentId,
           "Lịch khám bị hủy",
           `Lịch khám sức khỏe cho học sinh của bạn đã bị hủy.`
         );
-        await sendEmail(email, "Lịch khám bị hủy", `Lịch khám sức khỏe cho học sinh của bạn đã bị hủy.`)
+        await sendEmail(email, "Lịch khám bị hủy", `Lịch khám sức khỏe cho học sinh của bạn đã bị hủy.`);
       }
     }
 
@@ -153,7 +158,7 @@ const getPending = async (req, res, next) => {
 const responseSchedule = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, note } = req.body;
     const pool = await sqlServerPool;
 
     await pool.request().input("id", sql.Int, id).input("status", sql.NVarChar, status).query(`
@@ -174,7 +179,10 @@ const responseSchedule = async (req, res, next) => {
 
       const className = checkupResult.recordset[0].class_name;
       const nurseId = checkupResult.recordset[0].created_by;
-      const email = await pool.request().input("user_id", sql.Int, nurseId).query("SELECT email FROmSELECT email FROM Users WHERE user_id = @user_id")
+      const email = await pool
+        .request()
+        .input("user_id", sql.Int, nurseId)
+        .query("SELECT email FROM Users WHERE user_id = @user_id");
 
       // Gửi thông báo đến nurse
       await sendNotification(
@@ -184,7 +192,11 @@ const responseSchedule = async (req, res, next) => {
         `Lịch khám sức khỏe cho lớp ${className} đã được duyệt.`
       );
 
-      await sendEmail(email, "Lịch khám được duyệt", `Lịch khám sức khỏe cho lớp ${className} đã được duyệt.`)
+      await sendEmail(
+        email.recordset[0].email,
+        "Lịch khám được duyệt",
+        `Lịch khám sức khỏe cho lớp ${className} đã được duyệt.`
+      );
 
       const students = await pool.request().input("class", sql.Int, className).query(`
         SELECT student_id, parent_id FROM Student_Information
@@ -200,8 +212,11 @@ const responseSchedule = async (req, res, next) => {
             INSERT INTO Checkup_Consent_Form (student_id, parent_id, checkup_id, status, submitted_at)
             VALUES (@student_id, @parent_id, @checkup_id, 'PENDING', NULL)
           `);
-        
-        const email = await pool.request().input("user_id", sql.Int, stu.parent_id).query("SELECT email FROmSELECT email FROM Users WHERE user_id = @user_id")
+
+        const emailParent = await pool
+          .request()
+          .input("user_id", sql.Int, stu.parent_id)
+          .query("SELECT email FROM Users WHERE user_id = @user_id");
 
         await sendNotification(
           pool,
@@ -210,11 +225,44 @@ const responseSchedule = async (req, res, next) => {
           `Vui lòng xác nhận lịch khám sức khỏe cho học sinh lớp ${className}.`
         );
 
-        await sendEmail(email, "Cần xác nhận lịch khám sức khỏe", `Vui lòng xác nhận lịch khám sức khỏe cho học sinh lớp ${className}.`)    
+        await sendEmail(
+          emailParent.recordset[0].email,
+          "Cần xác nhận lịch khám sức khỏe",
+          `Vui lòng xác nhận lịch khám sức khỏe cho học sinh lớp ${className}.`
+        );
       }
+    } else if (status === "DECLINED") {
+      const checkupResult = await pool
+        .request()
+        .input("id", sql.Int, id)
+        .query("SELECT created_by FROM Medical_Checkup_Schedule WHERE checkup_id = @id");
+
+      if (checkupResult.recordset.length === 0) {
+        return res.status(404).json({ message: "Checkup schedule not found" });
+      }
+
+      const nurseId = checkupResult.recordset[0].created_by;
+      const email = await pool
+        .request()
+        .input("user_id", sql.Int, nurseId)
+        .query("SELECT email FROM Users WHERE user_id = @user_id");
+
+      // Gửi thông báo cho Nurse
+      await sendNotification(
+        pool,
+        nurseId,
+        "Lịch khám bị từ chối",
+        "Lịch khám sức khỏe bạn tạo đã bị từ chối bởi quản lý."
+      );
+
+      await sendEmail(
+        email.recordset[0].email,
+        "Lịch khám bị từ chối",
+        `Lịch khám sức khỏe bạn tạo đã bị từ chối bởi quản lý vì lý do ${note}.`
+      );
     }
 
-    res.json({ message: "Schedule approval processed" });
+    res.status(200).json({ message: "Schedule approval processed" });
   } catch (err) {
     next(err);
   }

@@ -1,16 +1,16 @@
 CREATE TABLE Role (
     role_id INT PRIMARY KEY IDENTITY(1,1),
-    name VARCHAR(255) NOT NULL UNIQUE
+    name NVARCHAR(255) NOT NULL UNIQUE
 );
 
 CREATE TABLE Users (
     user_id INT PRIMARY KEY IDENTITY(1,1),
-    email VARCHAR(255) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
+    email NVARCHAR(255) NOT NULL UNIQUE,
+    password NVARCHAR(255) NOT NULL,
     fullname NVARCHAR(255) NOT NULL,
     dayOfBirth DATE NOT NULL,
-    phone VARCHAR(50) NOT NULL,
-    gender VARCHAR(50) NOT NULL,
+    phone NVARCHAR(50) NOT NULL,
+    gender NVARCHAR(50) NOT NULL,
     address NVARCHAR(255) NOT NULL,
     major NVARCHAR(255),
     role_id INT NOT NULL FOREIGN KEY REFERENCES Role(role_id),
@@ -19,17 +19,17 @@ CREATE TABLE Users (
 );
 
 CREATE TABLE Class (
-    class_name VARCHAR(50) PRIMARY KEY,
+    class_name NVARCHAR(50) PRIMARY KEY,
     number_of_student INT
 );
 
 CREATE TABLE Student_Information (
     student_id INT PRIMARY KEY IDENTITY(1,1),
-    student_code VARCHAR(20),
+    student_code NVARCHAR(20),
     full_name NVARCHAR(100) NOT NULL,
     gender NVARCHAR(10),
     date_of_birth DATE,
-    class_name VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES Class(class_name),
+    class_name NVARCHAR(50) NOT NULL FOREIGN KEY REFERENCES Class(class_name),
     address NVARCHAR(200),
     parent_id INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
     created_at DATETIME DEFAULT GETDATE()
@@ -39,11 +39,11 @@ CREATE TABLE Medication_Submisstion_Request (
     id_req INT PRIMARY KEY IDENTITY(1,1),
     parent_id INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
     student_id INT NOT NULL FOREIGN KEY REFERENCES Student_Information(student_id),
-    status VARCHAR(50) NOT NULL,
+    status NVARCHAR(50) NOT NULL,
     created_at DATETIME DEFAULT GETDATE(),
     nurse_id INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
     note NVARCHAR(MAX),
-    image_url VARCHAR(255),
+    image_url NVARCHAR(255),
     start_date DATE NOT NULL,
     end_date DATE NOT NULL
 );
@@ -53,10 +53,10 @@ CREATE TABLE Medication_Daily_Log (
     id_req INT NOT NULL FOREIGN KEY REFERENCES Medication_Submisstion_Request(id_req),
     nurse_id INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
     date DATE NOT NULL,
-    status VARCHAR(50) NOT NULL,
+    status NVARCHAR(50) NOT NULL,
     note NVARCHAR(MAX),
     updated_at DATETIME DEFAULT GETDATE(),
-    image_url VARCHAR(255),
+    image_url NVARCHAR(255),
 );
 
 CREATE TABLE Student_Health (
@@ -64,14 +64,14 @@ CREATE TABLE Student_Health (
     student_id INT NOT NULL FOREIGN KEY REFERENCES Student_Information(student_id),
     height_cm INT,
     weight_kg INT,
-    blood_type VARCHAR(10),
+    blood_type NVARCHAR(10),
     allergy TEXT,
     chronic_disease TEXT,
     vision_left FLOAT,
     vision_right FLOAT,
-    hearing_left VARCHAR(50),
-    hearing_right VARCHAR(50),
-    health_status VARCHAR(255),
+    hearing_left NVARCHAR(50),
+    hearing_right NVARCHAR(50),
+    health_status NVARCHAR(255),
     created_at DATETIME NOT NULL,
     updated_at DATETIME
 );
@@ -90,22 +90,21 @@ CREATE TABLE Medical_Incident (
     occurred_at DATETIME NOT NULL,
     reported_at DATETIME DEFAULT GETDATE(),
     nurse_id INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
-    status VARCHAR(50) NOT NULL,
+    status NVARCHAR(50) NOT NULL,
     resolution_notes TEXT,
     resolved_at DATETIME
 );
 
 CREATE TABLE Medical_Supply (
     supply_id INT PRIMARY KEY IDENTITY(1,1),
-    name VARCHAR(255) NOT NULL UNIQUE,
-    type VARCHAR(50) NOT NULL,
-    unit VARCHAR(50) NOT NULL,
+    name NVARCHAR(255) NOT NULL UNIQUE,
+    type NVARCHAR(50) NOT NULL,
+    unit NVARCHAR(50) NOT NULL,
     quantity INT NOT NULL DEFAULT 0,
     description NVARCHAR(MAX),
     expired_date DATE,
     is_active BIT DEFAULT 1,
     nurse_id INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
-    usage_note NVARCHAR(MAX)
 );
 
 CREATE TABLE Incident_Medication_Log (
@@ -123,7 +122,7 @@ CREATE TABLE Vaccination_Campaign (
     created_at DATETIME DEFAULT GETDATE(),
     created_by INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
     approved_by NVARCHAR(255) NULL ,
-    approval_status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    approval_status NVARCHAR(50) NOT NULL DEFAULT 'PENDING',
     sponsor NVARCHAR(255) NOT NULL,
     class INT
 );
@@ -133,7 +132,7 @@ CREATE TABLE Vaccination_Consent_Form (
     campaign_id INT NOT NULL FOREIGN KEY REFERENCES Vaccination_Campaign(campaign_id),
     student_id INT NOT NULL FOREIGN KEY REFERENCES Student_Information(student_id),
     parent_id INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
-    status VARCHAR(50) NOT NULL,
+    status NVARCHAR(50) NOT NULL,
     submitted_at DATETIME,
     note NVARCHAR(MAX)
 );
@@ -159,7 +158,7 @@ CREATE TABLE Medical_Checkup_Schedule (
     created_at DATETIME DEFAULT GETDATE(),
     created_by INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
     approved_by NVARCHAR(255) NULL,
-    approval_status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    approval_status NVARCHAR(50) NOT NULL DEFAULT 'PENDING',
     sponsor NVARCHAR(255) NOT NULL,
     class INT
 );
@@ -169,7 +168,7 @@ CREATE TABLE Checkup_Consent_Form (
     checkup_id INT NOT NULL FOREIGN KEY REFERENCES Medical_Checkup_Schedule(checkup_id),
     student_id INT NOT NULL FOREIGN KEY REFERENCES Student_Information(student_id),
     parent_id INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
-    status VARCHAR(50) NOT NULL,
+    status NVARCHAR(50) NOT NULL,
     submitted_at DATETIME,
     note NVARCHAR(MAX)
 );
@@ -184,9 +183,9 @@ CREATE TABLE Checkup_Participation (
     weight_kg INT,
     vision_left FLOAT,
     vision_right FLOAT,
-    hearing_left VARCHAR(50),
-    hearing_right VARCHAR(50),
-    blood_pressure VARCHAR(50),
+    hearing_left NVARCHAR(50),
+    hearing_right NVARCHAR(50),
+    blood_pressure NVARCHAR(50),
     notes NVARCHAR(MAX),
     abnormal_signs NVARCHAR(MAX),
     needs_counseling BIT DEFAULT 0
@@ -207,13 +206,13 @@ CREATE TABLE Notification (
 CREATE TABLE UserRequest (
   req_id INT IDENTITY(1,1) PRIMARY KEY,
   fullname NVARCHAR(255) NOT NULL,
-  email VARCHAR(255) NOT NULL,
-  phone VARCHAR(20) NOT NULL,
+  email NVARCHAR(255) NOT NULL,
+  phone NVARCHAR(20) NOT NULL,
   title NVARCHAR(255) NOT NULL,
-  req_type VARCHAR(20) NOT NULL, 
+  req_type NVARCHAR(20) NOT NULL, 
   text NVARCHAR(MAX) NOT NULL,
   created_at DATETIME DEFAULT GETDATE(),
-  status VARCHAR(20) DEFAULT 'PENDING', 
+  status NVARCHAR(20) DEFAULT 'PENDING', 
   target_role_id INT NOT NULL,
 
   FOREIGN KEY (target_role_id) REFERENCES Role(role_id)

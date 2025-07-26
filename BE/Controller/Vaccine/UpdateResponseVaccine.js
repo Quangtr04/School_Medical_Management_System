@@ -5,7 +5,7 @@ const sendNotification = require("../../Utils/sendNotification");
 const UpdateResponseByManager = async (req, res, next) => {
   try {
     const { campaign_id } = req.params;
-    const { status } = req.body;
+    const { status, note } = req.body;
 
     if (!["APPROVED", "DECLINED"].includes(status)) {
       return res.status(400).json({ message: "Invalid status. Must be 'APPROVED' or 'DECLINED'." });
@@ -45,7 +45,7 @@ const UpdateResponseByManager = async (req, res, next) => {
         pool,
         created_by,
         "Chiến dịch tiêm chủng bị từ chối",
-        "Chiến dịch tiêm bạn tạo đã bị từ chối bởi quản lý."
+        `Chiến dịch tiêm bạn tạo đã bị từ chối bởi quản lý vì lý do: ${note}.`
       );
     }
 
@@ -146,7 +146,7 @@ const UpdateResponseByParent = async (req, res, next) => {
           pool,
           nurseId.recordset[0].created_by,
           "Lịch tiêm chủng bị từ chối",
-          "Phụ huynh đã từ chối tiêm chủng cho con."
+          `Phụ huynh đã từ chối tiêm chủng cho con. Lý do: ${note}`
         );
       }
     }

@@ -25,12 +25,12 @@ const updateResultVaccine = async (req, res, next) => {
     await pool
       .request()
       .input("id", sql.Int, vaccine_id)
-      .input("vaccinated_at", sql.DateTime, vaccinated_at || null)
-      .input("vaccine_name", sql.VarChar(255), vaccine_name || null)
-      .input("dose_number", sql.Int, dose_number || null)
-      .input("reaction", sql.NVarChar(255), reaction || null)
-      .input("follow_up_required", sql.NVarChar(255), follow_up_required || null)
-      .input("note", sql.NVarChar(255), note || null).query(`
+      .input("vaccinated_at", sql.DateTime, vaccinated_at)
+      .input("vaccine_name", sql.VarChar(255), vaccine_name)
+      .input("dose_number", sql.Int, dose_number)
+      .input("reaction", sql.NVarChar(255), reaction)
+      .input("follow_up_required", sql.NVarChar(255), follow_up_required)
+      .input("note", sql.NVarChar(255), note).query(`
         UPDATE Vaccination_Result
         SET
           vaccinated_at = @vaccinated_at,

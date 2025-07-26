@@ -4,6 +4,21 @@ const { getStudentIdByName } = require("../../Utils/getStudentIdByName");
 const { getSupplyByName, getSupplyById } = require("../../Utils/Supply");
 const { getServerityIdByName } = require("../../Utils/serverity");
 const sendNotification = require("../../Utils/sendNotification");
+const sendEmail = require("../../Utils/mailer");
+
+// Hàm chuẩn hóa ngày về múi giờ Việt Nam (GMT+7)
+function normalizeDateVN(dateInput) {
+  let date;
+  if (dateInput instanceof Date) {
+    date = new Date(dateInput.getTime());
+  } else if (typeof dateInput === "string") {
+    date = new Date(dateInput);
+  } else {
+    throw new Error("Invalid date input");
+  }
+  const offset = 7 * 60 * 60 * 1000; // Cộng thêm 7 tiếng
+  return new Date(date.getTime() + offset);
+}
 
 const createMedicalIncident = async (req, res) => {
   const IncidentData = req.body;
@@ -27,17 +42,22 @@ const createMedicalIncident = async (req, res) => {
     const serverity_id = await getServerityIdByName(IncidentData.severity_level);
 
     // Insert sự kiện vào bảng Medical_Incident
+
+    // Chuẩn hóa thời gian xảy ra và thời gian giải quyết (nếu có)
+    const occurredAtVN = normalizeDateVN(IncidentData.occurred_at);
+    const resolvedAtVN = IncidentData.resolved_at ? normalizeDateVN(IncidentData.resolved_at) : null;
+
     const insertIncident = await pool
       .request()
       .input("serverity_id", sql.Int, serverity_id)
       .input("subject_info_id", sql.Int, subject_info_id)
       .input("student_id", sql.Int, IncidentData.student_id)
       .input("description", sql.NVarChar(sql.MAX), IncidentData.description)
-      .input("occurred_at", sql.DateTime, IncidentData.occurred_at)
+      .input("occurred_at", sql.DateTime, occurredAtVN)
       .input("nurse_id", sql.Int, nurse_id)
       .input("status", sql.VarChar(50), IncidentData.status)
       .input("resolution_notes", sql.NVarChar(sql.MAX), IncidentData.resolution_notes || null)
-      .input("resolved_at", sql.DateTime, IncidentData.resolved_at || null).query(`
+      .input("resolved_at", sql.DateTime, resolvedAtVN).query(`
         INSERT INTO Medical_Incident (
           serverity_id, subject_info_id, student_id, description,
           occurred_at, reported_at, nurse_id, status,
@@ -105,6 +125,28 @@ const createMedicalIncident = async (req, res) => {
       "Medical Incident Reported",
       `A medical incident has been reported for your child ${IncidentData.student_id}. Please check the details in the system.`
     );
+    // Gửi email cho phụ huynh
+    const parentEmailResult = await pool
+      .request()
+      .input("parent_id", sql.Int, subject_info_id)
+      .query(`SELECT email FROM Users WHERE user_id = @parent_id`);
+
+    const parentEmail = parentEmailResult.recordset[0]?.email;
+
+    if (parentEmail) {
+      await sendEmail(
+        parentEmail,
+        "Thông báo sự cố y tế của học sinh",
+        `Kính gửi quý phụ huynh,
+
+Hệ thống vừa ghi nhận một sự cố y tế liên quan đến con của quý phụ huynh (Mã học sinh: ${IncidentData.student_id}).
+
+Quý phụ huynh vui lòng đăng nhập vào hệ thống để xem chi tiết và theo dõi tình hình sức khỏe của học sinh.
+
+Trân trọng,
+Ban Y Tế Trường`
+      );
+    }
 
     return res.status(201).json({
       message: "Medical incident and medication log created successfully",
@@ -119,7 +161,7 @@ const createMedicalIncident = async (req, res) => {
 const updateIncident = async (req, res) => {
   const nurse_id = req.user?.user_id;
   const { event_id } = req.params;
-  const { status, resolution_notes, resolved_at } = req.body;
+  const { status } = req.body;
 
   try {
     const pool = await sqlServerPool;
@@ -139,22 +181,38 @@ const updateIncident = async (req, res) => {
 
     // 2. Giữ lại dữ liệu cũ nếu không truyền
     const newStatus = status ?? oldData.status;
-    const newResolutionNotes = resolution_notes ?? oldData.resolution_notes;
-    const newResolvedAt = resolved_at ?? oldData.resolved_at;
 
-    // 3. Cập nhật lại incident
-    await pool
-      .request()
-      .input("event_id", sql.Int, event_id)
-      .input("status", sql.VarChar(50), newStatus)
-      .input("resolution_notes", sql.NVarChar(sql.MAX), newResolutionNotes)
-      .input("resolved_at", sql.DateTime, newResolvedAt).query(`
+    await pool.request().input("event_id", sql.Int, event_id).input("status", sql.VarChar(50), newStatus).query(`
         UPDATE Medical_incident
-        SET status = @status,
-            resolution_notes = @resolution_notes,
-            resolved_at = @resolved_at
+        SET status = @status
         WHERE event_id = @event_id
       `);
+    await sendNotification(
+      pool,
+      oldData.subject_info_id,
+      "Cập nhật sự cố y tế",
+      `Sự cố y tế cho con của bạn (Mã học sinh: ${oldData.student_id}) đã được cập nhật. Vui lòng kiểm tra hệ thống để biết thêm chi tiết.`
+    );
+    // Gửi email thông báo cập nhật
+    const parentEmailResult = await pool
+      .request()
+      .input("parent_id", sql.Int, oldData.subject_info_id)
+      .query(`SELECT email FROM Users WHERE user_id = @parent_id`);
+
+    const parentEmail = parentEmailResult.recordset[0]?.email;
+
+    if (parentEmail) {
+      await sendEmail(
+        parentEmail,
+        "Thông báo cập nhật sự cố y tế của học sinh",
+        `Kính gửi quý phụ huynh,
+
+        Sự cố y tế cho con của quý phụ huynh (Mã học sinh: ${oldData.student_id}) đã được cập nhật. Quý phụ huynh vui lòng đăng nhập vào hệ thống để xem chi tiết.
+
+        Trân trọng,
+        Ban Y Tế Trường`
+      );
+    }
 
     return res.status(200).json({ message: "Incident updated successfully." });
   } catch (error) {

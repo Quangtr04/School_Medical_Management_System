@@ -53,12 +53,13 @@ const {
   getStudentVaccineListByCampaignIdByParentId,
 } = require("../Controller/Vaccine/UpdateVaccineResult");
 const {
-  getCheckupParticipation,
-  getCheckupParticipationById,
-  getAllCheckupParticipation,
+  getAllCheckupParticipationByParentId,
+  getCheckupParticipationByParentId,
+  getCheckupParticipationByIdByParentID,
 } = require("../Controller/CheckUp/saveCheckupResult");
 const upload = require("../middlewares/multerConfig");
 const { getLogsByRequestIdAndUserIdAndStudentId, getLogByLogId } = require("../Controller/Medical/medicationDailyLog");
+const { sendRequest } = require("../Controller/Request/sendRequest");
 
 const parentRouter = express.Router();
 
@@ -113,11 +114,15 @@ parentRouter.post("/consents-checkup/:form_id/respond", authenticateToken, respo
  */
 parentRouter.patch("/checkups/:checkup_id/consent", authenticateToken, UpdateStatusCheckupParent); //done
 
-parentRouter.get("/consents-checkup/students", authenticateToken, getAllCheckupParticipation); // đã sửa
+parentRouter.get("/consents-checkup/students", authenticateToken, getAllCheckupParticipationByParentId); // đã sửa
 
-parentRouter.get("/consents-checkup/:id/students", authenticateToken, getCheckupParticipation);
+parentRouter.get("/consents-checkup/:id/students", authenticateToken, getCheckupParticipationByParentId);
 
-parentRouter.get("/consents-checkup/:id/students/:student_id", authenticateToken, getCheckupParticipationById); //đã sửa
+parentRouter.get(
+  "/consents-checkup/:id/students/:student_id",
+  authenticateToken,
+  getCheckupParticipationByIdByParentID
+); //đã sửa
 
 // --- Nhóm các API liên quan đến Khai báo y tế (Health Declarations) ---
 /**
@@ -149,33 +154,27 @@ parentRouter.get("/incidents/:event_id", getIncidentById); // Thêm authenticate
 parentRouter.post(
   "/medical-submissions",
   authenticateToken,
-  upload.single("image"),
+  upload.array("image", 5), // cho phép tối đa 5 ảnh
   async (req, res, next) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({
-          status: "fail",
-          message: "Ảnh là bắt buộc",
-        });
-      }
-
-      // Gán ảnh
-      req.body.image_url = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
-
-      // Gán từ token
-      req.body.parent_id = req.user?.user_id;
-
-      // Ép kiểu dữ liệu trước khi validate
-      req.body.student_id = parseInt(req.body.student_id);
-      req.body.nurse_id = req.body.nurse_id ? parseInt(req.body.nurse_id) : undefined;
-      req.body.status = req.body.status || "PENDING";
-
-      console.log("✔️ Trước validate:", req.body);
-
-      return validateInput(Schemas, "MedicalSubmissionRequest")(req, res, next);
-    } catch (err) {
-      next(err);
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        status: "fail",
+        message: "Ảnh là bắt buộc",
+      });
     }
+
+    // Gán danh sách đường dẫn ảnh
+    const imageUrls = req.files.map((file) => `${req.protocol}://${req.get("host")}/uploads/${file.filename}`);
+    req.body.image_urls = imageUrls;
+
+    req.body.parent_id = req.user?.user_id;
+    req.body.student_id = parseInt(req.body.student_id);
+    req.body.nurse_id = req.body.nurse_id ? parseInt(req.body.nurse_id) : undefined;
+    req.body.status = req.body.status || "PENDING";
+
+    console.log("✔️ Trước validate:", req.body);
+
+    return validateInput(Schemas, "MedicalSubmissionRequest")(req, res, next);
   },
   medicationSubmissionReq
 );
@@ -236,5 +235,7 @@ parentRouter.get("/vaccine-campaigns/:campaing_id/students/:student_id", getStud
  * /notifications?page=1&limit=10
  */
 parentRouter.get("/notifications", authenticateToken, getNotifications);
+
+parentRouter.post("/send-request", sendRequest);
 
 module.exports = parentRouter;

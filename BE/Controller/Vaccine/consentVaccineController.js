@@ -11,7 +11,7 @@ const getConsentVaccineByParentId = async (req, res) => {
     const pool = await sqlServerPool;
     // Fetch all students associated with the parent
     const ListVaccineConsent = await pool.request().input("parentId", sql.Int, parentId)
-      .query(`SELECT VCF.*, VC.title, VC.scheduled_date, VC.description, VC.class, VC.sponsor, SI.full_name FROM Vaccination_Consent_Form VCF 
+      .query(`SELECT VCF.*, VC.title, VC.scheduled_date, VC.description, VC.class, VC.sponsor, SI.full_name, SI.class_name FROM Vaccination_Consent_Form VCF 
               JOIN Vaccination_Campaign VC ON VCF.campaign_id = VC.campaign_id
               JOIN Student_Information SI ON VCF.student_id = SI.student_id
               WHERE VCF.parent_id = @parentId`);
@@ -41,7 +41,7 @@ const getConsentVaccineApproveByParentId = async (req, res, next) => {
     const pool = await sqlServerPool;
     // Fetch all students associated with the parent
     const ListVaccineConsent = await pool.request().input("parentId", sql.Int, parentId)
-      .query(`SELECT VCF.*, VC.title, VC.scheduled_date, VC.description, VC.class, VC.sponsor, SI.full_name FROM Vaccination_Consent_Form VCF 
+      .query(`SELECT VCF.*, VC.title, VC.scheduled_date, VC.description, VC.class, VC.sponsor, SI.full_name, SI.class_name FROM Vaccination_Consent_Form VCF 
               JOIN Vaccination_Campaign VC ON VCF.campaign_id = VC.campaign_id
               JOIN Student_Information SI ON VCF.student_id = SI.student_id
               WHERE VCF.parent_id = @parentId AND VCF.status = 'AGREED'`);
@@ -71,7 +71,7 @@ const getConsentVaccinePendingByParentId = async (req, res, next) => {
     const pool = await sqlServerPool;
     // Fetch all students associated with the parent
     const ListVaccineConsent = await pool.request().input("parentId", sql.Int, parentId)
-      .query(`SELECT VCF.*, VC.title, VC.scheduled_date, VC.description, VC.class, VC.sponsor, SI.full_name FROM Vaccination_Consent_Form VCF 
+      .query(`SELECT VCF.*, VC.title, VC.scheduled_date, VC.description, VC.class, VC.sponsor, SI.full_name, SI.class_name FROM Vaccination_Consent_Form VCF 
               JOIN Vaccination_Campaign VC ON VCF.campaign_id = VC.campaign_id
               JOIN Student_Information SI ON VCF.student_id = SI.student_id
               WHERE VCF.parent_id = @parentId AND VCF.status = 'Pending'`);
@@ -100,7 +100,7 @@ const getConsentVaccineDeclineByParentId = async (req, res, next) => {
     const pool = await sqlServerPool;
     // Fetch all students associated with the parent
     const ListVaccineConsent = await pool.request().input("parentId", sql.Int, parentId)
-      .query(`SELECT VCF.*, VC.title, VC.scheduled_date, VC.description, VC.class, VC.sponsor, SI.full_name FROM Vaccination_Consent_Form VCF 
+      .query(`SELECT VCF.*, VC.title, VC.scheduled_date, VC.description, VC.class, VC.sponsor, SI.full_name, SI.class_name FROM Vaccination_Consent_Form VCF 
               JOIN Vaccination_Campaign VC ON VCF.campaign_id = VC.campaign_id
               JOIN Student_Information SI ON VCF.student_id = SI.student_id
               WHERE VCF.parent_id = @parentId AND VCF.status = 'DECLINED'`);
@@ -130,7 +130,7 @@ const getConsentVaccineByIdAndParentId = async (req, res, next) => {
     const pool = await sqlServerPool;
     // Fetch the consent form by ID and parent ID
     const consentVaccine = await pool.request().input("parentId", sql.Int, parentId).input("id", sql.Int, id)
-      .query(`SELECT VCF.*, VC.title, VC.scheduled_date, VC.description, VC.class, VC.sponsor, SI.full_name FROM Vaccination_Consent_Form VCF 
+      .query(`SELECT VCF.*, VC.title, VC.scheduled_date, VC.description, VC.class, VC.sponsor, SI.full_name, SI.class_name FROM Vaccination_Consent_Form VCF 
               JOIN Vaccination_Campaign VC ON VCF.campaign_id = VC.campaign_id
               JOIN Student_Information SI ON VCF.student_id = SI.student_id
               WHERE VCF.parent_id = @parentId AND VCF.form_id = @id`);

@@ -4,7 +4,7 @@ const sendNotification = require("../../Utils/sendNotification");
 
 const UpdateStatusCheckupByManager = async (req, res) => {
   const { checkup_id } = req.params;
-  const { status } = req.body;
+  const { status, note } = req.body;
 
   if (!["APPROVED", "DECLINED"].includes(status)) {
     return res.status(400).json({ message: "Invalid status value. Must be 'APPROVED' or 'DECLINED'." });

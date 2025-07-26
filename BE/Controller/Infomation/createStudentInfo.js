@@ -2,18 +2,34 @@ const sqlServerPool = require("../../Utils/connectMySql");
 const sql = require("mssql");
 const sendNotification = require("../../Utils/sendNotification");
 
+// Hàm chuẩn hóa ngày về múi giờ Việt Nam (GMT+7)
+function normalizeDateVN(dateInput) {
+  let date;
+  if (dateInput instanceof Date) {
+    date = new Date(dateInput.getTime());
+  } else if (typeof dateInput === "string") {
+    date = new Date(dateInput);
+  } else {
+    throw new Error("Invalid date input");
+  }
+  const offset = 7 * 60 * 60 * 1000; // Cộng thêm 7 tiếng
+  return new Date(date.getTime() + offset);
+}
+
 const createStudentInformation = async (req, res, next) => {
   const studentInfo = req.body;
   const pool = await sqlServerPool;
 
   try {
-    const { student_code, class_name, parent_name } = studentInfo;
+    const { student_code, class_name, parent_id } = studentInfo;
 
     // check exist
     const studentCodeExists = await pool
       .request()
       .input("student_code", sql.NVarChar, student_code)
-      .query("SELECT COUNT(*) AS count FROM Student_Information WHERE student_code = @student_code");
+      .query(
+        "SELECT COUNT(*) AS count FROM Student_Information WHERE student_code = @student_code"
+      );
 
     if (studentCodeExists.recordset[0].count > 0) {
       return res.status(400).json({
@@ -22,24 +38,12 @@ const createStudentInformation = async (req, res, next) => {
       });
     }
 
-    const parentExists = await pool
-      .request()
-      .input("parent_name", sql.NVarChar, parent_name)
-      .query("SELECT user_id FROM Users WHERE fullname = @parent_name AND role_id = 4");
-
-    if (parentExists.recordset.length === 0) {
-      return res.status(400).json({
-        status: "fail",
-        message: "Parent does not exist or is not a parent",
-      });
-    }
-
-    const parent_id = parentExists.recordset[0].user_id;
-
     const classExists = await pool
       .request()
       .input("class_name", sql.NVarChar, class_name)
-      .query("SELECT COUNT(*) AS count FROM Class WHERE class_name = @class_name");
+      .query(
+        "SELECT COUNT(*) AS count FROM Class WHERE class_name = @class_name"
+      );
 
     if (classExists.recordset[0].count === 0) {
       return res.status(400).json({
@@ -48,6 +52,15 @@ const createStudentInformation = async (req, res, next) => {
       });
     }
 
+    const addressParent = await pool
+      .request()
+      .input("parent_id", sql.Int, parent_id)
+      .query(
+        "SELECT address FROM Parent_Information WHERE parent_id = @parent_id"
+      );
+
+    const address = addressParent.recordset[0]?.address || "";
+
     const result = await pool
       .request()
       .input("student_code", sql.NVarChar, studentInfo.student_code)
@@ -55,20 +68,25 @@ const createStudentInformation = async (req, res, next) => {
       .input("gender", sql.NVarChar, studentInfo.gender)
       .input("day_of_birth", sql.Date, studentInfo.day_of_birth)
       .input("class_name", sql.NVarChar, studentInfo.class_name)
-      .input("address", sql.NVarChar, studentInfo.address)
       .input("parent_id", sql.Int, parent_id)
-      .input("created_at", sql.DateTime, new Date()).query(`
+      .input("address", sql.NVarChar, address)
+      .input("created_at", sql.DateTime, normalizeDateVN(new Date())).query(`
     INSERT INTO Student_Information 
-    (student_code, full_name, gender, date_of_birth, class_name, address, parent_id, created_at)
+    (student_code, full_name, gender, date_of_birth, class_name, parent_id, address, created_at)
     OUTPUT INSERTED.student_id
     VALUES 
-    (@student_code, @full_name, @gender, @day_of_birth, @class_name, @address, @parent_id, @created_at)
+    (@student_code, @full_name, @gender, @day_of_birth, @class_name, @parent_id, @address, @created_at)
   `);
 
     if (result.rowsAffected[0] > 0) {
       // Gửi tb cho phụ huynh
       const student_id = result.recordset[0].student_id;
-      await sendNotification(pool, parent_id, "Thông báo học sinh", `Thông tin học sinh mới đã được tạo thành công`);
+      await sendNotification(
+        pool,
+        parent_id,
+        "Thông báo học sinh",
+        `Thông tin học sinh mới đã được tạo thành công`
+      );
 
       await pool
         .request()
@@ -108,7 +126,9 @@ const updateStudentInfoById = async (req, res, next) => {
     const classCheck = await pool
       .request()
       .input("class_name", sql.NVarChar, studentInfo.class_name)
-      .query("SELECT COUNT(*) AS count FROM Class WHERE class_name = @class_name");
+      .query(
+        "SELECT COUNT(*) AS count FROM Class WHERE class_name = @class_name"
+      );
 
     if (classCheck.recordset[0].count === 0) {
       return res.status(400).json({
@@ -121,7 +141,9 @@ const updateStudentInfoById = async (req, res, next) => {
     const parentResult = await pool
       .request()
       .input("student_id", sql.Int, studentId)
-      .query("SELECT parent_id FROM Student_Information WHERE student_id = @student_id");
+      .query(
+        "SELECT parent_id FROM Student_Information WHERE student_id = @student_id"
+      );
 
     const parentId = parentResult.recordset[0]?.parent_id || null;
 
@@ -131,7 +153,7 @@ const updateStudentInfoById = async (req, res, next) => {
       .input("student_id", sql.Int, studentId)
       .input("class_name", sql.NVarChar, studentInfo.class_name)
       .input("address", sql.NVarChar, studentInfo.address)
-      .input("updated_at", sql.DateTime, new Date()).query(`
+      .input("updated_at", sql.DateTime, normalizeDateVN(new Date())).query(`
         UPDATE Student_Information
         SET class_name = @class_name, address = @address, updated_at = @updated_at
         WHERE student_id = @student_id

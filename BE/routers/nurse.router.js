@@ -50,7 +50,7 @@ const {
 const { getAllStudentInfo, getStudentInfoById } = require("../Controller/Infomation/getInformation");
 const { updateHealthDeclarationByStudentId } = require("../Controller/Health/healthDeclaration");
 const { getProfileByUserId } = require("../Controller/Infomation/getUser");
-const { parentUpdateUserById } = require("../Controller/Login/account_status");
+const { parentUpdateUserById, nurseUpdateUserById } = require("../Controller/Login/account_status");
 const {
   getAllMedicationSubmissionReq,
   getMedicationSubmissionReqByID,
@@ -70,7 +70,7 @@ const nurseRouter = express.Router();
 nurseRouter.get("/profile", authenticateToken, getProfileByUserId);
 
 // Cập nhật thông tin
-nurseRouter.patch("/profile", authenticateToken, parentUpdateUserById);
+nurseRouter.patch("/profile", authenticateToken, nurseUpdateUserById);
 
 // 📌 Tạo lịch khám sức khỏe (nurse)
 nurseRouter.post("/checkups/create", authenticateToken, createSchedule);
@@ -88,14 +88,14 @@ nurseRouter.get("/checkups-approved/students/:checkup_id", getCheckupParticipati
 nurseRouter.get("/checkups-approved/:id/students/:student_id", getCheckupParticipationById);
 
 // 📌 Lưu kết quả khám sức khỏe cho học sinh
-nurseRouter.post(
-  "/checkups/:checkup_id/students/:student_id/result",
-  validateInput(Schemas, "Checkup_Result"),
-  saveCheckupResult
-);
+// nurseRouter.post(
+//   "/checkups/:checkup_id/students/:student_id/result",
+//   validateInput(Schemas, "Checkup_Result"),
+//   saveCheckupResult
+// );
 
 // 📌 Cập nhật ghi chú (note) cho học sinh trong lịch khám
-nurseRouter.patch("/checkups/:checkup_id/students/:student_id/note", updateCheckup);
+nurseRouter.patch("/checkups/students/:id/update", saveCheckupResult);
 
 // Lấy lịch khám đã được duyệt (để thực hiện khám)
 nurseRouter.get("/checkups-approved", getCheckupListApproved);
@@ -192,7 +192,7 @@ nurseRouter.patch("/medication-submissions/:ReqId/update", authenticateToken, up
 
 // Cập nhật trạng thái đơn thuốc mỗi ngày
 nurseRouter.patch(
-  "/medication-daily-logs-submissions/:ReqId/update",
+  "/medication-daily-logs-submissions/:Logid/update",
   authenticateToken,
   updateStatusMedicationDailyLog
 );

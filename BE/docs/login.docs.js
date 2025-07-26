@@ -1,34 +1,16 @@
 /**
  * @swagger
  * tags:
- *   - name: Login
- *     description: API xác thực người dùng
+ *   name: Auth
+ *   description: Đăng nhập và quản lý mật khẩu
+ */
 
+/**
+ * @swagger
  * /login:
  *   post:
- *     tags: [Login]
  *     summary: Đăng nhập
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               username:
- *                 type: string
- *               password:
- *                 type: string
- *     responses:
- *       200:
- *         description: Đăng nhập thành công
- *       401:
- *         description: Sai thông tin đăng nhập
-
- * /login/forgot-password:
- *   post:
- *     tags: [Login]
- *     summary: Quên mật khẩu - gửi email khôi phục
+ *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
@@ -38,17 +20,46 @@
  *             properties:
  *               email:
  *                 type: string
- *                 format: email
+ *                 example: user@example.com
+ *               password:
+ *                 type: string
+ *                 example: yourpassword
  *     responses:
  *       200:
- *         description: Gửi email thành công
- *       404:
- *         description: Email không tồn tại
+ *         description: Đăng nhập thành công
+ *       401:
+ *         description: Thông tin đăng nhập không hợp lệ
+ */
 
+/**
+ * @swagger
+ * /login/forgot-password:
+ *   post:
+ *     summary: Gửi yêu cầu quên mật khẩu
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: user@example.com
+ *     responses:
+ *       200:
+ *         description: Email khôi phục đã được gửi
+ *       404:
+ *         description: Không tìm thấy tài khoản với email này
+ */
+
+/**
+ * @swagger
  * /login/reset-password:
  *   post:
- *     tags: [Login]
  *     summary: Đặt lại mật khẩu mới
+ *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
@@ -58,11 +69,14 @@
  *             properties:
  *               token:
  *                 type: string
+ *                 description: Token xác thực từ email
  *               newPassword:
+ *                 type: string
+ *               confirmPassword:
  *                 type: string
  *     responses:
  *       200:
  *         description: Đặt lại mật khẩu thành công
  *       400:
- *         description: Token không hợp lệ hoặc đã hết hạn
+ *         description: Token không hợp lệ hoặc mật khẩu không khớp
  */
