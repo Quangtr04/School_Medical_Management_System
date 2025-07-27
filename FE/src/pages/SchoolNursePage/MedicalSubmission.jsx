@@ -231,14 +231,11 @@ export default function MedicalSubmission() {
       const filterName = filters?.name.toLowerCase().trim();
 
       const matchedName = !filterName || studentName.includes(filterName);
-      const matchKhoi = !filters.khoi || item.class_name?.[0] === filters.khoi;
-
-      const matchStatus = !filters.status || item.status === filters.status;
 
       const itemDate = moment(item.created_at).format("DD-MM-YYYY");
       const matchDate = !filters.date || itemDate === filters.date;
 
-      return matchedName && matchKhoi && matchStatus && matchDate;
+      return matchedName && matchDate;
     });
   }, [data, filters]);
 
@@ -267,12 +264,6 @@ export default function MedicalSubmission() {
     const id = selectedRequest?.id;
     if (id) dispatch(getDailyLogByReqId(id));
   }, [dispatch, selectedRequest]);
-
-  useEffect(() => {
-    if (error) {
-      toast.error(error);
-    }
-  }, [error]);
 
   useEffect(() => {
     setInputPage(pagination.current);
@@ -325,7 +316,6 @@ export default function MedicalSubmission() {
   const handleOpenDeclinedModal = useCallback(
     (record) => {
       console.log(record);
-
       if (!record) return;
       setSelectedRequest(record);
       setDeclinedModal(true);
@@ -354,7 +344,6 @@ export default function MedicalSubmission() {
       console.log("record", record);
       const today = dayjs().startOf("day");
       // const today = dayjs("2025-07-28");
-      console.log("logs", logs);
 
       // Chuyển start_date và end_date sang dayjs
       const startDate = dayjs(record?.start_date).startOf("day");
@@ -379,7 +368,6 @@ isSame(endDate) → true nếu hôm nay đúng ngày kết thúc.
         );
         return; // Dừng hàm nếu không hợp lệ
       }
-      console.log(isTodayInRange);
 
       if (isTodayInRange) {
         try {
@@ -413,6 +401,7 @@ isSame(endDate) → true nếu hôm nay đúng ngày kết thúc.
     },
     [dispatch]
   );
+
   const columns = useMemo(
     () => [
       {

@@ -340,7 +340,7 @@ export default function ModernMedicalSuppliesPage() {
     if (quantity !== null) {
       if (quantity === 0 || !isActive) {
         config = statusConfig.inactive;
-      } else if (quantity < 10) {
+      } else if (quantity < 50) {
         config = statusConfig.low_stock;
       }
     } else if (!isActive) {
@@ -508,9 +508,9 @@ export default function ModernMedicalSuppliesPage() {
                 color:
                   quantity === 0
                     ? modernTheme.colors.error
-                    : quantity < 200
-                      ? modernTheme.colors.warning
-                      : modernTheme.colors.success,
+                    : quantity < 50
+                    ? modernTheme.colors.warning
+                    : modernTheme.colors.success,
                 ...fontFamily,
               }}
             >
@@ -1758,8 +1758,8 @@ export default function ModernMedicalSuppliesPage() {
                                 detailSupply.quantity === 0
                                   ? modernTheme.colors.error
                                   : detailSupply.quantity < 10
-                                    ? modernTheme.colors.warning
-                                    : modernTheme.colors.success,
+                                  ? modernTheme.colors.warning
+                                  : modernTheme.colors.success,
                             }}
                           >
                             {detailSupply.quantity}
@@ -1774,8 +1774,8 @@ export default function ModernMedicalSuppliesPage() {
                               detailSupply.quantity === 0
                                 ? modernTheme.colors.error
                                 : detailSupply.quantity < 10
-                                  ? modernTheme.colors.warning
-                                  : modernTheme.colors.success
+                                ? modernTheme.colors.warning
+                                : modernTheme.colors.success
                             }
                             showInfo={false}
                             style={{ width: 80 }}

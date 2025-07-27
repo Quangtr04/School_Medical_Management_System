@@ -186,8 +186,6 @@ export default function VaccinationEnhanced() {
   const [formCreateNewSchedule] = Form.useForm();
   const [formUpdateStudentDetail] = Form.useForm();
 
-  const user = useSelector((state) => state.auth.user);
-
   // Memoized calculations
   const stats = useMemo(() => {
     if (!Array.isArray(campaigns)) {
@@ -283,23 +281,6 @@ export default function VaccinationEnhanced() {
       return matchesSearch && matchesStatus && matchesClass && matchesYear;
     });
   }, [campaigns, searchQuery, statusFilter, classFilter, yearFilter]);
-
-  // Event handlers
-  const fetchCampaigns = useCallback(async () => {
-    try {
-      setRefreshing(true);
-      await dispatch(fetchAllVaccineCampaigns());
-    } catch (error) {
-      console.error("Error fetching campaigns:", error);
-    } finally {
-      setRefreshing(false);
-    }
-  }, [dispatch]);
-
-  const handleRefresh = useCallback(() => {
-    fetchCampaigns();
-    toast.success("Dữ liệu đã được làm mới");
-  }, [fetchCampaigns]);
 
   const showNewScheduleModal = useCallback(() => {
     formCreateNewSchedule.resetFields();
