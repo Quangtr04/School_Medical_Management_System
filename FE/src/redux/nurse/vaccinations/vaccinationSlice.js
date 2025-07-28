@@ -125,6 +125,8 @@ export const updateStudentVaccineDetail = createAsyncThunk(
   "immunizations/updateStudentNote",
   async ({ vaccine_id, values }, { rejectWithValue }) => {
     try {
+      console.log("Value nhận vào tù Form", values);
+
       const response = await api.patch(`/nurse/vaccine-campaigns-students/students/${vaccine_id}/update`, values);
       return response.data;
     } catch (error) {
@@ -281,7 +283,7 @@ const immunizationsSlice = createSlice({
       })
       .addCase(updateStudentVaccineDetail.fulfilled, (state, action) => {
         state.loading = false;
-        state.success = true;    
+        state.success = true;
       })
       .addCase(updateStudentVaccineDetail.rejected, (state, action) => {
         state.loading = false;

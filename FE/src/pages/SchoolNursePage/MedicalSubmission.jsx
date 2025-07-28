@@ -206,9 +206,7 @@ export default function MedicalSubmission() {
   ).filter(Boolean);
 
   const [filters, setFilters] = useState({
-    khoi: "",
     date: "",
-    status: "",
     name: "",
   });
 

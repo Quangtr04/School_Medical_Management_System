@@ -1613,8 +1613,11 @@ export default function Examination() {
                     }}
                     format="DD/MM/YYYY"
                     placeholder="Chọn ngày thực hiện khám"
-                    disabledDate={(current) =>
-                      current && current < dayjs().startOf("day")
+                    disabledDate={
+                      (current) =>
+                        (current && current < dayjs().startOf("day")) ||
+                        current.day() === 0 || // Chủ Nhật
+                        current.day() === 6 // Thứ Bảy
                     }
                   />
                 </Form.Item>

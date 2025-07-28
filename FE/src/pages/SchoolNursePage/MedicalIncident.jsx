@@ -1511,7 +1511,7 @@ export default function MedicalIncident() {
                   ]}
                 >
                   <DatePicker
-                    showTime
+                    showTime={{ format: "HH:mm:ss" }}
                     format="DD/MM/YYYY - HH:mm:ss"
                     style={{
                       width: "100%",
@@ -1520,9 +1520,27 @@ export default function MedicalIncident() {
                       fontSize: "14px",
                       border: "2px solid #f3f4f6",
                     }}
-                    disabledDate={(current) =>
-                      current && current < moment().startOf("day")
+                    disabledDate={
+                      (current) =>
+                        (current && current < moment().startOf("day")) ||
+                        current.day() === 0 || // Chủ Nhật
+                        current.day() === 6 // Thứ Bảy
                     }
+                    disabledTime={() => ({
+                      disabledHours: () => {
+                        let hours = [];
+                        for (let i = 0; i < 6; i++) hours.push(i); // 0h → 5h
+                        for (let i = 18; i < 24; i++) hours.push(i); // 18h → 23h
+                        return hours;
+                      },
+                      disabledMinutes: (selectedHour) => {
+                        if (selectedHour === 17) {
+                          return Array.from({ length: 59 }, (_, i) => i + 1); // Disable 1 → 59 phút
+                        }
+                        return [];
+                      },
+                      disabledSeconds: () => [], // Cho tất cả giây
+                    })}
                   />
                 </Form.Item>
               </Col>
@@ -1558,6 +1576,7 @@ export default function MedicalIncident() {
                       Thuốc sử dụng
                     </span>
                   </div>
+
                   {fields.map(({ key, name, ...restField }) => {
                     const currentSupplyName = medicationUsed[name]?.supply_name;
                     const selectedSupplyInfo = medicalSupplies?.find(
@@ -1680,6 +1699,7 @@ export default function MedicalIncident() {
                       </div>
                     );
                   })}
+
                   <Form.Item>
                     <Button
                       type="dashed"

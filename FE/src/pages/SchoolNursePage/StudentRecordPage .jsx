@@ -136,17 +136,21 @@ function RenderLoadingState() {
   );
 }
 
-function filterRecords(healthRecords, searchQuery) {
+function filterRecords(healthRecords, searchQuery, classSearch) {
   if (!Array.isArray(healthRecords)) return [];
+
   const query = searchQuery?.trim().toLowerCase();
+  const classQuery = classSearch?.trim().toLowerCase();
+
   return healthRecords.filter((record) => {
-    if (!query) return true;
     const name = record?.student_name?.toLowerCase() || "";
     const code = record?.student_code?.toLowerCase() || "";
     const className = record?.class_name?.toLowerCase() || "";
-    return (
-      name.includes(query) || code.includes(query) || className.includes(query)
-    );
+
+    const matchQuery = !query || name.includes(query) || code.includes(query);
+    const matchClass = !classQuery || className.includes(classQuery);
+
+    return matchQuery && matchClass;
   });
 }
 
@@ -210,11 +214,6 @@ export default function StudentRecordPage() {
     return { total, healthy, needsAttention };
   }, [healthRecords]);
 
-  const healthStatusList = Array.from(
-    new Set(healthRecords?.map((rec) => rec.health?.health_status))
-  ).filter(Boolean);
-  console.log(healthStatusList);
-
   // Class options for filter
   const classOptions = useMemo(() => {
     if (!Array.isArray(healthRecords)) return [];
@@ -249,10 +248,7 @@ export default function StudentRecordPage() {
   }, [error, dispatch]);
 
   const filteredHealthRecords = useMemo(() => {
-    let filtered = filterRecords(healthRecords, searchQuery);
-    if (classFilter) {
-      filtered = filtered.filter((record) => record.class_name === classFilter);
-    }
+    let filtered = filterRecords(healthRecords, searchQuery, classFilter);
     return filtered;
   }, [healthRecords, searchQuery, classFilter]);
 
@@ -274,7 +270,7 @@ export default function StudentRecordPage() {
     () => [
       {
         title: (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-2">
             <IdcardOutlined style={{ color: modernTheme.colors.info }} />
             <span className="font-semibold">Mã học sinh</span>
           </div>
@@ -309,7 +305,7 @@ export default function StudentRecordPage() {
       },
       {
         title: (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-2">
             <UserOutlined style={{ color: modernTheme.colors.success }} />
             <span className="font-semibold">Họ và tên</span>
           </div>
@@ -338,7 +334,7 @@ export default function StudentRecordPage() {
       },
       {
         title: (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-2">
             <TeamOutlined style={{ color: modernTheme.colors.warning }} />
             <span className="font-semibold">Lớp</span>
           </div>
@@ -364,7 +360,7 @@ export default function StudentRecordPage() {
       },
       {
         title: (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-2">
             <CalendarOutlined style={{ color: "#ec4899" }} />
             <span className="font-semibold">Tuổi</span>
           </div>
@@ -399,7 +395,7 @@ export default function StudentRecordPage() {
       },
       {
         title: (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-2">
             <HeartOutlined style={{ color: "#ef4444" }} />
             <span className="font-semibold">Tình trạng sức khỏe</span>
           </div>
@@ -472,7 +468,7 @@ export default function StudentRecordPage() {
       },
       {
         title: (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-2">
             <EditOutlined style={{ color: "#6b7280" }} />
             <span className="font-semibold">Hành động</span>
           </div>
@@ -481,27 +477,29 @@ export default function StudentRecordPage() {
         align: "center",
         width: 120,
         render: (_, record) => (
-          <Tooltip title="Xem chi tiết hồ sơ sức khỏe">
-            <Button
-              type="primary"
-              icon={<EyeOutlined />}
-              size="small"
-              style={{
-                borderRadius: modernTheme.borderRadius.md,
-                background: `linear-gradient(135deg, ${modernTheme.colors.info} 0%, #60a5fa 100%)`,
-                border: "none",
-                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
-                height: "32px",
-                width: "32px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-              onClick={() =>
-                navigate(`/nurse/students-record/${record.student_id}`)
-              }
-            />
-          </Tooltip>
+          <div className="flex justify-center">
+            <Tooltip title="Xem chi tiết hồ sơ sức khỏe">
+              <Button
+                type="primary"
+                icon={<EyeOutlined />}
+                size="small"
+                style={{
+                  borderRadius: modernTheme.borderRadius.md,
+                  background: `linear-gradient(135deg, ${modernTheme.colors.info} 0%, #60a5fa 100%)`,
+                  border: "none",
+                  boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
+                  height: "32px",
+                  width: "32px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                onClick={() =>
+                  navigate(`/nurse/students-record/${record.student_id}`)
+                }
+              />
+            </Tooltip>
+          </div>
         ),
       },
     ],
@@ -956,10 +954,13 @@ export default function StudentRecordPage() {
           color: #1e293b;
           padding: 20px 16px;
           font-size: 14px;
+          text-align: center; /* Căn giữa header */
         }
+
         .ant-table-tbody > tr > td {
           border-bottom: 1px solid #f1f5f9;
           padding: 20px 16px;
+          text-align: center; /* ✅ Căn giữa toàn bộ nội dung cell */
         }
 
         .ant-card:hover {

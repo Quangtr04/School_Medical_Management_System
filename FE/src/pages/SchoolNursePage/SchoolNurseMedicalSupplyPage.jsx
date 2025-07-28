@@ -177,14 +177,18 @@ export default function ModernMedicalSuppliesPage() {
   console.log(supplies);
 
   const [searchQuery, setSearchQuery] = useState("");
+
   const [isStockModalVisible, setIsStockModalVisible] = useState(false);
+
   const [stockForm] = Form.useForm();
   const [addForm] = Form.useForm();
+  const [updateForm] = Form.useForm();
+
   const [isSubmittingStock, setIsSubmittingStock] = useState(false);
   const [selectedSupply, setSelectedSupply] = useState(null);
   const [updatingDate, setUpdatingDate] = useState(false);
-  const [updateForm] = Form.useForm();
   const [detailSupply, setDetailSupply] = useState(null);
+
   const [status, setStatus] = useState(true);
   const [filterType, setFilterType] = useState("all");
 
@@ -310,11 +314,13 @@ export default function ModernMedicalSuppliesPage() {
   }, []);
 
   const filteredSupplies = useMemo(() => {
-    const keyword = searchQuery.toLowerCase();
+    if (!supplies) return [];
+
+    const keyword = searchQuery?.trim().toLowerCase() || "";
+
     let filtered = supplies.filter(
       (supply) =>
         supply.name?.toLowerCase().includes(keyword) ||
-        supply.description?.toLowerCase().includes(keyword) ||
         String(supply.supply_id).includes(keyword)
     );
 
@@ -327,6 +333,8 @@ export default function ModernMedicalSuppliesPage() {
             return !supply.is_active || supply.quantity === 0;
           case "low-stock":
             return supply.quantity > 0 && supply.quantity < 100;
+          default:
+            return true;
         }
       });
     }

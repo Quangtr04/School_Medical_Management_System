@@ -25,7 +25,7 @@ export const respondToCheckupRequest = createAsyncThunk(
       await api.post(`/manager/checkups/${requestId}/respond`, {
         status: action,
       });
-      await new Promise(res => setTimeout(res, 800));
+      await new Promise((res) => setTimeout(res, 800));
       await dispatch(fetchPendingCheckupRequests());
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || "Không thể xử lý yêu cầu khám.");
@@ -40,10 +40,10 @@ export const fetchPendingVaccineCampaigns = createAsyncThunk(
     try {
       const response = await api.get("/manager/vaccine-campaigns-pending");
       console.log(response.data);
-      
+
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Không thể tải danh sách chiến dịch tiêm chủng.");
+      return rejectWithValue(error || "Không thể tải danh sách chiến dịch tiêm chủng.");
     }
   }
 );
@@ -56,7 +56,7 @@ export const respondToVaccineRequest = createAsyncThunk(
       await api.post(`/manager/vaccine-campaigns/${campaign_id}/respond`, {
         status: action,
       });
-     await new Promise(res => setTimeout(res, 800));
+      await new Promise((res) => setTimeout(res, 800));
       await dispatch(fetchPendingVaccineCampaigns());
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || "Không thể xử lý yêu cầu chiến dịch tiêm.");
@@ -162,19 +162,24 @@ const managerSlice = createSlice({
         state.vaccineCampaignError = null;
       })
       .addCase(fetchPendingVaccineCampaigns.fulfilled, (state, action) => {
+        console.log(action.payload);
+
         state.loadingVaccineCampaigns = false;
         state.pendingVaccineCampaigns = action.payload;
       })
       .addCase(fetchPendingVaccineCampaigns.rejected, (state, action) => {
+        console.log(action.payload);
+
         state.loadingVaccineCampaigns = false;
         state.vaccineCampaignError = action.payload;
-        
-
         // Nếu lỗi khác, giữ nguyên mảng cũ
+        if (action.payload.message || action.payload.status === 404) {
+          state.pendingVaccineCampaigns = [];
+        }
       })
 
       // --- Respond Vaccine Campaign ---
-      .addCase(respondToVaccineRequest.rejected, (state, action) => {        
+      .addCase(respondToVaccineRequest.rejected, (state, action) => {
         toast.error(action.payload);
       })
 

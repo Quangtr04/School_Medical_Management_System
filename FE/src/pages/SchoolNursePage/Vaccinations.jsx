@@ -74,6 +74,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Stepper, { Step } from "../../Animation/Step/Stepper";
 import { TbVaccine } from "react-icons/tb";
 import { FaMagnifyingGlass } from "react-icons/fa6";
+import { useNavigate } from "react-router-dom";
 
 const { Option } = Select;
 const { Title, Text } = Typography;
@@ -155,6 +156,7 @@ const statusConfig = {
 
 export default function VaccinationEnhanced() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { campaigns, loading } = useSelector((state) => state.vaccination);
   const token = localStorage.getItem("accessToken");
 
@@ -166,17 +168,9 @@ export default function VaccinationEnhanced() {
 
   const [isCreateNewScheduleModalVisible, setCreateNewScheduleModal] =
     useState(false);
-  const [isStudentListModalVisible, setIsStudentListModalVisible] =
-    useState(false);
-  const [isViewStudentModalVisible, setIsViewStudentModalVisible] =
-    useState(false);
-
-  const [approvedStudents, setApprovedStudents] = useState([]);
-  const [selectedStudent, setSelectedStudent] = useState(null);
 
   const [selectedUpcomingExamination, setSelectedUpcomingExamination] =
     useState(null);
-  const [refreshing, setRefreshing] = useState(false);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 5,
@@ -184,7 +178,6 @@ export default function VaccinationEnhanced() {
   });
 
   const [formCreateNewSchedule] = Form.useForm();
-  const [formUpdateStudentDetail] = Form.useForm();
 
   // Memoized calculations
   const stats = useMemo(() => {
@@ -208,10 +201,8 @@ export default function VaccinationEnhanced() {
     const rejected = campaigns.filter(
       (item) => item?.approval_status === "REJECTED"
     ).length;
-    const completionRate =
-      total > 0 ? Math.round(((approved + rejected) / total) * 100) : 0;
 
-    return { total, approved, pending, rejected, completionRate };
+    return { total, approved, pending, rejected };
   }, [campaigns]);
 
   const yearOptions = useMemo(() => {
@@ -232,6 +223,7 @@ export default function VaccinationEnhanced() {
   const upcomingVaccinations = useMemo(() => {
     if (!Array.isArray(campaigns)) return [];
     const today = startOfDay(new Date());
+    const nextWeek = addDays(today, 7);
     return campaigns.filter((item) => {
       if (!item || !item.scheduled_date || item.approval_status !== "APPROVED")
         return false;
@@ -240,7 +232,7 @@ export default function VaccinationEnhanced() {
         return (
           isAfter(parsedDate, today) ||
           isToday(parsedDate) ||
-          isWithinInterval(parsedDate, { start: today, end: addDays(today, 7) })
+          isWithinInterval(parsedDate, { start: today, end: nextWeek })
         );
       } catch (error) {
         return false;
@@ -268,11 +260,14 @@ export default function VaccinationEnhanced() {
       const matchesSearch =
         !searchTitle ||
         (camp.title && camp.title.toLowerCase().includes(searchTitle));
+
       const matchesStatus =
         !searchStatus ||
         (camp.approval_status &&
           camp.approval_status.toLowerCase().includes(searchStatus));
+
       const matchesClass = !searchClass || camp.class === searchClass;
+
       const matchesYear =
         !yearFilter ||
         (camp.scheduled_date &&
@@ -316,27 +311,6 @@ export default function VaccinationEnhanced() {
     formCreateNewSchedule.resetFields();
   }, [formCreateNewSchedule]);
 
-  const handleViewStudentList = useCallback(
-    async (campaignId) => {
-      try {
-        const result = await dispatch(
-          fetchApprovedStudentsByCampaignId(campaignId)
-        ).unwrap();
-        setApprovedStudents(result);
-        setIsStudentListModalVisible(true);
-      } catch (err) {
-        message.error(err.message || "Tải danh sách học sinh thất bại.");
-      }
-    },
-    [dispatch]
-  );
-
-  const handleViewStudentDetail = useCallback((selectedStudent) => {
-    setSelectedStudent(selectedStudent);
-    setIsViewStudentModalVisible(true);
-    setIsStudentListModalVisible(false);
-  }, []);
-
   const handleYearFilterChange = useCallback((value) => {
     if (value) {
       if (value.localeCompare(2000) && value <= 2030) {
@@ -348,43 +322,6 @@ export default function VaccinationEnhanced() {
       setYearFilter("");
     }
   }, []);
-
-  const handleFinishUpdateStudentDetail = useCallback(
-    async (values) => {
-      if (!selectedStudent?.id) {
-        message.error("Không tìm thấy học sinh để cập nhật.");
-        return;
-      }
-      const formData = {
-        vaccinated_at: values.vaccinated_at
-          ? values.vaccinated_at.format("YYYY-MM-DD")
-          : null,
-        vaccine_name: values.vaccine_name || "",
-        dose_number: values.dose_number || null,
-        reaction: values.reaction || "",
-        follow_up_required: values.follow_up_required === "Có" ? "Có" : "Không",
-        note: values.note || "",
-      };
-      try {
-        await dispatch(
-          updateStudentVaccineDetail({
-            vaccine_id: selectedStudent.id,
-            values: formData,
-          })
-        ).unwrap();
-        toast.success("Cập nhật ghi chú tiêm thành công!");
-        setIsViewStudentModalVisible(false);
-        if (selectedStudent.campaign_id) {
-          handleViewStudentList(selectedStudent.campaign_id);
-        }
-      } catch (error) {
-        message.error(
-          "Cập nhật thất bại: " + (error.message || "Lỗi không xác định")
-        );
-      }
-    },
-    [dispatch, selectedStudent, handleViewStudentList]
-  );
 
   const renderStatusTag = useCallback((status) => {
     const config = statusConfig[status] || statusConfig.PENDING;
@@ -421,33 +358,6 @@ export default function VaccinationEnhanced() {
       total: (campaigns || []).length,
     }));
   }, [campaigns]);
-
-  useEffect(() => {
-    if (selectedStudent && isViewStudentModalVisible) {
-      formUpdateStudentDetail.resetFields();
-      formUpdateStudentDetail.setFieldsValue({
-        student_id: selectedStudent.student_id,
-        full_name: selectedStudent.full_name,
-        student_code: selectedStudent.student_code,
-        class_name: selectedStudent.class_name,
-        date_of_birth: selectedStudent.date_of_birth
-          ? dayjs(selectedStudent.date_of_birth)
-          : null,
-        vaccinated_at: selectedStudent.vaccinated_at
-          ? dayjs(selectedStudent.vaccinated_at)
-          : null,
-        campaign_id: selectedStudent.campaign_id,
-        vaccine_name: selectedStudent.vaccine_name,
-        dose_number: selectedStudent.dose_number
-          ? Number(selectedStudent.dose_number)
-          : null,
-        follow_up_required:
-          selectedStudent.follow_up_required === "Có" ? "Có" : "Không",
-        reaction: selectedStudent.reaction,
-        note: selectedStudent.note,
-      });
-    }
-  }, [selectedStudent, isViewStudentModalVisible, formUpdateStudentDetail]);
 
   // Table columns
   const columns = useMemo(
@@ -717,7 +627,9 @@ export default function VaccinationEnhanced() {
               }}
               onClick={() => {
                 if (record.approval_status === "APPROVED") {
-                  handleViewStudentList(record.campaign_id);
+                  navigate(
+                    `/nurse/vaccination/${record.campaign_id}/student-list`
+                  );
                 } else {
                   toast.warning("Lịch trình này chưa được duyệt.");
                 }
@@ -727,7 +639,7 @@ export default function VaccinationEnhanced() {
         ),
       },
     ],
-    [renderStatusTag, handleViewStudentList]
+    [renderStatusTag]
   );
 
   return (
@@ -1551,9 +1463,12 @@ export default function VaccinationEnhanced() {
                     }}
                     format="DD/MM/YYYY"
                     placeholder="Chọn ngày thực hiện tiêm"
-                    disabledDate={(current) =>
-                      current &&
-                      current < moment().add(2, "days").startOf("day")
+                    disabledDate={
+                      (current) =>
+                        (current &&
+                          current < moment().add(2, "days").startOf("day")) ||
+                        current.day() === 0 || // Chủ Nhật
+                        current.day() === 6 // Thứ Bảy
                     }
                   />
                 </Form.Item>
@@ -1615,650 +1530,6 @@ export default function VaccinationEnhanced() {
                 </Form.Item>
               </Col>
             </Row>
-          </Form>
-        </Modal>
-
-        {/* Student List Modal */}
-        <Modal
-          title={
-            <div className="flex items-center gap-3">
-              <div
-                style={{
-                  background: `linear-gradient(135deg, ${modernTheme.colors.success} 0%, #34d399 100%)`,
-                  borderRadius: modernTheme.borderRadius.md,
-                  padding: "12px",
-                  boxShadow: "0 8px 32px rgba(16, 185, 129, 0.3)",
-                }}
-              >
-                <TeamOutlined style={{ color: "white", fontSize: "20px" }} />
-              </div>
-              <div>
-                <span
-                  style={{
-                    fontSize: "20px",
-                    fontWeight: "700",
-                    color: "#1f2937",
-                  }}
-                >
-                  Danh sách học sinh
-                </span>
-                <div
-                  style={{
-                    fontSize: "14px",
-                    color: "#6b7280",
-                    marginTop: "2px",
-                  }}
-                >
-                  Học sinh tham gia chiến dịch tiêm chủng
-                </div>
-              </div>
-            </div>
-          }
-          open={isStudentListModalVisible}
-          onCancel={() => setIsStudentListModalVisible(false)}
-          footer={[
-            <Button
-              key="close"
-              onClick={() => setIsStudentListModalVisible(false)}
-              size="large"
-              style={{
-                borderRadius: modernTheme.borderRadius.md,
-                height: "48px",
-                paddingLeft: "24px",
-                paddingRight: "24px",
-                fontWeight: "600",
-              }}
-            >
-              Đóng
-            </Button>,
-          ]}
-          width={1000}
-          styles={{
-            content: {
-              borderRadius: modernTheme.borderRadius.xl,
-              boxShadow: modernTheme.shadows.card,
-            },
-          }}
-        >
-          {!approvedStudents || approvedStudents.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "60px 20px" }}>
-              <div
-                style={{
-                  background:
-                    "linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)",
-                  borderRadius: "50%",
-                  width: "100px",
-                  height: "100px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  margin: "0 auto 24px",
-                }}
-              >
-                <TeamOutlined style={{ fontSize: "40px", color: "#9ca3af" }} />
-              </div>
-              <Title
-                level={4}
-                style={{ color: "#6b7280", marginBottom: "8px" }}
-              >
-                Không có học sinh nào
-              </Title>
-              <Text style={{ color: "#9ca3af", fontSize: "14px" }}>
-                Chưa có học sinh nào được phân công cho chiến dịch này
-              </Text>
-            </div>
-          ) : (
-            <Table
-              dataSource={approvedStudents}
-              rowKey="id"
-              pagination={{
-                pageSize: 6,
-                showSizeChanger: false,
-                className: "pt-4 text-sm",
-              }}
-              style={{
-                borderRadius: modernTheme.borderRadius.lg,
-                overflow: "hidden",
-                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
-              }}
-              columns={[
-                {
-                  title: (
-                    <div className="flex items-center gap-2">
-                      <BarcodeOutlined style={{ color: "#06b6d4" }} />
-                      <span className="font-semibold">Mã lịch khám</span>
-                    </div>
-                  ),
-                  dataIndex: "campaign_id",
-                  key: "campaign_id",
-                  render: (text) => (
-                    <Text
-                      code
-                      style={{
-                        fontSize: "12px",
-                        fontWeight: "600",
-                        color: "#06b6d4",
-                      }}
-                    >
-                      {text}
-                    </Text>
-                  ),
-                },
-                {
-                  title: (
-                    <div className="flex items-center gap-2">
-                      <UserOutlined style={{ color: "#8b5cf6" }} />
-                      <span className="font-semibold">Mã học sinh</span>
-                    </div>
-                  ),
-                  dataIndex: "student_code",
-                  key: "student_code",
-                  render: (text) => (
-                    <Text
-                      code
-                      style={{
-                        fontSize: "12px",
-                        fontWeight: "600",
-                        color: "#8b5cf6",
-                      }}
-                    >
-                      {text}
-                    </Text>
-                  ),
-                },
-                {
-                  title: (
-                    <div className="flex items-center gap-2">
-                      <UserOutlined style={{ color: "#3b82f6" }} />
-                      <span className="font-semibold">Họ và tên</span>
-                    </div>
-                  ),
-                  dataIndex: "full_name",
-                  key: "full_name",
-                  render: (text) => (
-                    <Text strong style={{ color: "#1f2937", fontSize: "14px" }}>
-                      {text}
-                    </Text>
-                  ),
-                },
-                {
-                  title: (
-                    <div className="flex items-center gap-2">
-                      <TeamOutlined
-                        style={{ color: modernTheme.colors.success }}
-                      />
-                      <span className="font-semibold">Lớp</span>
-                    </div>
-                  ),
-                  dataIndex: "class_name",
-                  key: "class_name",
-                  render: (text) => (
-                    <Tag
-                      color="success"
-                      style={{
-                        borderRadius: modernTheme.borderRadius.sm,
-                        fontWeight: "600",
-                      }}
-                    >
-                      {text}
-                    </Tag>
-                  ),
-                },
-                {
-                  title: (
-                    <div className="flex items-center gap-2">
-                      <CalendarOutlined style={{ color: "#f59e0b" }} />
-                      <span className="font-semibold">Ngày sinh</span>
-                    </div>
-                  ),
-                  dataIndex: "date_of_birth",
-                  key: "dob",
-                  render: (dob) => {
-                    try {
-                      return dob ? format(parseISO(dob), "dd/MM/yyyy") : "N/A";
-                    } catch (error) {
-                      return "N/A";
-                    }
-                  },
-                },
-                {
-                  title: (
-                    <div className="flex items-center gap-2">
-                      <MedicineBoxOutlined style={{ color: "#ec4899" }} />
-                      <span className="font-semibold">Thời gian tiêm</span>
-                    </div>
-                  ),
-                  dataIndex: "vaccinated_at",
-                  key: "vaccinated_at",
-                  render: (date) =>
-                    date
-                      ? format(parseISO(date), "dd/MM/yyyy HH:mm:ss")
-                      : "N/A",
-                },
-                {
-                  title: (
-                    <div className="flex items-center gap-2">
-                      <EyeOutlined style={{ color: "#6366f1" }} />
-                      <span className="font-semibold">Thao tác</span>
-                    </div>
-                  ),
-                  key: "action",
-                  align: "center",
-                  render: (_, record) => (
-                    <Tooltip title="Xem chi tiết học sinh">
-                      <Button
-                        type="primary"
-                        icon={<EyeOutlined />}
-                        size="small"
-                        style={{
-                          borderRadius: modernTheme.borderRadius.md,
-                          background: `linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)`,
-                          border: "none",
-                          boxShadow: "0 4px 12px rgba(99, 102, 241, 0.3)",
-                        }}
-                        onClick={() => handleViewStudentDetail(record)}
-                      />
-                    </Tooltip>
-                  ),
-                },
-              ]}
-              locale={{
-                emptyText: (
-                  <Empty
-                    description="Không có học sinh nào trong lịch trình này."
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  />
-                ),
-              }}
-            />
-          )}
-        </Modal>
-
-        {/* Student Detail Modal */}
-        <Modal
-          title={
-            <div className="flex items-center gap-3">
-              <div
-                style={{
-                  background: `linear-gradient(135deg, ${modernTheme.colors.info} 0%, #60a5fa 100%)`,
-                  borderRadius: modernTheme.borderRadius.md,
-                  padding: "12px",
-                  boxShadow: "0 8px 32px rgba(19, 194, 194, 0.3)",
-                }}
-              >
-                <UserOutlined style={{ color: "white", fontSize: "20px" }} />
-              </div>
-              <div>
-                <span
-                  style={{
-                    fontSize: "20px",
-                    fontWeight: "700",
-                    color: "#1f2937",
-                  }}
-                >
-                  Chi tiết học sinh
-                </span>
-                <div
-                  style={{
-                    fontSize: "14px",
-                    color: "#6b7280",
-                    marginTop: "2px",
-                  }}
-                >
-                  Cập nhật thông tin tiêm chủng
-                </div>
-              </div>
-            </div>
-          }
-          open={isViewStudentModalVisible}
-          onCancel={() => {
-            setIsViewStudentModalVisible(false);
-            setIsStudentListModalVisible(true);
-          }}
-          centered
-          width={700}
-          style={{ top: 20 }}
-          styles={{
-            content: {
-              borderRadius: modernTheme.borderRadius.xl,
-              boxShadow: modernTheme.shadows.card,
-            },
-          }}
-          footer={[
-            <Button
-              key="cancel"
-              onClick={() => {
-                setIsViewStudentModalVisible(false);
-                setIsStudentListModalVisible(true);
-              }}
-              size="large"
-              style={{
-                borderRadius: modernTheme.borderRadius.md,
-                height: "48px",
-                paddingLeft: "24px",
-                paddingRight: "24px",
-                fontWeight: "600",
-              }}
-            >
-              Hủy
-            </Button>,
-            <Button
-              key="submit"
-              type="primary"
-              onClick={() => formUpdateStudentDetail.submit()}
-              loading={loading}
-              size="large"
-              style={{
-                background: `linear-gradient(135deg, ${modernTheme.colors.info} 0%, #60a5fa 100%)`,
-                borderRadius: modernTheme.borderRadius.md,
-                height: "48px",
-                paddingLeft: "32px",
-                paddingRight: "32px",
-                fontWeight: "700",
-                border: "none",
-                boxShadow: "0 8px 32px rgba(19, 194, 194, 0.3)",
-              }}
-            >
-              Cập nhật
-            </Button>,
-          ]}
-        >
-          <Divider style={{ margin: "24px 0" }} />
-          <Form
-            layout="vertical"
-            form={formUpdateStudentDetail}
-            onFinish={handleFinishUpdateStudentDetail}
-            style={{ marginTop: "24px" }}
-          >
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  label={
-                    <span
-                      className="flex items-center gap-2"
-                      style={{ fontWeight: "600", color: "#374151" }}
-                    >
-                      <UserOutlined
-                        style={{ color: modernTheme.colors.primary }}
-                      />
-                      Họ và tên học sinh
-                    </span>
-                  }
-                >
-                  <Input
-                    readOnly
-                    value={selectedStudent?.full_name}
-                    style={{
-                      borderRadius: modernTheme.borderRadius.md,
-                      height: "48px",
-                      fontSize: "14px",
-                      backgroundColor: "#f9fafb",
-                    }}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  label={
-                    <span
-                      className="flex items-center gap-2"
-                      style={{ fontWeight: "600", color: "#374151" }}
-                    >
-                      <BarcodeOutlined
-                        style={{ color: modernTheme.colors.secondary }}
-                      />
-                      Mã học sinh
-                    </span>
-                  }
-                >
-                  <Input
-                    readOnly
-                    value={selectedStudent?.student_code}
-                    style={{
-                      borderRadius: modernTheme.borderRadius.md,
-                      height: "48px",
-                      fontSize: "14px",
-                      backgroundColor: "#f9fafb",
-                    }}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  label={
-                    <span
-                      className="flex items-center gap-2"
-                      style={{ fontWeight: "600", color: "#374151" }}
-                    >
-                      <TeamOutlined
-                        style={{ color: modernTheme.colors.success }}
-                      />
-                      Lớp
-                    </span>
-                  }
-                >
-                  <Input
-                    readOnly
-                    value={selectedStudent?.class_name}
-                    style={{
-                      borderRadius: modernTheme.borderRadius.md,
-                      height: "48px",
-                      fontSize: "14px",
-                      backgroundColor: "#f9fafb",
-                    }}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  label={
-                    <span
-                      className="flex items-center gap-2"
-                      style={{ fontWeight: "600", color: "#374151" }}
-                    >
-                      <CalendarOutlined style={{ color: "#f59e0b" }} />
-                      Ngày sinh
-                    </span>
-                  }
-                >
-                  <DatePicker
-                    readOnly
-                    value={
-                      selectedStudent?.date_of_birth
-                        ? dayjs(selectedStudent.date_of_birth)
-                        : null
-                    }
-                    style={{
-                      width: "100%",
-                      borderRadius: modernTheme.borderRadius.md,
-                      height: "48px",
-                      fontSize: "14px",
-                      backgroundColor: "#f9fafb",
-                    }}
-                    format="YYYY-MM-DD"
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Form.Item
-              label={
-                <span
-                  className="flex items-center gap-2"
-                  style={{ fontWeight: "600", color: "#374151" }}
-                >
-                  <BarcodeOutlined style={{ color: "#06b6d4" }} />
-                  Mã lịch khám
-                </span>
-              }
-            >
-              <Input
-                readOnly
-                value={selectedStudent?.campaign_id}
-                style={{
-                  borderRadius: modernTheme.borderRadius.md,
-                  height: "48px",
-                  fontSize: "14px",
-                  backgroundColor: "#f9fafb",
-                }}
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="vaccinated_at"
-              label={
-                <span
-                  className="flex items-center gap-2"
-                  style={{ fontWeight: "600", color: "#374151" }}
-                >
-                  <CalendarOutlined style={{ color: "#ec4899" }} />
-                  Ngày tiêm chủng
-                </span>
-              }
-              rules={[
-                { required: true, message: "Vui lòng chọn ngày tiêm chủng!" },
-              ]}
-            >
-              <DatePicker
-                style={{
-                  width: "100%",
-                  borderRadius: modernTheme.borderRadius.md,
-                  height: "48px",
-                  fontSize: "14px",
-                  border: "2px solid #f3f4f6",
-                }}
-                format="YYYY-MM-DD"
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="vaccine_name"
-              label={
-                <span
-                  className="flex items-center gap-2"
-                  style={{ fontWeight: "600", color: "#374151" }}
-                >
-                  <MedicineBoxOutlined
-                    style={{ color: modernTheme.colors.success }}
-                  />
-                  Tên vắc xin
-                </span>
-              }
-              rules={[
-                { required: true, message: "Vui lòng nhập tên vắc xin!" },
-              ]}
-            >
-              <Input
-                placeholder="Tên vắc xin đã tiêm"
-                style={{
-                  borderRadius: modernTheme.borderRadius.md,
-                  height: "48px",
-                  fontSize: "14px",
-                  border: "2px solid #f3f4f6",
-                }}
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="dose_number"
-              label={
-                <span
-                  className="flex items-center gap-2"
-                  style={{ fontWeight: "600", color: "#374151" }}
-                >
-                  <ContainerOutlined style={{ color: "#8b5cf6" }} />
-                  Số mũi
-                </span>
-              }
-              rules={[{ required: true, message: "Vui lòng nhập số mũi!" }]}
-            >
-              <InputNumber
-                min={1}
-                style={{
-                  width: "100%",
-                  borderRadius: modernTheme.borderRadius.md,
-                  height: "48px",
-                  fontSize: "14px",
-                }}
-                placeholder="Số mũi đã tiêm"
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="follow_up_required"
-              label={
-                <span
-                  className="flex items-center gap-2"
-                  style={{ fontWeight: "600", color: "#374151" }}
-                >
-                  <EyeOutlined style={{ color: "#f97316" }} />
-                  Cần theo dõi thêm
-                </span>
-              }
-              rules={[
-                {
-                  required: true,
-                  message: "Vui lòng chọn trạng thái theo dõi!",
-                },
-              ]}
-            >
-              <Select
-                placeholder="Chọn trạng thái"
-                style={{
-                  height: "48px",
-                  fontSize: "14px",
-                }}
-              >
-                <Option value="Có">Có</Option>
-                <Option value="Không">Không</Option>
-              </Select>
-            </Form.Item>
-
-            <Form.Item
-              name="reaction"
-              label={
-                <span
-                  className="flex items-center gap-2"
-                  style={{ fontWeight: "600", color: "#374151" }}
-                >
-                  <CommentOutlined style={{ color: "#ec4899" }} />
-                  Phản ứng sau tiêm
-                </span>
-              }
-            >
-              <TextArea
-                rows={3}
-                placeholder="Mô tả phản ứng (nếu có)"
-                style={{
-                  borderRadius: modernTheme.borderRadius.md,
-                  fontSize: "14px",
-                  border: "2px solid #f3f4f6",
-                }}
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="note"
-              label={
-                <span
-                  className="flex items-center gap-2"
-                  style={{ fontWeight: "600", color: "#374151" }}
-                >
-                  <EditOutlined style={{ color: "#06b6d4" }} />
-                  Ghi chú
-                </span>
-              }
-            >
-              <TextArea
-                rows={3}
-                placeholder="Thêm ghi chú khác"
-                style={{
-                  borderRadius: modernTheme.borderRadius.md,
-                  fontSize: "14px",
-                  border: "2px solid #f3f4f6",
-                }}
-              />
-            </Form.Item>
           </Form>
         </Modal>
 

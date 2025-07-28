@@ -66,6 +66,8 @@ import { fetchManagerNotifications } from "./redux/manager/managerNotificationSl
 import { fetchNurseNotifications } from "./redux/nurse/nurseNotificationSlice";
 import ClassMangerPage from "./pages/AdminPage/ClassMangerPage";
 import ClassMangerPageDetail from "./pages/AdminPage/ClassMangerPageDetail";
+import VaccinationStudentList from "./pages/SchoolNursePage/VaccinationStudentList";
+import ExaminationStudentList from "./pages/SchoolNursePage/ExaminationStudentList";
 
 function App() {
   const dispatch = useDispatch();
@@ -139,8 +141,19 @@ function App() {
           element={<SchoolNurseMedicalSupplyPage />}
         />
         <Route path="medical-incidents" element={<MedicalIncident />} />
+
         <Route path="vaccinations" element={<Vaccinations />} />
+        <Route
+          path="vaccination/:id/student-list"
+          element={<VaccinationStudentList />}
+        ></Route>
+
         <Route path="checkups" element={<Examinations />} />
+        <Route
+          path="checkup/:id/student-list"
+          element={<ExaminationStudentList />}
+        ></Route>
+
         <Route path="report" element={<ReportsPage />} />
         <Route path="medical-submission" element={<MedicalSubmission />} />
         <Route path="profile" element={<NurseProfile />} />

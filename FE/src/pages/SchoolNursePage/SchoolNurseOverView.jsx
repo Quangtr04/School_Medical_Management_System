@@ -56,6 +56,7 @@ import { TbNurse } from "react-icons/tb";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { fetchApprovedStudentsByCampaignId } from "../../redux/nurse/vaccinations/vaccinationSlice";
+import { fetchHealthExaminationById } from "../../redux/nurse/heathExaminations/heathExamination";
 import { motion } from "framer-motion";
 import _ from "lodash";
 import Stepper, { Step } from "../../Animation/Step/Stepper";
@@ -191,7 +192,7 @@ function getUpcomingAppointments(campaigns, examinations) {
     }));
 
   return [...mappedVaccinations, ...mappedExaminations].sort(
-    (a, b) => new Date(a.appointmentTime) - new Date(b.appointmentTime)
+    (a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date)
   );
 }
 
@@ -258,6 +259,7 @@ export default function NurseDashboardEnhanced() {
   const medicalSupplies = useSelector(
     (state) => state.medicalSupplies.supplies
   );
+
   const campaigns = useSelector((state) => state.vaccination.campaigns);
   const examinations = useSelector((state) => state.examination.records);
 
@@ -301,6 +303,8 @@ export default function NurseDashboardEnhanced() {
     [campaigns, examinations]
   );
 
+  console.log(upcomingAppointments);
+
   const studentWithDangerHealth = useMemo(
     () =>
       children.filter((child) => {
@@ -322,21 +326,33 @@ export default function NurseDashboardEnhanced() {
 
   // Event handlers
   const handleViewStudentList = useCallback(
-    async (campaignOrCheckupId) => {
+    async (item) => {
       setStudentListLoading(true);
+      console.log(item);
       try {
-        const result = await dispatch(
-          fetchApprovedStudentsByCampaignId(campaignOrCheckupId)
-        ).unwrap();
-        setApprovedStudents(result);
-        setIsStudentListModalVisible(true);
+        if (item.type === "Tiêm chủng") {
+          navigate(`vaccination/${item.campaign_id}/student-list`);
+        } else {
+          navigate(`checkup/${item.checkup_id}/student-list`);
+        }
       } catch (err) {
         toast.error(err.message);
       } finally {
         setStudentListLoading(false);
       }
+      // try {
+      //   const result = await dispatch(
+      //     fetchApprovedStudentsByCampaignId(campaignOrCheckupId)
+      //   ).unwrap();
+      //   setApprovedStudents(result);
+      //   setIsStudentListModalVisible(true);
+      // } catch (err) {
+      //   toast.error(err.message);
+      // } finally {
+      //   setStudentListLoading(false);
+      // }
     },
-    [dispatch]
+    [dispatch, navigate]
   );
 
   // Animation variants
@@ -869,11 +885,7 @@ export default function NurseDashboardEnhanced() {
                                   transition: "all 0.3s ease",
                                 }}
                                 className="hover:shadow-lg hover:-translate-y-1"
-                                onClick={() =>
-                                  handleViewStudentList(
-                                    item.campaign_id || item.checkup_id
-                                  )
-                                }
+                                onClick={() => handleViewStudentList(item)}
                               >
                                 <List.Item.Meta
                                   avatar={
