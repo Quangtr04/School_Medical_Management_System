@@ -1,100 +1,102 @@
 import React, { useState } from "react";
-import {
-  Calendar,
-  Badge,
-  Empty,
-  Spin,
-  Modal,
-  Descriptions,
-  Button,
-  Tag,
-  Tooltip,
-} from "antd";
+import { Empty, Spin } from "antd";
 import moment from "moment";
-import { CalendarOutlined, InfoCircleOutlined } from "@ant-design/icons";
-import { FaSyringe } from "react-icons/fa";
-
 import api from "../../../configs/config-axios";
 
 const VaccinationCalendar = ({ campaigns, loading }) => {
-  const [detailModalVisible, setDetailModalVisible] = useState(false);
-  const [campaignDetail, setCampaignDetail] = useState(null);
-  const [detailLoading, setDetailLoading] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(moment());
 
-  const getCalendarData = (value) => {
-    if (!Array.isArray(campaigns)) return [];
-    const dateStr = value.format("YYYY-MM-DD");
-    return campaigns.filter(
-      (c) => moment(c.scheduled_date).format("YYYY-MM-DD") === dateStr
-    );
+  // Navigation handlers
+  const goToPreviousMonth = () => {
+    setCurrentMonth(moment(currentMonth).subtract(1, "month"));
   };
 
-  const fetchCampaignDetails = async (campaignId) => {
-    try {
-      setDetailLoading(true);
-      const res = await api.get(`/parent/vaccine-campaign/${campaignId}`);
-      setCampaignDetail(res.data?.data || res.data);
-    } catch (err) {
-      console.error("Error fetching campaign details:", err);
-    } finally {
-      setDetailLoading(false);
+  const goToNextMonth = () => {
+    setCurrentMonth(moment(currentMonth).add(1, "month"));
+  };
+
+  const goToToday = () => {
+    setCurrentMonth(moment());
+  };
+
+  // Calculate the dates to show in the calendar
+  const renderCalendar = () => {
+    const startOfMonth = moment(currentMonth).startOf("month");
+    const endOfMonth = moment(currentMonth).endOf("month");
+    const startDate = moment(startOfMonth).startOf("week");
+    const endDate = moment(endOfMonth).endOf("week");
+
+    const calendarRows = [];
+    let currentDate = startDate.clone();
+
+    // Create header row with day names
+    const dayNames = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+    // Generate weeks
+    while (currentDate.isSameOrBefore(endDate)) {
+      const weekDays = [];
+
+      for (let i = 0; i < 7; i++) {
+        const dayEvents =
+          campaigns?.filter(
+            (c) =>
+              moment(c.scheduled_date).format("YYYY-MM-DD") ===
+                currentDate.format("YYYY-MM-DD") &&
+              c.approval_status !== "DECLINED" &&
+              c.status !== "DECLINED"
+          ) || [];
+
+        const isCurrentMonth = currentDate.month() === currentMonth.month();
+        const isToday =
+          currentDate.format("YYYY-MM-DD") === moment().format("YYYY-MM-DD");
+
+        weekDays.push(
+          <td key={currentDate.format("YYYY-MM-DD")}>
+            <div className={`day-cell ${isCurrentMonth ? "" : "other-month"}`}>
+              <div className={`day-number ${isToday ? "today" : ""}`}>
+                {currentDate.format("DD")}
+              </div>
+
+              {dayEvents.map((event, idx) => (
+                <div
+                  key={`${event.id || idx}`}
+                  className="event-item"
+                  title={event.title}
+                >
+                  {event.title || "Tiêm chủng"}
+                </div>
+              ))}
+            </div>
+          </td>
+        );
+
+        currentDate.add(1, "day");
+      }
+
+      calendarRows.push(
+        <tr key={`week-${calendarRows.length}`}>{weekDays}</tr>
+      );
     }
-  };
-
-  const handleCampaignClick = (campaign) => {
-    fetchCampaignDetails(campaign.id);
-    setDetailModalVisible(true);
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "APPROVED":
-        return "success";
-      case "PENDING":
-        return "processing";
-      case "DECLINED":
-        return "error";
-      default:
-        return "default";
-    }
-  };
-
-  const getStatusText = (status) => {
-    switch (status) {
-      case "APPROVED":
-        return "Đã duyệt";
-      case "PENDING":
-        return "Đang chờ";
-      case "DECLINED":
-        return "Từ chối";
-      default:
-        return "Không xác định";
-    }
-  };
-
-  const dateCellRender = (value) => {
-    const listData = getCalendarData(value);
-    if (listData.length === 0) return null;
 
     return (
-      <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
-        {listData.map((item, index) => (
-          <li
-            key={`${value.format("YYYY-MM-DD")}-${index}`}
-            style={{ margin: "2px 0", cursor: "pointer" }}
-            onClick={() => handleCampaignClick(item)}
-          >
-            <Tooltip title={item.title}>
-              <Badge
-                status={getStatusColor(item.approval_status)}
-                text={<FaSyringe style={{ color: "#1890ff" }} />}
-              />
-            </Tooltip>
-          </li>
-        ))}
-      </ul>
+      <table className="calendar-table">
+        <thead>
+          <tr>
+            {dayNames.map((day) => (
+              <th key={day}>{day}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>{calendarRows}</tbody>
+      </table>
     );
   };
+
+  // Filter out declined events before checking if there are any campaigns
+  const activeCampaigns =
+    campaigns?.filter(
+      (c) => c.approval_status !== "DECLINED" && c.status !== "DECLINED"
+    ) || [];
 
   if (loading) {
     return (
@@ -106,75 +108,185 @@ const VaccinationCalendar = ({ campaigns, loading }) => {
 
   return (
     <div className="vaccination-calendar">
-      <div className="calendar-header" style={{ marginBottom: 12 }}>
-        <CalendarOutlined style={{ marginRight: 8 }} />
-        <span>Lịch tiêm chủng</span>
-      </div>
-      {campaigns && campaigns.length > 0 ? (
-        <Calendar
-          fullscreen={false}
-          dateCellRender={dateCellRender}
-          style={{ maxHeight: 300 }}
-        />
-      ) : (
-        <Empty description="Không có dữ liệu lịch tiêm chủng" />
-      )}
+      <div className="simple-calendar">
+        <div className="calendar-header">
+          <div className="calendar-title">
+            {currentMonth.format("MMMM YYYY")}
+          </div>
+          <div className="calendar-controls">
+            <button className="nav-button" onClick={goToPreviousMonth}>
+              &#8592;
+            </button>
+            <button className="today-button" onClick={goToToday}>
+              Hôm nay
+            </button>
+            <button className="nav-button" onClick={goToNextMonth}>
+              &#8594;
+            </button>
+          </div>
+        </div>
 
-      {/* Modal chi tiết */}
-      <Modal
-        title={
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <InfoCircleOutlined style={{ marginRight: 8, color: "#1890ff" }} />
-            <span>Chi tiết chiến dịch tiêm chủng</span>
-          </div>
-        }
-        open={detailModalVisible}
-        onCancel={() => setDetailModalVisible(false)}
-        footer={[
-          <Button key="close" onClick={() => setDetailModalVisible(false)}>
-            Đóng
-          </Button>,
-        ]}
-        width={700}
-      >
-        {detailLoading ? (
-          <div style={{ textAlign: "center", padding: 20 }}>
-            <Spin />
-          </div>
-        ) : campaignDetail ? (
-          <Descriptions bordered column={1}>
-            <Descriptions.Item label="Tên chiến dịch">
-              {campaignDetail.title || "Không có tên"}
-            </Descriptions.Item>
-            <Descriptions.Item label="Ngày tiêm">
-              {campaignDetail.scheduled_date
-                ? moment(campaignDetail.scheduled_date).format("DD/MM/YYYY")
-                : "Chưa xác định"}
-            </Descriptions.Item>
-            <Descriptions.Item label="Địa điểm">
-              {campaignDetail.location || "Chưa xác định"}
-            </Descriptions.Item>
-            <Descriptions.Item label="Nhà tài trợ">
-              {campaignDetail.sponsor || "Không có"}
-            </Descriptions.Item>
-            <Descriptions.Item label="Trạng thái">
-              <Tag color={getStatusColor(campaignDetail.approval_status)}>
-                {getStatusText(campaignDetail.approval_status)}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="Trạng thái phản hồi">
-              <Tag color={getStatusColor(campaignDetail.consent_status)}>
-                {getStatusText(campaignDetail.consent_status)}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="Mô tả">
-              {campaignDetail.description || "Không có mô tả"}
-            </Descriptions.Item>
-          </Descriptions>
+        {activeCampaigns.length > 0 ? (
+          renderCalendar()
         ) : (
-          <Empty description="Không có thông tin chi tiết" />
+          <Empty description="Không có dữ liệu lịch tiêm chủng" />
         )}
-      </Modal>
+      </div>
+
+      <style jsx>{`
+        /* Simple Calendar Styles */
+        .simple-calendar {
+          background-color: #fff;
+          border-radius: 8px;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          padding: 16px;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+            "Helvetica Neue", Arial, sans-serif;
+        }
+
+        /* Calendar header */
+        .calendar-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 16px;
+        }
+
+        .calendar-title {
+          font-size: 18px;
+          font-weight: 500;
+          color: #333;
+        }
+
+        .calendar-controls {
+          display: flex;
+          align-items: center;
+        }
+
+        .nav-button {
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 4px 8px;
+          color: #666;
+          font-size: 14px;
+        }
+
+        .today-button {
+          margin: 0 8px;
+          padding: 4px 12px;
+          background-color: #f5f5f5;
+          border: 1px solid #d9d9d9;
+          border-radius: 4px;
+          color: #333;
+          font-size: 14px;
+          cursor: pointer;
+        }
+
+        .nav-button:hover,
+        .today-button:hover {
+          color: #1890ff;
+        }
+
+        /* Calendar table */
+        .calendar-table {
+          width: 100%;
+          border-collapse: collapse;
+          table-layout: fixed;
+        }
+
+        .calendar-table th {
+          padding: 8px;
+          text-align: center;
+          font-weight: normal;
+          color: #666;
+          border-bottom: 1px solid #f0f0f0;
+        }
+
+        .calendar-table td {
+          padding: 0;
+          border: 1px solid #f0f0f0;
+          vertical-align: top;
+          height: 100px;
+        }
+
+        /* Day cell */
+        .day-cell {
+          height: 100%;
+          padding: 4px;
+          position: relative;
+        }
+
+        /* Day number */
+        .day-number {
+          text-align: center;
+          padding: 4px;
+          font-size: 14px;
+          color: #333;
+        }
+
+        /* Month label (for first day of month) */
+        .month-label {
+          display: flex;
+          align-items: center;
+          padding: 4px;
+          font-size: 14px;
+          color: #333;
+        }
+
+        /* Other month days */
+        .other-month {
+          color: #ccc;
+        }
+
+        /* Today */
+        .today {
+          color: #1890ff;
+          font-weight: bold;
+        }
+
+        /* Current day (highlighted) */
+        .current-day {
+          background-color: #f5222d;
+          color: white;
+          border-radius: 50%;
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto;
+        }
+
+        /* Event item */
+        .event-item {
+          margin-top: 4px;
+          padding: 2px 6px;
+          background-color: #e6f7ff;
+          border: 1px solid #91d5ff;
+          border-radius: 4px;
+          font-size: 12px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        /* Responsive styles */
+        @media (max-width: 768px) {
+          .calendar-table td {
+            height: 80px;
+          }
+
+          .day-number {
+            font-size: 12px;
+          }
+
+          .event-item {
+            font-size: 10px;
+            padding: 1px 4px;
+          }
+        }
+      `}</style>
     </div>
   );
 };

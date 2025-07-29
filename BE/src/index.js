@@ -11,9 +11,13 @@ const app = express();
 const port = 3000;
 const path = require("path");
 const cron = require("node-cron");
-const { checkUnupdatedMedicationLogs } = require("../Controller/Medical/medicationDailyLog");
+const {
+  checkUnupdatedMedicationLogs,
+} = require("../Controller/Medical/medicationDailyLog");
 const router = require("../routers/supply.routers");
-const { updateStatusSupplyWhenExpiredDay } = require("../Controller/Medical/medicalSupply");
+const {
+  updateStatusSupplyWhenExpiredDay,
+} = require("../Controller/Medical/medicalSupply");
 
 require("dotenv").config();
 
@@ -57,7 +61,9 @@ app.listen(port, "0.0.0.0", () => {
     .flat()
     .forEach((iface) => {
       if (iface.family === "IPv4" && !iface.internal) {
-        console.log(`🌐 Server may be accessible via: http://${iface.address}:${port}`);
+        console.log(
+          `🌐 Server may be accessible via: http://${iface.address}:${port}`
+        );
       }
     });
 
