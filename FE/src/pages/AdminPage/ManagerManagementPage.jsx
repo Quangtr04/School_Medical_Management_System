@@ -1,5 +1,6 @@
-/* eslint-disable no-unused-vars */
-import React, { useState, useEffect } from "react";
+"use client";
+import React, { useState, useEffect, useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
   Table,
   Button,
@@ -8,115 +9,423 @@ import {
   Modal,
   Form,
   Popconfirm,
+  Typography,
   Card,
-  Tag,
-  Spin,
   Select,
+  Row,
+  Col,
+  Avatar,
+  Tooltip,
+  Badge,
+  Empty,
 } from "antd";
 import {
-  LoadingOutlined,
+  SearchOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  UserOutlined,
+  MailOutlined,
+  PhoneOutlined,
+  BankOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  ReloadOutlined,
+  ExportOutlined,
 } from "@ant-design/icons";
-import {
-  FiEdit2,
-  FiTrash2,
-  FiUser,
-  FiMail,
-  FiPhone,
-  FiCalendar,
-  FiBriefcase,
-  FiUsers,
-  FiLock,
-  FiActivity,
-  FiSearch,
-} from "react-icons/fi";
+import { motion } from "framer-motion";
 import { format } from "date-fns";
-import { useSelector, useDispatch } from "react-redux";
+import { toast } from "react-toastify";
+import { FaUserTie } from "react-icons/fa";
 import {
   fetchUsers,
   updateUser,
   deleteUser,
+  clearAdminError,
 } from "../../redux/admin/adminSlice";
-import { toast } from "react-toastify";
 import { vi } from "date-fns/locale";
-import Title from "antd/es/skeleton/Title";
-import Paragraph from "antd/es/skeleton/Paragraph";
 
 const { Option } = Select;
+const { Title, Text } = Typography;
 
-const CURRENT_ROLE_INFO = {
-  id: 2,
-  name: "Quản lý",
-  path: "managers",
-  tagColor: "blue",
-  endpoint: "/admin/managers",
+// Modern theme configuration
+const modernTheme = {
+  colors: {
+    primary: "#1677ff",
+    secondary: "#722ed1",
+    success: "#52c41a",
+    warning: "#faad14",
+    error: "#ff4d4f",
+    info: "#13c2c2",
+    background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
+    cardBackground: "rgba(255, 255, 255, 0.95)",
+    glassMorphism: "rgba(255, 255, 255, 0.25)",
+    managerTheme: {
+      primary: "#1890ff",
+      secondary: "#40a9ff",
+      light: "#e6f7ff",
+      gradient: "linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)",
+    },
+  },
+  shadows: {
+    card: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+    hover: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+    inner: "inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)",
+    glow: "0 0 20px rgba(24, 144, 255, 0.3)",
+  },
+  borderRadius: {
+    sm: "8px",
+    md: "12px",
+    lg: "16px",
+    xl: "20px",
+    full: "9999px",
+  },
+  animations: {
+    spring: { type: "spring", stiffness: 300, damping: 30 },
+    smooth: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
+  },
 };
 
+// Enhanced card styles
+const modernCardStyle = {
+  borderRadius: modernTheme.borderRadius.xl,
+  background: modernTheme.colors.cardBackground,
+  boxShadow: modernTheme.shadows.card,
+  border: "1px solid rgba(255, 255, 255, 0.2)",
+  backdropFilter: "blur(20px)",
+  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+  marginTop: "10px",
+};
+
+const gradientHeaderStyle = {
+  background: modernTheme.colors.managerTheme.gradient,
+  borderRadius: modernTheme.borderRadius.xl,
+  padding: "40px",
+  color: "white",
+  marginBottom: "32px",
+  boxShadow: modernTheme.shadows.glow,
+  position: "relative",
+  overflow: "hidden",
+};
+
+// Enhanced Statistics Card Component
+const StatisticsCard = ({
+  title,
+  value,
+  subValue,
+  icon: IconComponent,
+  color,
+  trend,
+}) => (
+  <motion.div
+    whileHover={{ scale: 1.02, y: -4 }}
+    transition={modernTheme.animations.spring}
+  >
+    <Card
+      style={{
+        ...modernCardStyle,
+        background: `linear-gradient(135deg, ${color}08 0%, ${color}03 100%)`,
+        borderLeft: `4px solid ${color}`,
+      }}
+      bodyStyle={{ padding: "24px" }}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex-1">
+          <Text style={{ color: "#64748b", fontSize: "14px", fontWeight: 500 }}>
+            {title}
+          </Text>
+          <div className="flex items-baseline gap-2 mt-2">
+            <Title
+              level={2}
+              style={{ margin: 0, color: "#1e293b", fontWeight: 700 }}
+            >
+              {value}
+            </Title>
+            {subValue && (
+              <Text style={{ color: "#94a3b8", fontSize: "16px" }}>
+                / {subValue}
+              </Text>
+            )}
+          </div>
+        </div>
+        <div
+          style={{
+            backgroundColor: color,
+            borderRadius: modernTheme.borderRadius.lg,
+            padding: "16px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: `0 8px 16px ${color}40`,
+          }}
+        >
+          <IconComponent style={{ fontSize: "28px", color: "white" }} />
+        </div>
+      </div>
+    </Card>
+  </motion.div>
+);
+
+// Enhanced Page Header Component
+const ManagerPageHeader = ({ title, description, icon, statistics = [] }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={modernTheme.animations.smooth}
+    >
+      <Card style={gradientHeaderStyle}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            {icon && (
+              <motion.div
+                whileHover={{ rotate: 360 }}
+                transition={{ duration: 0.6 }}
+                style={{
+                  padding: "20px",
+                  backgroundColor: "rgba(255, 255, 255, 0.2)",
+                  borderRadius: modernTheme.borderRadius.full,
+                  backdropFilter: "blur(10px)",
+                  border: "2px solid rgba(255, 255, 255, 0.3)",
+                }}
+              >
+                {React.cloneElement(icon, {
+                  style: { fontSize: "48px", color: "white" },
+                })}
+              </motion.div>
+            )}
+            <div>
+              <Title
+                level={1}
+                style={{
+                  color: "white",
+                  margin: 0,
+                  fontWeight: 800,
+                  fontSize: "36px",
+                  textShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                }}
+              >
+                {title}
+              </Title>
+              {description && (
+                <Text
+                  style={{
+                    color: "rgba(255, 255, 255, 0.9)",
+                    fontSize: "18px",
+                    marginTop: "8px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <span>💼</span> {description}
+                </Text>
+              )}
+            </div>
+          </div>
+
+          {/* Floating decoration */}
+          <motion.div
+            animate={{
+              y: [0, -10, 0],
+              rotate: [0, 5, -5, 0],
+            }}
+            transition={{
+              duration: 4,
+              repeat: Number.POSITIVE_INFINITY,
+              ease: "easeInOut",
+            }}
+            style={{
+              position: "absolute",
+              right: "40px",
+              top: "20px",
+              opacity: 0.1,
+              fontSize: "120px",
+              color: "white",
+            }}
+          >
+            <FaUserTie />
+          </motion.div>
+        </div>
+      </Card>
+
+      {/* Statistics Grid */}
+      {statistics.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...modernTheme.animations.smooth, delay: 0.2 }}
+          style={{ marginTop: "32px" }}
+        >
+          <Row gutter={[24, 24]}>
+            {statistics.map((stat, index) => (
+              <Col xs={24} sm={12} lg={6} key={index}>
+                <StatisticsCard {...stat} />
+              </Col>
+            ))}
+          </Row>
+        </motion.div>
+      )}
+    </motion.div>
+  );
+};
+
+// Enhanced Filter Bar Component
+const FilterBar = ({
+  searchText,
+  setSearchText,
+  onRefresh,
+  isSubmitting,
+  totalCount,
+}) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ ...modernTheme.animations.smooth, delay: 0.3 }}
+  >
+    <Card style={modernCardStyle}>
+      <Row justify="space-between" align="middle" gutter={[16, 16]}>
+        <Col xs={24} md={12} lg={8}>
+          <Input
+            placeholder="Tìm kiếm quản lý theo tên, email, số điện thoại..."
+            prefix={<SearchOutlined style={{ color: "#64748b" }} />}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{
+              height: "48px",
+              borderRadius: modernTheme.borderRadius.lg,
+              border: "2px solid #f1f5f9",
+              fontSize: "14px",
+            }}
+            allowClear
+          />
+        </Col>
+
+        <Col>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <Text
+              style={{ color: "#64748b", fontSize: "14px", fontWeight: 500 }}
+            >
+              Tổng cộng:{" "}
+              <strong style={{ color: "#1e293b" }}>{totalCount}</strong> quản lý
+            </Text>
+
+            <Space size="middle"></Space>
+          </div>
+        </Col>
+      </Row>
+    </Card>
+  </motion.div>
+);
+
 export default function ManagerManagementPage() {
+  const dispatch = useDispatch();
+  const {
+    users: managers = [],
+    loading,
+    error,
+  } = useSelector((state) => state.admin);
+
   const [searchText, setSearchText] = useState("");
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingManager, setEditingManager] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [form] = Form.useForm();
 
-  const dispatch = useDispatch();
-  // Lấy trạng thái từ Redux store
-  const { users: managers = [], loading, error } = useSelector((state) => state.admin);
-  console.log(managers);
+  const CURRENT_ROLE_INFO = {
+    id: 2,
+    name: "Quản lý",
+    path: "managers",
+    tagColor: "blue",
+    endpoint: "/admin/managers",
+  };
 
-  // Fetch users (managers) khi component mount
-  useEffect(() => {
+  // Enhanced statistics with trends
+  const pageStatistics = [
+    {
+      title: "Tổng số quản lý",
+      value: managers.length,
+      icon: FaUserTie,
+      color: modernTheme.colors.managerTheme.primary,
+      trend: 8,
+    },
+    {
+      title: "Đang hoạt động",
+      value: managers.filter((m) => m.is_active).length,
+      icon: CheckCircleOutlined,
+      color: modernTheme.colors.success,
+      trend: 12,
+    },
+    {
+      title: "Tạm ngưng",
+      value: managers.filter((m) => !m.is_active).length,
+      icon: CloseCircleOutlined,
+      color: modernTheme.colors.error,
+      trend: -5,
+    },
+    {
+      title: "Mới trong tháng",
+      value: managers.filter((m) => {
+        const createdDate = new Date(m.created_at);
+        const now = new Date();
+        const monthAgo = new Date(now.getFullYear(), now.getMonth(), 1);
+        return createdDate >= monthAgo;
+      }).length,
+      icon: BankOutlined,
+      color: modernTheme.colors.secondary,
+      trend: 15,
+    },
+  ];
+
+  const fetchManagersData = useCallback(async () => {
     dispatch(fetchUsers({ endpointPath: CURRENT_ROLE_INFO.endpoint }));
   }, [dispatch]);
 
-  // XÓA HÀM handleAddManager() VÀ CÁC CHỖ GỌI NÓ
-  // const handleAddManager = () => {
-  //   setEditingManager(null);
-  //   form.resetFields();
-  //   form.setFieldsValue({ status: "Active" });
-  //   setIsModalVisible(true);
-  // };
+  useEffect(() => {
+    fetchManagersData();
+  }, [fetchManagersData]);
+
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      dispatch(clearAdminError());
+    }
+  }, [error, dispatch]);
 
   const handleEditManager = (record) => {
     setEditingManager(record);
     form.setFieldsValue({
       ...record,
-      status: record.is_active ? "Active" : "Inactive", // Ánh xạ boolean sang chuỗi trạng thái
+      fullname: record.fullname || null,
+      status: record.is_active ? "Active" : "Inactive",
+      major: record.major || "Hiệu trưởng",
     });
     setIsModalVisible(true);
   };
 
   const handleDeleteManager = async (userId) => {
+    setIsSubmitting(true);
     try {
-      await dispatch(
+      const resultAction = await dispatch(
         deleteUser({ endpointPath: CURRENT_ROLE_INFO.endpoint, id: userId })
-      ).unwrap();
-      toast.success("Đã xóa tài khoản quản lý thành công!");
-      // Re-fetch users để cập nhật danh sách sau khi xóa
-      dispatch(fetchUsers({ endpointPath: CURRENT_ROLE_INFO.endpoint }));
-    } catch (error) {
-      console.error("Lỗi khi xóa manager:", error);
-      toast.error(
-        `Lỗi: ${error.message || "Không thể xóa tài khoản quản lý. Vui lòng thử lại."
-        }`
       );
+      if (deleteUser.fulfilled.match(resultAction)) {
+        toast.success("Đã xóa tài khoản quản lý thành công!");
+        fetchManagersData();
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleFormSubmit = async (values) => {
-    console.log(values);
-
+    setIsSubmitting(true);
     try {
       const payload = {
         ...values,
-        is_active: values.status === "Active", // Ánh xạ chuỗi trạng thái sang boolean
+        is_active: values.status === "Active",
       };
-      delete payload.status; // Xóa trường 'status' vì API mong đợi 'is_active'
 
-      // CHỈ GIỮ LẠI LOGIC CẬP NHẬT
-      // Bỏ qua `if (editingManager)` và `else` vì giờ chỉ có cập nhật
       if (!editingManager) {
-        // Thực tế, nút "Thêm" đã bị loại bỏ,
-        // nên không thể vào được đây.
-        // Đây là một defensive check.
         toast.error("Không thể thêm mới tài khoản quản lý từ đây.");
         setIsModalVisible(false);
         return;
@@ -125,7 +434,7 @@ export default function ManagerManagementPage() {
       await dispatch(
         updateUser({
           endpointPath: "/admin/managers",
-          id: editingManager.user_id, // Giả sử user_id là định danh duy nhất
+          user_id: editingManager.user_id,
           userData: payload,
         })
       )
@@ -134,133 +443,187 @@ export default function ManagerManagementPage() {
           toast.success("Cập nhật tài khoản quản lý thành công!");
           setIsModalVisible(false);
           form.resetFields();
-          // Re-fetch users để cập nhật danh sách sau khi cập nhật
-          dispatch(fetchUsers({ endpointPath: CURRENT_ROLE_INFO.endpoint }));
+          fetchManagersData();
         });
     } catch (error) {
       toast.error(
-        `Lỗi: ${error.message || "Thao tác thất bại. Vui lòng kiểm tra lại thông tin."
+        `Lỗi: ${
+          error.message || "Thao tác thất bại. Vui lòng kiểm tra lại thông tin."
         }`
       );
+    } finally {
+      setIsSubmitting(false);
     }
   };
+  console.log(editingManager);
 
-  // Lọc managers (hiện tại là users) dựa trên searchText
   const filteredManagers = managers.filter((manager) =>
     Object.values(manager).some((value) =>
       String(value).toLowerCase().includes(searchText.toLowerCase())
     )
   );
 
+  console.log(editingManager);
+
+  // Enhanced table columns
   const columns = [
     {
-      title: (
-        <span
-          className={`flex items-center gap-2 text-[hsl(222.2_47.4%_11.2%)]`}
-        >
-          <FiUser className={`text-[hsl(221_83%_53%)]`} /> Tên đầy đủ
-        </span>
+      title: "Thông tin quản lý",
+      key: "managerInfo",
+      width: 280,
+      render: (_, record) => (
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <Avatar
+            size={48}
+            style={{
+              backgroundColor: modernTheme.colors.managerTheme.primary,
+              fontSize: "18px",
+              fontWeight: 600,
+            }}
+            icon={<UserOutlined />}
+          >
+            {record.fullname?.charAt(0)?.toUpperCase()}
+          </Avatar>
+          <div>
+            <Text
+              strong
+              style={{ fontSize: "15px", color: "#1e293b", display: "block" }}
+            >
+              {record.fullname}
+            </Text>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                marginTop: "4px",
+              }}
+            >
+              <MailOutlined style={{ color: "#64748b", fontSize: "12px" }} />
+              <Text style={{ color: "#64748b", fontSize: "13px" }}>
+                {record.email}
+              </Text>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                marginTop: "2px",
+              }}
+            >
+              <PhoneOutlined style={{ color: "#64748b", fontSize: "12px" }} />
+              <Text style={{ color: "#64748b", fontSize: "13px" }}>
+                {record.phone}
+              </Text>
+            </div>
+          </div>
+        </div>
       ),
-      dataIndex: "fullname",
-      key: "fullname",
     },
     {
-      title: (
-        <span
-          className={`flex items-center gap-2 text-[hsl(222.2_47.4%_11.2%)]`}
-        >
-          <FiMail className={`text-[hsl(221_83%_53%)]`} /> Email
-        </span>
+      title: "Vai trò",
+      dataIndex: "major",
+      key: "major",
+      width: 150,
+      render: (role) => (
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <BankOutlined style={{ color: "#64748b", fontSize: "14px" }} />
+          <Text style={{ color: "#374151", fontSize: "13px", fontWeight: 500 }}>
+            {role || "Hiệu trưởng"}
+          </Text>
+        </div>
       ),
-      dataIndex: "email",
-      key: "email",
-    },
-    {
-      title: (
-        <span
-          className={`flex items-center gap-2 text-[hsl(222.2_47.4%_11.2%)]`}
-        >
-          <FiPhone className={`text-[hsl(221_83%_53%)]`} /> Số điện thoại
-        </span>
-      ),
-      dataIndex: "phone",
-      key: "phone",
-    },
-    {
-      title: (
-        <span
-          className={`flex items-center gap-2 text-[hsl(222.2_47.4%_11.2%)]`}
-        >
-          <FiBriefcase className={`text-[hsl(221_83%_53%)]`} /> Vai trò{" "}
-        </span>
-      ),
-      dataIndex: "role",
-      key: "role",
     },
     {
       title: "Trạng thái",
       dataIndex: "is_active",
       key: "is_active",
+      width: 140,
       render: (is_active) => (
-        <Tag
-          className={`!px-3 !py-1 !rounded-full !text-xs !flex !items-center !gap-2 !w-fit !border-none ${is_active
-            ? `!bg-[hsl(142.1_76.2%_36.3%)]/[.20] !text-[hsl(142.1_76.2%_36.3%)]`
-            : `!bg-[hsl(0_84.2%_60.2%)]/[.20] !text-[hsl(0_84.2%_60.2%)]`
-            }`}
-        >
-          <span
-            className={`w-2 h-2 rounded-full ${is_active
-              ? `bg-[hsl(142.1_76.2%_36.3%)]`
-              : `bg-[hsl(0_84.2%_60.2%)]`
-              }`}
-          ></span>
-          {is_active ? "Hoạt động" : "Không hoạt động"}
-        </Tag>
+        <Badge
+          status={is_active ? "success" : "error"}
+          text={
+            <span
+              style={{
+                color: is_active
+                  ? modernTheme.colors.success
+                  : modernTheme.colors.error,
+                fontWeight: 500,
+                fontSize: "13px",
+              }}
+            >
+              {is_active ? "Hoạt động" : "Tạm ngưng"}
+            </span>
+          }
+        />
       ),
     },
     {
-      title: (
-        <span
-          className={`flex items-center gap-2 text-[hsl(222.2_47.4%_11.2%)]`}
-        >
-          <FiCalendar className={`text-[hsl(221_83%_53%)]`} /> Ngày đăng ký
-        </span>
-      ),
+      title: "Ngày tham gia",
       dataIndex: "created_at",
       key: "created_at",
-      render: (dateString) =>
-        dateString ? (
-          <span className="text-gray-700">
-            {format(new Date(dateString), "dd/MM/yyyy", { locale: vi })}
-          </span>
-        ) : (
-          <Tag color="default">Chưa có</Tag>
-        ),
+      width: 140,
+      render: (dateString) => (
+        <div>
+          <Text style={{ color: "#374151", fontSize: "13px", fontWeight: 500 }}>
+            {dateString
+              ? format(new Date(dateString), "dd/MM/yyyy", { locale: vi })
+              : "Chưa có"}
+          </Text>
+          {dateString && (
+            <Text
+              style={{ color: "#64748b", fontSize: "12px", display: "block" }}
+            >
+              {format(new Date(dateString), "HH:mm", { locale: vi })}
+            </Text>
+          )}
+        </div>
+      ),
     },
     {
       title: "Hành động",
       key: "actions",
+      width: 120,
       render: (_, record) => (
         <Space size="small">
-          <Button
-            className={`p-2 text-[hsl(215.4_16.3%_46.9%)] hover:text-[hsl(221_83%_53%)] rounded-full hover:bg-[hsl(221_83%_53%)]/[.10] transition-all transform hover:scale-110 flex items-center justify-center`}
-            onClick={() => handleEditManager(record)}
-            type="text"
-            icon={<FiEdit2 />}
-          />
-          <Popconfirm
-            title="Bạn có chắc chắn muốn xóa tài khoản này không?"
-            onConfirm={() => handleDeleteManager(record.user_id)}
-            okText="Có"
-            cancelText="Không"
-            placement="topRight"
-          >
+          <Tooltip title="Chỉnh sửa thông tin">
             <Button
-              className={`p-2 text-[hsl(215.4_16.3%_46.9%)] hover:text-[hsl(0_84.2%_60.2%)] rounded-full hover:bg-[hsl(0_84.2%_60.2%)]/[.10] transition-all transform hover:scale-110 flex items-center justify-center`}
-              danger
               type="text"
-              icon={<FiTrash2 />}
+              icon={<EditOutlined />}
+              onClick={() => handleEditManager(record)}
+              disabled={isSubmitting}
+              style={{
+                color: modernTheme.colors.primary,
+                borderRadius: modernTheme.borderRadius.md,
+              }}
             />
+          </Tooltip>
+          <Popconfirm
+            title="Xóa tài khoản quản lý"
+            description="Bạn có chắc chắn muốn xóa tài khoản này không?"
+            onConfirm={() => handleDeleteManager(record.user_id)}
+            okText="Xóa"
+            cancelText="Hủy"
+            okButtonProps={{
+              danger: true,
+              style: { borderRadius: modernTheme.borderRadius.md },
+            }}
+            cancelButtonProps={{
+              style: { borderRadius: modernTheme.borderRadius.md },
+            }}
+          >
+            <Tooltip title="Xóa tài khoản">
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined />}
+                disabled={isSubmitting}
+                style={{
+                  borderRadius: modernTheme.borderRadius.md,
+                }}
+              />
+            </Tooltip>
           </Popconfirm>
         </Space>
       ),
@@ -269,299 +632,424 @@ export default function ManagerManagementPage() {
 
   return (
     <div
-      className={`min-h-screen bg-[hsl(0_0%_100%)] p-6 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc0MCcgaGVpZ2h0PSc0MCcgdmlld0JveD0nMCAwIDQwIDQwJz48ZyBmaWxsPSdyZ2JhKDEzLDExMCwyNTMsMC4xKScgZmlsbC1ydWxlPSdldmVub2RkJz48Y2lyY2xlIGN4PScyMCcgY3k9JzIwJyByPScyJy8+PC9nPjwvc3ZnPg==')] bg-fixed`}
+      style={{
+        minHeight: "100vh",
+        background: modernTheme.colors.background,
+        padding: "24px",
+      }}
     >
-      <div className="max-w-7xl mx-auto">
-        {/* Header Section */}
-        <header
-          className={
-            "mb-5 rounded-lg bg-gradient-to-r from-green-600/[.10] to-transparent"
-          }
-        >
-          <div className="flex items-center gap-3">
-            <div
-              className={`p-5 bg-bule-600/10 rounded-full border border-green-600`}
-            >
-              <FiUsers className={`w-10 h-10 text-3x1 text-green-500`} />
-            </div>
-            <div>
-              <Title
-                level={1}
-                className={`!text-[hsl(222.2_47.4%_11.2%)] !font-bold !text-3xl !mb-2`}
-              >
-                Quản lý tài khoản {CURRENT_ROLE_INFO.name}
-              </Title>
-              <Paragraph
-                className={`!text-[hsl(215.4_16.3%_46.9%)] flex items-center gap-2 text-sm`}
-              >
-                <span>💼</span>
-                Quản lý và giám sát tài khoản {CURRENT_ROLE_INFO.name} hiệu quả
-              </Paragraph>
-            </div>
-          </div>
-        </header>
+      <div style={{ maxWidth: "1400px", margin: "0 auto" }}>
+        {/* Enhanced Header */}
+        <ManagerPageHeader
+          title="Quản lý Tài khoản"
+          description="Quản lý và giám sát tài khoản quản lý một cách hiệu quả"
+          icon={<FaUserTie />}
+          statistics={pageStatistics}
+        />
 
-        {/* Search Section (Removed Add Button) */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-          <div className="relative w-full md:w-64 mb-4 md:mb-0">
-            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
-            <input
-              type="text"
-              placeholder={`Tìm kiếm thông tin ${CURRENT_ROLE_INFO.name}`}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-            />
-          </div>
-          {/* ĐÃ XÓA NÚT "Thêm tài khoản Quản lý" Ở ĐÂY */}
-          {/* <Button
-            type="primary"
-            icon={<PlusOutlined className="mr-2" />}
-            onClick={handleAddManager}
-            className="flex items-center gap-2 px-6 py-2 bg-green-500 text-white !rounded-lg hover:bg-green-600 transition-all transform hover:scale-105 shadow-lg hover:shadow-green-500/30 !border-none"
-          >
-            Thêm tài khoản {CURRENT_ROLE_INFO.name}
-          </Button> */}
-        </div>
+        {/* Enhanced Filter Bar */}
+        <FilterBar
+          searchText={searchText}
+          setSearchText={setSearchText}
+          onRefresh={fetchManagersData}
+          isSubmitting={isSubmitting}
+          totalCount={filteredManagers.length}
+        />
 
-        {/* Table Section */}
-        <Card
-          className={`!bg-[hsl(0_0%_100%)] !rounded-lg !shadow-lg !overflow-hidden !border !border-[hsl(214.3_31.6%_91.4%)]/[.50]`}
+        {/* Enhanced Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...modernTheme.animations.smooth, delay: 0.4 }}
+          style={{ marginTop: "24px" }}
         >
-          {loading ? (
-            <div className="text-center py-12 flex flex-col items-center justify-center gap-4">
-              <Spin
-                indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />}
-              />
-              <p className={`text-[hsl(215.4_16.3%_46.9%)]`}>
-                Đang tải dữ liệu...
-              </p>
-            </div>
-          ) : (
+          <Card style={modernCardStyle}>
             <Table
               columns={columns}
               dataSource={filteredManagers}
               rowKey="user_id"
+              loading={loading}
               pagination={{
                 pageSize: 10,
-                className: `
-                  [&_.ant-pagination-prev]:!rounded-md [&_.ant-pagination-prev]:!border [&_.ant-pagination-prev]:!border-[hsl(214.3_31.6%_91.4%)] [&_.ant-pagination-prev]:!text-[hsl(222.2_47.4%_11.2%)] [&_.ant-pagination-prev]:hover:!border-[hsl(221_83%_53%)] [&_.ant-pagination-prev]:hover:!text-[hsl(221_83%_53%)] [&_.ant-pagination-prev]:!transition-colors
-                  [&_.ant-pagination-next]:!rounded-md [&_.ant-pagination-next]:!border [&_.ant-pagination-next]:!border-[hsl(214.3_31.6%_91.4%)] [&_.ant-pagination-next]:!text-[hsl(222.2_47.4%_11.2%)] [&_.ant-pagination-next]:hover:!border-[hsl(221_83%_53%)] [&_.ant-pagination-next]:hover:!text-[hsl(221_83%_53%)] [&_.ant-pagination-next]:!transition-colors
-                  [&_.ant-pagination-item]:!rounded-md [&_.ant-pagination-item]:!border [&_.ant-pagination-item]:!border-[hsl(214.3_31.6%_91.4%)] [&_.ant-pagination-item]:!text-[hsl(222.2_47.4%_11.2%)] [&_.ant-pagination-item]:hover:!border-[hsl(221_83%_53%)] [&_.ant-pagination-item]:hover:!text-[hsl(221_83%_53%)] [&_.ant-pagination-item]:!transition-colors
-                  [&_.ant-pagination-item-active]:!bg-[hsl(221_83%_53%)] [&_.ant-pagination-item-active]:!text-[hsl(210_20%_98%)] [&_.ant-pagination-item-active]:!border-[hsl(221_83%_53%)] [&_.ant-pagination-item-active]:hover:!bg-[hsl(221_83%_53%)]/[.90] [&_.ant-pagination-item-active]:hover:!text-[hsl(210_20%_98%)]
-                  [&_.ant-pagination-disabled]:!opacity-50 [&_.ant-pagination-disabled]:!cursor-not-allowed
-                  p-4 border-t border-[hsl(214.3_31.6%_91.4%)] bg-[hsl(0_0%_100%)]
-                `,
+                showSizeChanger: true,
+                showQuickJumper: true,
+                showTotal: (total, range) => (
+                  <Text style={{ color: "#64748b", fontWeight: 500 }}>
+                    Hiển thị {range[0]}-{range[1]} trong tổng số {total} quản lý
+                  </Text>
+                ),
+                style: { padding: "16px 0" },
               }}
-              scroll={{ x: "max-content" }}
+              scroll={{ x: 1000 }}
               locale={{
-                emptyText: `Không có dữ liệu ${CURRENT_ROLE_INFO.name.toLowerCase()} nào`,
+                emptyText: (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={modernTheme.animations.smooth}
+                    style={{ padding: "64px 0" }}
+                  >
+                    <Empty
+                      image={
+                        <div
+                          style={{
+                            fontSize: "64px",
+                            color: "#d1d5db",
+                            marginBottom: "16px",
+                          }}
+                        >
+                          <FaUserTie />
+                        </div>
+                      }
+                      description={
+                        <div>
+                          <Title
+                            level={4}
+                            style={{ color: "#64748b", marginBottom: "8px" }}
+                          >
+                            {searchText
+                              ? "Không tìm thấy quản lý"
+                              : "Chưa có quản lý nào"}
+                          </Title>
+                          <Text
+                            style={{
+                              color: "#9ca3af",
+                              maxWidth: "400px",
+                              display: "block",
+                              margin: "0 auto",
+                            }}
+                          >
+                            {searchText
+                              ? `Không có quản lý nào phù hợp với từ khóa "${searchText}"`
+                              : "Danh sách quản lý sẽ hiển thị ở đây khi có dữ liệu."}
+                          </Text>
+                          {searchText && (
+                            <Button
+                              onClick={() => setSearchText("")}
+                              style={{
+                                marginTop: "16px",
+                                borderRadius: modernTheme.borderRadius.lg,
+                              }}
+                            >
+                              Xóa bộ lọc
+                            </Button>
+                          )}
+                        </div>
+                      }
+                    />
+                  </motion.div>
+                ),
               }}
-              className={`
-                !bg-[hsl(0_0%_100%)]
-                [&_.ant-table]:!bg-[hsl(0_0%_100%)]
-                [&_.ant-table-thead_>_tr_>_th]:!bg-[hsl(210_40%_96.1%)] [&_.ant-table-thead_>_tr_>_th]:!text-[hsl(222.2_47.4%_11.2%)] [&_.ant-table-thead_>_tr_>_th]:!px-6 [&_.ant-table-thead_>_tr_>_th]:!py-3 [&_.ant-table-thead_>_tr_>_th]:!font-semibold
-                [&_.ant-table-tbody_>_tr]:!border-b [&_.ant-table-tbody_>_tr]:!border-[hsl(214.3_31.6%_91.4%)]
-                [&_.ant-table-tbody_>_tr:last-child_>_td]:!border-b-0
-                [&_.ant-table-tbody_>_tr:hover]:!bg-[hsl(210_40%_96.1%)]/[.50]
-                [&_.ant-table-tbody_>_tr_>_td]:!text-[hsl(222.2_47.4%_11.2%)] [&_.ant-table-tbody_>_tr_>_td]:!px-6 [&_.ant-table-tbody_>_tr_>_td]:!py-4
-                !rounded-lg !overflow-hidden
-              `}
             />
-          )}
-        </Card>
+          </Card>
+        </motion.div>
 
-        {/* Modal Section */}
-        {/* Modal chỉ hiển thị khi có editingManager (chế độ chỉnh sửa) */}
+        {/* Enhanced Modal */}
         {editingManager && (
           <Modal
             title={
-              <Title
-                level={4}
-                className="!text-[hsl(222.2_47.4%_11.2%)] !font-semibold !mb-0"
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "12px" }}
               >
-                Chỉnh sửa tài khoản {CURRENT_ROLE_INFO.name}
-              </Title>
+                <div
+                  style={{
+                    backgroundColor: modernTheme.colors.managerTheme.primary,
+                    borderRadius: modernTheme.borderRadius.md,
+                    padding: "8px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <UserOutlined style={{ color: "white", fontSize: "16px" }} />
+                </div>
+                <span style={{ fontSize: "18px", fontWeight: 600 }}>
+                  Chỉnh sửa thông tin Quản lý
+                </span>
+              </div>
             }
             open={isModalVisible}
             onCancel={() => setIsModalVisible(false)}
             footer={null}
-            className={`
-            [&_.ant-modal-content]:!bg-[hsl(0_0%_100%)] [&_.ant-modal-content]:!p-6 [&_.ant-modal-content]:!rounded-lg [&_.ant-modal-content]:!shadow-lg
-            [&_.ant-modal-header]:!bg-[hsl(0_0%_100%)] [&_.ant-modal-header]:!border-b [&_.ant-modal-header]:!border-[hsl(214.3_31.6%_91.4%)]/[.50] [&_.ant-modal-header]:!p-6
-            [&_.ant-modal-title]:!text-[hsl(222.2_47.4%_11.2%)] [&_.ant-modal-title]:!text-xl [&_.ant-modal-title]:!font-semibold
-          `}
+            width={700}
+            style={{ top: 20 }}
           >
             <Form
               form={form}
               layout="vertical"
               onFinish={handleFormSubmit}
+              style={{ marginTop: "24px" }}
               initialValues={
                 editingManager
                   ? {
-                    ...editingManager,
-                    status: editingManager.is_active ? "Active" : "Inactive",
-                  }
-                  : {} // Khi chỉ có chỉnh sửa, initialValues phải luôn dựa vào editingManager
+                      ...editingManager,
+                      status: editingManager.is_active ? "Active" : "Inactive",
+                    }
+                  : {}
               }
             >
-              {/* Full Name */}
-              <Form.Item
-                name="full_name"
-                label={
-                  <span
-                    className={`flex items-center gap-2 text-[hsl(222.2_47.4%_11.2%)]`}
+              <Row gutter={16}>
+                {/* Personal Information Section */}
+                <Col span={24}>
+                  <div
+                    style={{
+                      backgroundColor: "#f8fafc",
+                      padding: "16px",
+                      borderRadius: modernTheme.borderRadius.lg,
+                      marginBottom: "24px",
+                      border: "1px solid #e2e8f0",
+                    }}
                   >
-                    <FiUser className={`text-[hsl(221_83%_53%)]`} /> Tên đầy đủ
-                  </span>
-                }
-                rules={[
-                  { required: true, message: "Vui lòng nhập tên đầy đủ!" },
-                  {
-                    pattern: /^[\p{L}\s]{3,50}$/u,
-                    message:
-                      "Tên đầy đủ chỉ được chứa chữ cái và khoảng trắng.",
-                  },
-                  { min: 3, message: "Tên đầy đủ phải có ít nhất 3 ký tự." },
-                  {
-                    max: 50,
-                    message: "Tên đầy đủ không được vượt quá 50 ký tự.",
-                  },
-                ]}
-              >
-                <Input
-                  placeholder="Tên đầy đủ"
-                  className={`!border !border-[hsl(214.3_31.6%_91.4%)] !rounded-lg focus:!ring-2 focus:!ring-[hsl(222.2_84%_4.9%)] focus:!outline-none hover:!border-[hsl(221_83%_53%)]/[.50] !transition-colors !bg-[hsl(0_0%_100%)] !text-[hsl(222.2_47.4%_11.2%)]`}
-                />
-              </Form.Item>
+                    <Title
+                      level={5}
+                      style={{ margin: "0 0 16px 0", color: "#1e293b" }}
+                    >
+                      👤 Thông tin cá nhân
+                    </Title>
+                    <Row gutter={16}>
+                      <Col span={12}>
+                        <Form.Item
+                          name="fullname"
+                          label="Tên đầy đủ"
+                          rules={[
+                            {
+                              required: true,
+                              message: "Vui lòng nhập tên đầy đủ!",
+                            },
+                            {
+                              pattern: /^[\p{L}\s]{3,50}$/u,
+                              message: "Chỉ chứa chữ và khoảng trắng.",
+                            },
+                            { min: 3, message: "Ít nhất 3 ký tự." },
+                            { max: 50, message: "Không vượt quá 50 ký tự." },
+                          ]}
+                        >
+                          <Input
+                            placeholder="Nhập tên đầy đủ"
+                            style={{
+                              height: "40px",
+                              borderRadius: modernTheme.borderRadius.md,
+                            }}
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item
+                          name="major"
+                          label="Vai trò"
+                          rules={[
+                            {
+                              required: true,
+                              message: "Vui lòng nhập vai trò!",
+                            },
+                            {
+                              min: 3,
+                              message: "Vai trò phải có ít nhất 3 ký tự.",
+                            },
+                            {
+                              max: 50,
+                              message: "Vai trò không được vượt quá 50 ký tự.",
+                            },
+                          ]}
+                        >
+                          <Input
+                            style={{
+                              height: "40px",
+                              borderRadius: modernTheme.borderRadius.md,
+                            }}
+                          />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </div>
+                </Col>
 
-              {/* Email */}
-              <Form.Item
-                name="email"
-                label={
-                  <span
-                    className={`flex items-center gap-2 text-[hsl(222.2_47.4%_11.2%)]`}
+                {/* Contact Information Section */}
+                <Col span={24}>
+                  <div
+                    style={{
+                      backgroundColor: "#f0f9ff",
+                      padding: "16px",
+                      borderRadius: modernTheme.borderRadius.lg,
+                      marginBottom: "24px",
+                      border: "1px solid #bae6fd",
+                    }}
                   >
-                    <FiMail className={`text-[hsl(221_83%_53%)]`} /> Email
-                  </span>
-                }
-                rules={[
-                  { required: true, message: "Vui lòng nhập email!" },
-                  { type: "email", message: "Email không hợp lệ!" },
-                  { max: 100, message: "Email không được vượt quá 100 ký tự." },
-                ]}
-              >
-                <Input
-                  placeholder="Địa chỉ email"
-                  className={`!border !border-[hsl(214.3_31.6%_91.4%)] !rounded-lg focus:!ring-2 focus:!ring-[hsl(222.2_84%_4%)] focus:!outline-none hover:!border-[hsl(221_83%_53%)]/[.50] !transition-colors !bg-[hsl(0_0%_100%)] !text-[hsl(222.2_47.4%_11.2%)]`}
-                />
-              </Form.Item>
+                    <Title
+                      level={5}
+                      style={{ margin: "0 0 16px 0", color: "#1e293b" }}
+                    >
+                      📞 Thông tin liên hệ
+                    </Title>
+                    <Row gutter={16}>
+                      <Col span={12}>
+                        <Form.Item
+                          name="email"
+                          label="Email"
+                          rules={[
+                            { required: true, message: "Vui lòng nhập email!" },
+                            { type: "email", message: "Email không hợp lệ!" },
+                            { max: 100, message: "Không vượt quá 100 ký tự." },
+                          ]}
+                        >
+                          <Input
+                            placeholder="Nhập địa chỉ email"
+                            style={{
+                              height: "40px",
+                              borderRadius: modernTheme.borderRadius.md,
+                            }}
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item
+                          name="phone"
+                          label="Số điện thoại"
+                          rules={[
+                            {
+                              required: true,
+                              message: "Vui lòng nhập số điện thoại!",
+                            },
+                            {
+                              pattern: /^(0|\+84)[3|5|7|8|9][0-9]{8}$/,
+                              message:
+                                "SĐT không hợp lệ (VD: 0912345678 hoặc +84912345678)",
+                            },
+                          ]}
+                        >
+                          <Input
+                            placeholder="Nhập số điện thoại"
+                            style={{
+                              height: "40px",
+                              borderRadius: modernTheme.borderRadius.md,
+                            }}
+                          />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                    <Form.Item
+                      name="address"
+                      label="Số điện thoại"
+                      rules={[
+                        {
+                          required: true,
+                          message: "Vui lòng nhập địa chỉ",
+                        },
+                      ]}
+                    >
+                      <Input
+                        type="string"
+                        style={{
+                          height: "40px",
+                          borderRadius: modernTheme.borderRadius.md,
+                        }}
+                      ></Input>
+                    </Form.Item>
+                  </div>
+                </Col>
 
-              {/* Phone Number */}
-              <Form.Item
-                name="phone"
-                label={
-                  <span
-                    className={`flex items-center gap-2 text-[hsl(222.2_47.4%_11.2%)]`}
+                {/* Status Section */}
+                <Col span={24}>
+                  <div
+                    style={{
+                      backgroundColor: "#f0fdf4",
+                      padding: "16px",
+                      borderRadius: modernTheme.borderRadius.lg,
+                      marginBottom: "24px",
+                      border: "1px solid #bbf7d0",
+                    }}
                   >
-                    <FiPhone className={`text-[hsl(221_83%_53%)]`} /> Số điện
-                    thoại
-                  </span>
-                }
-                rules={[
-                  { required: true, message: "Vui lòng nhập số điện thoại!" },
-                  {
-                    pattern: /^(0|\+84)[3|5|7|8|9][0-9]{8}$/,
-                    message:
-                      "Số điện thoại không hợp lệ (ví dụ: 0912345678 hoặc +84912345678).",
-                  },
-                ]}
-              >
-                <Input
-                  placeholder="Số điện thoại liên hệ"
-                  className={`!border !border-[hsl(214.3_31.6%_91.4%)] !rounded-lg focus:!ring-2 focus:!ring-[hsl(222.2_84%_4.9%)] focus:!outline-none hover:!border-[hsl(221_83%_53%)]/[.50] !transition-colors !bg-[hsl(0_0%_100%)] !text-[hsl(222.2_47.4%_11.2%)]`}
-                />
-              </Form.Item>
+                    <Title
+                      level={5}
+                      style={{ margin: "0 0 16px 0", color: "#1e293b" }}
+                    >
+                      ⚡ Trạng thái hoạt động
+                    </Title>
+                    <Form.Item
+                      name="status"
+                      label="Trạng thái"
+                      rules={[
+                        {
+                          required: true,
+                          message: "Vui lòng chọn trạng thái!",
+                        },
+                      ]}
+                    >
+                      <Select
+                        placeholder="Chọn trạng thái"
+                        style={{ height: "40px" }}
+                      >
+                        <Option value="Active">
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                            }}
+                          >
+                            <CheckCircleOutlined
+                              style={{ color: modernTheme.colors.success }}
+                            />
+                            Hoạt động
+                          </div>
+                        </Option>
+                        <Option value="Inactive">
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                            }}
+                          >
+                            <CloseCircleOutlined
+                              style={{ color: modernTheme.colors.error }}
+                            />
+                            Tạm ngưng
+                          </div>
+                        </Option>
+                      </Select>
+                    </Form.Item>
+                  </div>
+                </Col>
+              </Row>
 
-              {/* Role (Specific for Managers) - Keep as Input or potentially hide if always "Quản lý" */}
-              <Form.Item
-                name="role" // Tên trường này có thể cần khớp với cách API của bạn xử lý vai trò
-                label={
-                  <span
-                    className={`flex items-center gap-2 text-[hsl(222.2_47.4%_11.2%)]`}
-                  >
-                    <FiBriefcase className={`text-[hsl(221_83%_53%)]`} /> Vai
-                    trò
-                  </span>
-                }
-                rules={[
-                  { required: true, message: "Vui lòng nhập vai trò!" },
-                  { min: 3, message: "Vai trò phải có ít nhất 3 ký tự." },
-                  { max: 50, message: "Vai trò không được vượt quá 50 ký tự." },
-                ]}
+              {/* Form Actions */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: "12px",
+                  paddingTop: "24px",
+                  borderTop: "1px solid #e2e8f0",
+                }}
               >
-                <Input
-                  placeholder="Ví dụ: Quản lý cấp cao, Trưởng phòng"
-                  className={`!border !border-[hsl(214.3_31.6%_91.4%)] !rounded-lg focus:!ring-2 focus:!ring-[hsl(222.2_84%_4.9%)] focus:!outline-none hover:!border-[hsl(221_83%_53%)]/[.50] !transition-colors !bg-[hsl(0_0%_100%)] !text-[hsl(222.2_47.4%_11.2%)]`}
-                />
-              </Form.Item>
-
-              {/* Status */}
-              <Form.Item
-                name="status"
-                label={
-                  <span
-                    className={`flex items-center gap-2 text-[hsl(222.2_47.4%_11.2%)]`}
-                  >
-                    <FiActivity className={`text-[hsl(221_83%_53%)]`} /> Trạng
-                    thái
-                  </span>
-                }
-                rules={[
-                  { required: true, message: "Vui lòng chọn trạng thái!" },
-                ]}
-              >
-                <Select
-                  placeholder="Chọn trạng thái"
-                  className={`!border !border-[hsl(214.3_31.6%_91.4%)] !rounded-lg focus:!ring-2 focus:!ring-[hsl(222.2_84%_4.9%)] focus:!outline-none hover:!border-[hsl(221_83%_53%)]/[.50] !transition-colors
-                  [&_.ant-select-selector]:!bg-[hsl(0_0%_100%)] [&_.ant-select-selector]:!text-[hsl(222.2_47.4%_11.2%)]`}
+                <Button
+                  onClick={() => setIsModalVisible(false)}
+                  disabled={isSubmitting}
+                  style={{
+                    height: "40px",
+                    padding: "0 24px",
+                    borderRadius: modernTheme.borderRadius.md,
+                  }}
                 >
-                  <Option value="Active">Hoạt động</Option>
-                  <Option value="Inactive">Không hoạt động</Option>
-                </Select>
-              </Form.Item>
-
-              {/* Removed Password field since it's only for adding, which is removed */}
-              {/* {!editingManager && (
-              <Form.Item
-                name="password"
-                label={...}
-                rules={...}
-              >
-                <Input.Password ... />
-              </Form.Item>
-            )} */}
-
-              <Form.Item className="mt-5 text-right">
-                <Space>
-                  <Button
-                    onClick={() => setIsModalVisible(false)}
-                    disabled={loading}
-                    className={`px-4 py-2 !border !border-[hsl(214.3_31.6%_91.4%)] !rounded-lg hover:!bg-[hsl(210_40%_96.1%)] !transition-colors !text-[hsl(222.2_47.4%_11.2%)]`}
-                  >
-                    Hủy bỏ
-                  </Button>
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    loading={loading}
-                    className={`px-4 py-2 !bg-[hsl(221_83%_53%)] !text-[hsl(210_20%_98%)] !rounded-lg hover:!bg-[hsl(221_83%_53%)]/[.90] !transition-colors disabled:!opacity-50 !border-none`}
-                  >
-                    Cập nhật
-                    {/* Luôn là "Cập nhật" vì không còn chức năng thêm mới */}
-                  </Button>
-                </Space>
-              </Form.Item>
+                  Hủy bỏ
+                </Button>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={isSubmitting}
+                  style={{
+                    height: "40px",
+                    padding: "0 24px",
+                    borderRadius: modernTheme.borderRadius.md,
+                    background: modernTheme.colors.managerTheme.gradient,
+                    border: "none",
+                    fontWeight: 600,
+                  }}
+                >
+                  Cập nhật thông tin
+                </Button>
+              </div>
             </Form>
           </Modal>
         )}
@@ -569,3 +1057,127 @@ export default function ManagerManagementPage() {
     </div>
   );
 }
+
+{
+  /* Enhanced Global Styles */
+}
+<style jsx global>{`
+  .ant-table-thead > tr > th {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-bottom: 2px solid #e2e8f0;
+    font-weight: 700;
+    color: #1e293b;
+    padding: 20px 16px;
+    font-size: 14px;
+  }
+
+  .ant-table-tbody > tr > td {
+    border-bottom: 1px solid #f1f5f9;
+    padding: 20px 16px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .ant-table-tbody > tr:hover > td {
+    background-color: #f8fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+
+  .ant-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .ant-card:hover {
+    transform: translateY(-2px);
+    box-shadow: ${modernTheme.shadows.hover} !important;
+  }
+
+  .ant-btn {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .ant-btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .ant-input,
+  .ant-input-number,
+  .ant-picker,
+  .ant-select-selector {
+    border-radius: ${modernTheme.borderRadius.md} !important;
+    border: 2px solid #f3f4f6 !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+
+  .ant-input:focus,
+  .ant-input-focused,
+  .ant-input-number:focus,
+  .ant-input-number-focused,
+  .ant-picker-focused,
+  .ant-select-focused .ant-select-selector {
+    border-color: ${modernTheme.colors.managerTheme.primary} !important;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1) !important;
+  }
+
+  .ant-pagination-item {
+    border-radius: ${modernTheme.borderRadius.md} !important;
+    border: 1px solid #e5e7eb !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+
+  .ant-pagination-item:hover {
+    border-color: ${modernTheme.colors.managerTheme.primary} !important;
+    transform: translateY(-1px) !important;
+  }
+
+  .ant-pagination-item-active {
+    background: ${modernTheme.colors.managerTheme.primary} !important;
+    border-color: ${modernTheme.colors.managerTheme.primary} !important;
+  }
+
+  .ant-pagination-item-active a {
+    color: white !important;
+  }
+
+  .ant-pagination-prev,
+  .ant-pagination-next {
+    border-radius: ${modernTheme.borderRadius.md} !important;
+    border: 1px solid #e5e7eb !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+
+  .ant-pagination-prev:hover,
+  .ant-pagination-next:hover {
+    border-color: ${modernTheme.colors.managerTheme.primary} !important;
+    transform: translateY(-1px) !important;
+  }
+
+  .ant-modal-content {
+    border-radius: ${modernTheme.borderRadius.xl} !important;
+    box-shadow: ${modernTheme.shadows.hover} !important;
+    overflow: hidden;
+  }
+
+  .ant-modal-header {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    padding: 24px !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+  }
+
+  .ant-modal-body {
+    padding: 0 24px 24px 24px !important;
+  }
+
+  .ant-empty-image {
+    margin-bottom: 16px !important;
+  }
+
+  .ant-badge-status-dot {
+    width: 8px !important;
+    height: 8px !important;
+  }
+
+  .ant-avatar {
+    border: 2px solid rgba(24, 144, 255, 0.1) !important;
+  }
+`}</style>;

@@ -41,6 +41,8 @@ export const createUser = createAsyncThunk(
 export const updateUser = createAsyncThunk(
   "admin/updateUser",
   async ({ endpointPath, user_id, userData }, { rejectWithValue }) => {
+    console.log(user_id);
+
     try {
       const response = await api.patch(`${endpointPath}/${user_id}`, userData); // Endpoint + id
       console.log("Update response:", response.data);

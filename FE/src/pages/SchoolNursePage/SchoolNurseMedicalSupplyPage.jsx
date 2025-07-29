@@ -110,7 +110,7 @@ const modernCardStyle = {
 };
 
 const gradientHeaderStyle = {
-  background: `linear-gradient(135deg, ${modernTheme.colors.primary} 0%, ${modernTheme.colors.secondary} 100%)`,
+  background: `linear-gradient(135deg, ${modernTheme.colors.warning} 0%, ${modernTheme.colors.warning} 100%)`,
   borderRadius: modernTheme.borderRadius.xl,
   padding: "40px",
   color: "white",

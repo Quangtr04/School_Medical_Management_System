@@ -98,16 +98,6 @@ export default function AdminHeader() {
           {" "}
           {/* Giữ nguyên size 24 hoặc điều chỉnh */}
           {/* Badge cho thông báo */}
-          <Badge count={1} offset={[-1, 35]} size="medium">
-            <BellOutlined
-              style={{
-                fontSize: "35px",
-                cursor: "pointer",
-                color: "#666",
-                marginTop: "30px",
-              }}
-            />
-          </Badge>{" "}
           {/* User Info and Avatar with Dropdown */}
           <Dropdown
             menu={{ items: userMenuItems }}

@@ -105,7 +105,7 @@ const modernCardStyle = {
 };
 
 const gradientHeaderStyle = {
-  background: `linear-gradient(135deg, ${modernTheme.colors.primary} 0%, ${modernTheme.colors.secondary} 100%)`,
+  background: `linear-gradient(135deg, ${modernTheme.colors.error} 0%, ${modernTheme.colors.error} 100%)`,
   borderRadius: modernTheme.borderRadius.xl,
   padding: "40px",
   color: "white",
@@ -1764,7 +1764,18 @@ export default function MedicalIncident() {
                   }
                 >
                   <DatePicker
-                    showTime
+                    showTime={{
+                      defaultValue: moment("06:00:00", "HH:mm:ss"),
+                      disabledHours: () => {
+                        const hours = [];
+                        for (let i = 0; i < 24; i++) {
+                          if (i < 6 || i > 17) {
+                            hours.push(i);
+                          }
+                        }
+                        return hours;
+                      },
+                    }}
                     format="DD/MM/YYYY HH:mm:ss"
                     style={{
                       width: "100%",

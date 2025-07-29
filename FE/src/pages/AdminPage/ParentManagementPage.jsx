@@ -1,4 +1,4 @@
-/* eslint-disable no-unused-vars */
+"use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -10,36 +10,38 @@ import {
   Form,
   Popconfirm,
   Card,
-  Tag,
-  Spin,
   Select,
   DatePicker,
+  Row,
+  Col,
+  Avatar,
+  Tooltip,
+  Badge,
+  Empty,
+  Typography,
 } from "antd";
 import {
-  LoadingOutlined,
   UserAddOutlined,
-  HeartOutlined,
-  WarningOutlined,
-  ContainerOutlined,
+  SearchOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  UserOutlined,
+  MailOutlined,
+  PhoneOutlined,
+  CalendarOutlined,
+  HomeOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
+  PlusOutlined,
+  ExportOutlined,
+  ReloadOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
-import {
-  FiEdit2,
-  FiTrash2,
-  FiSearch,
-  FiUser,
-  FiMail,
-  FiPhone,
-  FiCalendar,
-  FiBriefcase,
-  FiHome,
-  FiTag,
-  FiUserPlus,
-} from "react-icons/fi";
+import { motion } from "framer-motion";
 import { format } from "date-fns";
 import debounce from "lodash/debounce";
 import { toast } from "react-toastify";
+import { FaUserFriends, FaChild } from "react-icons/fa";
 import {
   fetchUsers,
   createUser,
@@ -51,75 +53,309 @@ import {
 import dayjs from "dayjs";
 
 const { Option } = Select;
+const { Title, Text } = Typography;
 
-const StatCardIcon = ({ icon: IconComponent, color }) => (
-  <div
-    style={{
-      backgroundColor: color,
-      borderRadius: "8px",
-      padding: "12px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      fontSize: "24px",
-      color: "white",
-      width: "56px",
-      height: "56px",
-    }}
+// Modern theme configuration
+const modernTheme = {
+  colors: {
+    primary: "#1677ff",
+    secondary: "#722ed1",
+    success: "#52c41a",
+    warning: "#faad14",
+    error: "#ff4d4f",
+    info: "#13c2c2",
+    background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
+    cardBackground: "rgba(255, 255, 255, 0.95)",
+    glassMorphism: "rgba(255, 255, 255, 0.25)",
+    parentTheme: {
+      primary: "#1677ff",
+      secondary: "#4096ff",
+      light: "#f0f9ff",
+      gradient: "linear-gradient(135deg, #1677ff 0%, #4096ff 100%)",
+    },
+  },
+  shadows: {
+    card: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+    hover: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+    inner: "inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)",
+    glow: "0 0 20px rgba(22, 119, 255, 0.3)",
+  },
+  borderRadius: {
+    sm: "8px",
+    md: "12px",
+    lg: "16px",
+    xl: "20px",
+    full: "9999px",
+  },
+  animations: {
+    spring: { type: "spring", stiffness: 300, damping: 30 },
+    smooth: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
+  },
+};
+
+// Enhanced card styles
+const modernCardStyle = {
+  borderRadius: modernTheme.borderRadius.xl,
+  background: modernTheme.colors.cardBackground,
+  boxShadow: modernTheme.shadows.card,
+  border: "1px solid rgba(255, 255, 255, 0.2)",
+  backdropFilter: "blur(20px)",
+  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+  marginTop: "12px",
+};
+
+const gradientHeaderStyle = {
+  background: modernTheme.colors.parentTheme.gradient,
+  borderRadius: modernTheme.borderRadius.xl,
+  padding: "40px",
+  color: "white",
+  marginBottom: "32px",
+  boxShadow: modernTheme.shadows.glow,
+  position: "relative",
+  overflow: "hidden",
+};
+
+// Enhanced Statistics Card Component
+const StatisticsCard = ({
+  title,
+  value,
+  subValue,
+  icon: IconComponent,
+  color,
+  trend,
+}) => (
+  <motion.div
+    whileHover={{ scale: 1.02, y: -4 }}
+    transition={modernTheme.animations.spring}
   >
-    <IconComponent />
-  </div>
-);
-
-const ParentPageHeader = ({ title, description, icon, statistics = [] }) => {
-  return (
-    <header className="mb-5 rounded-lg bg-gradient-to-r from-blue-600/[.10] to-transparent">
-      <div className="flex items-center gap-3">
-        {icon && (
-          <div className="p-5 bg-blue-600/10 rounded-full border border-blue-600">
-            {React.cloneElement(icon, { className: "w-10 h-10 text-blue-600" })}
+    <Card
+      style={{
+        ...modernCardStyle,
+        background: `linear-gradient(135deg, ${color}08 0%, ${color}03 100%)`,
+        borderLeft: `4px solid ${color}`,
+      }}
+      bodyStyle={{ padding: "24px" }}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex-1">
+          <Text style={{ color: "#64748b", fontSize: "14px", fontWeight: 500 }}>
+            {title}
+          </Text>
+          <div className="flex items-baseline gap-2 mt-2">
+            <Title
+              level={2}
+              style={{ margin: 0, color: "#1e293b", fontWeight: 700 }}
+            >
+              {value}
+            </Title>
+            {subValue && (
+              <Text style={{ color: "#94a3b8", fontSize: "16px" }}>
+                / {subValue}
+              </Text>
+            )}
           </div>
-        )}
-        <div>
-          <h1 className="text-gray-900 font-bold text-3xl mb-2">{title}</h1>
-          {description && (
-            <p className="text-gray-500 flex items-center gap-2 text-sm">
-              <span>👨‍👩‍👧‍👦</span> {description}
-            </p>
-          )}
+        </div>
+        <div
+          style={{
+            backgroundColor: color,
+            borderRadius: modernTheme.borderRadius.lg,
+            padding: "16px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: `0 8px 16px ${color}40`,
+          }}
+        >
+          <IconComponent style={{ fontSize: "28px", color: "white" }} />
         </div>
       </div>
-      {statistics.length > 0 && (
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {statistics.map((stat, index) => (
-            <Card
-              key={index}
-              className="!rounded-lg !shadow-sm !border !border-gray-200/[.50]"
-            >
-              <div className="flex items-center gap-4">
-                {stat.icon && stat.color && (
-                  <StatCardIcon icon={stat.icon} color={stat.color} />
-                )}
-                <div>
-                  <div className="text-gray-500 text-sm">{stat.title}</div>
-                  <div className="text-2xl font-bold mt-1">
-                    {stat.value}
-                    {stat.subValue && (
-                      <span className="text-base text-gray-400">
-                        {" "}
-                        / {stat.subValue}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ))}
+    </Card>
+  </motion.div>
+);
+
+// Enhanced Page Header Component
+const ParentPageHeader = ({ title, description, icon, statistics = [] }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={modernTheme.animations.smooth}
+    >
+      <Card style={gradientHeaderStyle}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            {icon && (
+              <motion.div
+                whileHover={{ rotate: 360 }}
+                transition={{ duration: 0.6 }}
+                style={{
+                  padding: "20px",
+                  backgroundColor: "rgba(255, 255, 255, 0.2)",
+                  borderRadius: modernTheme.borderRadius.full,
+                  backdropFilter: "blur(10px)",
+                  border: "2px solid rgba(255, 255, 255, 0.3)",
+                }}
+              >
+                {React.cloneElement(icon, {
+                  style: { fontSize: "48px", color: "white" },
+                })}
+              </motion.div>
+            )}
+            <div>
+              <Title
+                level={1}
+                style={{
+                  color: "white",
+                  margin: 0,
+                  fontWeight: 800,
+                  fontSize: "36px",
+                  textShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                }}
+              >
+                {title}
+              </Title>
+              {description && (
+                <Text
+                  style={{
+                    color: "rgba(255, 255, 255, 0.9)",
+                    fontSize: "18px",
+                    marginTop: "8px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <span>👨‍👩‍👧‍👦</span> {description}
+                </Text>
+              )}
+            </div>
+          </div>
+
+          {/* Floating decoration */}
+          <motion.div
+            animate={{
+              y: [0, -10, 0],
+              rotate: [0, 5, -5, 0],
+            }}
+            transition={{
+              duration: 4,
+              repeat: Number.POSITIVE_INFINITY,
+              ease: "easeInOut",
+            }}
+            style={{
+              position: "absolute",
+              right: "40px",
+              top: "20px",
+              opacity: 0.1,
+              fontSize: "120px",
+              color: "white",
+            }}
+          >
+            <FaUserFriends />
+          </motion.div>
         </div>
+      </Card>
+
+      {/* Statistics Grid */}
+      {statistics.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...modernTheme.animations.smooth, delay: 0.2 }}
+          style={{ marginTop: "32px" }}
+        >
+          <Row gutter={[24, 24]}>
+            {statistics.map((stat, index) => (
+              <Col xs={24} sm={12} lg={8} key={index}>
+                <StatisticsCard {...stat} />
+              </Col>
+            ))}
+          </Row>
+        </motion.div>
       )}
-    </header>
+    </motion.div>
   );
 };
+
+// Enhanced Filter Bar Component
+const FilterBar = ({
+  searchText,
+  onSearchChange,
+  onAddParent,
+  onRefresh,
+  isSubmitting,
+  totalCount,
+}) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ ...modernTheme.animations.smooth, delay: 0.3 }}
+  >
+    <Card style={modernCardStyle}>
+      <Row justify="space-between" align="middle" gutter={[16, 16]}>
+        <Col xs={24} md={12} lg={8}>
+          <Input
+            placeholder="Tìm kiếm phụ huynh theo tên, email, số điện thoại..."
+            prefix={<SearchOutlined style={{ color: "#64748b" }} />}
+            onChange={(e) => onSearchChange(e.target.value)}
+            style={{
+              height: "48px",
+              borderRadius: modernTheme.borderRadius.lg,
+              border: "2px solid #f1f5f9",
+              fontSize: "14px",
+            }}
+            allowClear
+          />
+        </Col>
+
+        <Col>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <Text
+              style={{ color: "#64748b", fontSize: "14px", fontWeight: 500 }}
+            >
+              Tổng cộng:{" "}
+              <strong style={{ color: "#1e293b" }}>{totalCount}</strong> phụ
+              huynh
+            </Text>
+
+            <Space size="middle">
+              <Tooltip title="Làm mới dữ liệu">
+                <Button
+                  icon={<ReloadOutlined />}
+                  onClick={onRefresh}
+                  style={{
+                    height: "40px",
+                    borderRadius: modernTheme.borderRadius.md,
+                    border: "1px solid #e2e8f0",
+                  }}
+                />
+              </Tooltip>
+
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={onAddParent}
+                disabled={isSubmitting}
+                style={{
+                  height: "48px",
+                  padding: "0 24px",
+                  borderRadius: modernTheme.borderRadius.lg,
+                  background: modernTheme.colors.parentTheme.gradient,
+                  border: "none",
+                  boxShadow: modernTheme.shadows.glow,
+                  fontWeight: 600,
+                  fontSize: "14px",
+                }}
+              >
+                Thêm Phụ huynh mới
+              </Button>
+            </Space>
+          </div>
+        </Col>
+      </Row>
+    </Card>
+  </motion.div>
+);
 
 export default function ParentManagementPage() {
   const dispatch = useDispatch();
@@ -128,19 +364,13 @@ export default function ParentManagementPage() {
     loading,
     error,
   } = useSelector((state) => state.admin);
-
   const children = useSelector((state) => state.studentRecord.healthRecords);
 
-  // Bước 1: Lấy mã student_code cuối cùng
+  // Generate new student code
   const lastStudentCode =
     children.length > 0 ? children[children.length - 1].student_code : "STU000";
-
-  // Bước 2: Tách phần số từ mã cuối và tăng lên
-  const numericPart = parseInt(lastStudentCode.replace("STU", ""), 10); // "006" → 6
-  //Số 10 trong parseInt(..., 10) là hệ cơ số (radix) mà bạn muốn chuyển chuỗi thành số.
+  const numericPart = Number.parseInt(lastStudentCode.replace("STU", ""), 10);
   const nextCodeNumber = numericPart + 1;
-
-  // Bước 3: Tạo mã mới có định dạng STUxxx
   const newStudentCode = `STU${nextCodeNumber.toString().padStart(3, "0")}`;
 
   const [searchText, setSearchText] = useState("");
@@ -149,27 +379,47 @@ export default function ParentManagementPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form] = Form.useForm();
   const [addStudentForParentForm] = Form.useForm();
-
   const [modalAddStudentForParent, setModalAddStudentForParent] =
     useState(false);
   const [selectedParent, setSelectedParent] = useState(null);
 
-  // Thông tin vai trò Phụ huynh (để truyền vào adminSlice)
   const CURRENT_ROLE_INFO = {
-    id: 4, // role_id cho Parent
+    id: 4,
     name: "Phụ huynh",
     path: "parents",
     tagColor: "purple",
-    endpoint: "/admin/parents", // Endpoint API
+    endpoint: "/admin/parents",
   };
 
-  // Sử dụng useCallback với debounce cho tìm kiếm
+  // Enhanced statistics with trends
+  const pageStatistics = [
+    {
+      title: "Tổng số phụ huynh",
+      value: parents.length,
+      icon: FaUserFriends,
+      color: modernTheme.colors.parentTheme.primary,
+      trend: 15,
+    },
+    {
+      title: "Đang hoạt động",
+      value: parents.filter((p) => p.is_active).length,
+      icon: CheckCircleOutlined,
+      color: modernTheme.colors.success,
+      trend: 8,
+    },
+    {
+      title: "Tạm ngưng",
+      value: parents.filter((p) => !p.is_active).length,
+      icon: CloseCircleOutlined,
+      color: modernTheme.colors.error,
+      trend: -3,
+    },
+  ];
+
   const debouncedSearch = useCallback(
     debounce((value) => {
       setSearchText(value);
-      // Gọi fetchParents ngay sau khi searchText được cập nhật nếu muốn filter ngay lập tức
-      // Hoặc giữ nguyên logic hiện tại để filter trên client-side
-    }, 300), // Độ trễ 300ms
+    }, 300),
     []
   );
 
@@ -181,20 +431,19 @@ export default function ParentManagementPage() {
     dispatch(
       fetchUsers({
         endpointPath: CURRENT_ROLE_INFO.endpoint,
-        params: { search: searchText }, // Truyền search text cho API nếu backend hỗ trợ
+        params: { search: searchText },
       })
     );
   }, [dispatch, searchText]);
 
-  // useEffect NÀY GỌI fetchParentsData MỖI KHI fetchParentsData THAY ĐỎI (tức là khi searchText thay đổi)
   useEffect(() => {
     fetchParentsData();
   }, [fetchParentsData]);
 
   useEffect(() => {
     if (error) {
-      toast.error(error); // Hiển thị lỗi từ Redux
-      dispatch(clearAdminError()); // Xóa lỗi sau khi hiển thị
+      toast.error(error);
+      dispatch(clearAdminError());
     }
   }, [error, dispatch]);
 
@@ -202,9 +451,9 @@ export default function ParentManagementPage() {
     setEditingParent(null);
     form.resetFields();
     form.setFieldsValue({
-      status: true, // Trạng thái mặc định
-      gender: undefined, // Bắt buộc nếu dùng Select
-    }); // Đặt mặc định trạng thái Active
+      status: true,
+      gender: undefined,
+    });
     setIsModalVisible(true);
   };
 
@@ -219,21 +468,20 @@ export default function ParentManagementPage() {
   };
 
   const handleDeleteParent = (userId) => {
-    setIsSubmitting(true); // Bắt đầu loading
-
+    setIsSubmitting(true);
     dispatch(
       deleteUser({ endpointPath: CURRENT_ROLE_INFO.endpoint, id: userId })
     )
       .unwrap()
       .then(() => {
         toast.success("Đã xóa tài khoản Phụ huynh thành công!");
-        fetchParentsData(); // Tải lại dữ liệu bảng sau khi xóa
+        fetchParentsData();
       })
       .catch((error) => {
         toast.error(error?.message || "Xóa tài khoản thất bại!");
       })
       .finally(() => {
-        setIsSubmitting(false); // Kết thúc loading
+        setIsSubmitting(false);
       });
   };
 
@@ -243,8 +491,7 @@ export default function ParentManagementPage() {
   };
 
   const handleFormSubmit = (values) => {
-    setIsSubmitting(true); // Bắt đầu loading
-
+    setIsSubmitting(true);
     const payload = {
       ...values,
       is_active: values.status ? true : false,
@@ -254,7 +501,6 @@ export default function ParentManagementPage() {
     };
 
     if (editingParent) {
-      // Cập nhật tài khoản phụ huynh
       dispatch(
         updateUser({
           endpointPath: "/admin/parents",
@@ -273,10 +519,9 @@ export default function ParentManagementPage() {
           toast.error(error?.message || "Cập nhật thất bại");
         })
         .finally(() => {
-          setIsSubmitting(false); // Kết thúc loading
+          setIsSubmitting(false);
         });
     } else {
-      // Tạo tài khoản phụ huynh mới
       dispatch(
         createUser({
           endpointPath: "/admin/register",
@@ -298,7 +543,7 @@ export default function ParentManagementPage() {
           toast.error(error?.message || "Thêm tài khoản thất bại");
         })
         .finally(() => {
-          setIsSubmitting(false); // Kết thúc loading
+          setIsSubmitting(false);
         });
     }
   };
@@ -307,9 +552,8 @@ export default function ParentManagementPage() {
     const payload = {
       ...values,
       parent_id: selectedParent?.user_id,
-      day_of_birth: values.day_of_birth.format("YYYY-MM-DD"), // 👈 Format rõ ràng
+      day_of_birth: values.day_of_birth.format("YYYY-MM-DD"),
     };
-
     dispatch(createStudent(payload))
       .unwrap()
       .then(() => {
@@ -322,111 +566,200 @@ export default function ParentManagementPage() {
         toast.error("Thêm học sinh thất bại!");
       });
   };
-  // Filter dữ liệu trên client-side dựa vào searchText từ Redux `users`
-  // Nếu backend của bạn hỗ trợ lọc theo search query, hãy gửi `searchText` trong `fetchUsers`
+
   const filteredParents = parents.filter((parent) =>
     Object.values(parent).some((value) =>
       String(value).toLowerCase().includes(searchText.toLowerCase())
     )
   );
 
+  // Enhanced table columns
   const columns = [
     {
-      title: (
-        <span className="flex items-center gap-2">
-          <FiUser className="text-blue-600" /> Họ và tên
-        </span>
+      title: "Thông tin phụ huynh",
+      key: "parentInfo",
+      width: 280,
+      render: (_, record) => (
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <Avatar
+            size={48}
+            style={{
+              backgroundColor: modernTheme.colors.parentTheme.primary,
+              fontSize: "18px",
+              fontWeight: 600,
+            }}
+            icon={<UserOutlined />}
+          >
+            {record.fullname?.charAt(0)?.toUpperCase()}
+          </Avatar>
+          <div>
+            <Text
+              strong
+              style={{ fontSize: "15px", color: "#1e293b", display: "block" }}
+            >
+              {record.fullname}
+            </Text>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                marginTop: "4px",
+              }}
+            >
+              <MailOutlined style={{ color: "#64748b", fontSize: "12px" }} />
+              <Text style={{ color: "#64748b", fontSize: "13px" }}>
+                {record.email}
+              </Text>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                marginTop: "2px",
+              }}
+            >
+              <PhoneOutlined style={{ color: "#64748b", fontSize: "12px" }} />
+              <Text style={{ color: "#64748b", fontSize: "13px" }}>
+                {record.phone}
+              </Text>
+            </div>
+          </div>
+        </div>
       ),
-      dataIndex: "fullname",
-      key: "full_name",
-    },
-    {
-      title: (
-        <span className="flex items-center gap-2">
-          <FiMail className="text-blue-600" /> Email
-        </span>
-      ),
-      dataIndex: "email",
-      key: "email",
-    },
-    {
-      title: (
-        <span className="flex items-center gap-2">
-          <FiPhone className="text-blue-600" /> Số điện thoại
-        </span>
-      ),
-      dataIndex: "phone",
-      key: "phone",
     },
     {
       title: "Trạng thái",
       dataIndex: "is_active",
       key: "is_active",
+      width: 140,
       render: (is_active) => (
-        <Tag
-          icon={is_active ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
-          color={is_active ? "success" : "error"}
-        >
-          {is_active ? "Hoạt động" : "Không hoạt động"}
-        </Tag>
+        <Badge
+          status={is_active ? "success" : "error"}
+          text={
+            <span
+              style={{
+                color: is_active
+                  ? modernTheme.colors.success
+                  : modernTheme.colors.error,
+                fontWeight: 500,
+                fontSize: "13px",
+              }}
+            >
+              {is_active ? "Hoạt động" : "Tạm ngưng"}
+            </span>
+          }
+        />
       ),
     },
     {
-      title: (
-        <span className="flex items-center gap-2">
-          <FiCalendar className="text-blue-600" /> Ngày đăng ký
-        </span>
+      title: "Thông tin cá nhân",
+      key: "personalInfo",
+      width: 200,
+      render: (_, record) => (
+        <div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              marginBottom: "4px",
+            }}
+          >
+            <HomeOutlined style={{ color: "#64748b", fontSize: "12px" }} />
+            <Text style={{ color: "#374151", fontSize: "13px" }}>
+              {record.address || "Chưa cập nhật"}
+            </Text>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <CalendarOutlined style={{ color: "#64748b", fontSize: "12px" }} />
+            <Text style={{ color: "#374151", fontSize: "13px" }}>
+              {record.dayOfBirth
+                ? format(new Date(record.dayOfBirth), "dd/MM/yyyy")
+                : "Chưa cập nhật"}
+            </Text>
+          </div>
+        </div>
       ),
-      dataIndex: "created_at", // Giữ nguyên dataIndex là 'created_at' để lấy dữ liệu từ API
+    },
+    {
+      title: "Ngày tham gia",
+      dataIndex: "created_at",
       key: "created_at",
-      render: (dateString) =>
-        dateString ? format(new Date(dateString), "MMM dd, yyyy") : "N/A", // Changed to 'yyyy' for year
+      width: 140,
+      render: (dateString) => (
+        <div>
+          <Text style={{ color: "#374151", fontSize: "13px", fontWeight: 500 }}>
+            {dateString
+              ? format(new Date(dateString), "dd/MM/yyyy")
+              : "Chưa có"}
+          </Text>
+          {dateString && (
+            <Text
+              style={{ color: "#64748b", fontSize: "12px", display: "block" }}
+            >
+              {format(new Date(dateString), "HH:mm")}
+            </Text>
+          )}
+        </div>
+      ),
     },
     {
       title: "Hành động",
       key: "actions",
-      align: "center",
+      width: 160,
       render: (_, record) => (
         <Space size="small">
-          {/* Nút cập nhật */}
-          <Button
-            className="p-2 text-blue-500 hover:text-blue-700 rounded-full hover:bg-blue-100 transition-all transform hover:scale-110 flex items-center justify-center"
-            onClick={() => handleEditParent(record)}
-            type="text"
-            icon={<FiEdit2 />}
-            disabled={isSubmitting}
-          >
-            Cập Nhật
-          </Button>
-
-          {/* ✅ Nút thêm học sinh */}
-          <Button
-            className="p-2 text-green-500 hover:text-green-700 rounded-full hover:bg-green-100 transition-all transform hover:scale-110 flex items-center justify-center"
-            onClick={() => handleAddStudentForParent(record)}
-            type="text"
-            icon={<FiUserPlus />} // dùng react-icons/fi nếu có
-            disabled={isSubmitting}
-          >
-            Thêm học sinh
-          </Button>
-
-          {/* Nút xóa */}
-          <Popconfirm
-            title="Bạn có chắc chắn muốn xóa tài khoản này?"
-            onConfirm={() => handleDeleteParent(record.user_id)}
-            okText="Có"
-            cancelText="Không"
-            placement="topRight"
-          >
+          <Tooltip title="Chỉnh sửa thông tin">
             <Button
-              className="p-2 text-red-500 hover:text-red-700 rounded-full hover:bg-red-100 transition-all transform hover:scale-110 flex items-center justify-center"
-              danger
               type="text"
-              icon={<FiTrash2 />}
+              icon={<EditOutlined />}
+              onClick={() => handleEditParent(record)}
               disabled={isSubmitting}
-            >
-              Xóa
-            </Button>
+              style={{
+                color: modernTheme.colors.primary,
+                borderRadius: modernTheme.borderRadius.md,
+              }}
+            />
+          </Tooltip>
+          <Tooltip title="Thêm học sinh">
+            <Button
+              type="text"
+              icon={<TeamOutlined />}
+              onClick={() => handleAddStudentForParent(record)}
+              disabled={isSubmitting}
+              style={{
+                color: modernTheme.colors.success,
+                borderRadius: modernTheme.borderRadius.md,
+              }}
+            />
+          </Tooltip>
+          <Popconfirm
+            title="Xóa tài khoản phụ huynh"
+            description="Bạn có chắc chắn muốn xóa tài khoản này không?"
+            onConfirm={() => handleDeleteParent(record.user_id)}
+            okText="Xóa"
+            cancelText="Hủy"
+            okButtonProps={{
+              danger: true,
+              style: { borderRadius: modernTheme.borderRadius.md },
+            }}
+            cancelButtonProps={{
+              style: { borderRadius: modernTheme.borderRadius.md },
+            }}
+          >
+            <Tooltip title="Xóa tài khoản">
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined />}
+                disabled={isSubmitting}
+                style={{
+                  borderRadius: modernTheme.borderRadius.md,
+                }}
+              />
+            </Tooltip>
           </Popconfirm>
         </Space>
       ),
@@ -434,420 +767,825 @@ export default function ParentManagementPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white p-6 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc0MCcgaGVpZ2h0PSc0MCcgdmlld0JveD0nMCAwIDQwIDQwJz48ZyBmaWxsPSdyZ2JhKDEzLDExMCwyNTMsMC4xKScgZmlsbC1ydWxlPSdldmVub2RkJz48Y2lyY2xlIGN4PScyMCcgY3k9JzIwJyByPScyJy8+PC9nPjwvc3ZnPg==')] bg-fixed">
-      <div className="max-w-7xl mx-auto">
+    <div
+      style={{
+        minHeight: "100vh",
+        background: modernTheme.colors.background,
+        padding: "24px",
+      }}
+    >
+      <div style={{ maxWidth: "1400px", margin: "0 auto" }}>
+        {/* Enhanced Header */}
         <ParentPageHeader
-          title="Parent Account Management"
-          description="Manage and oversee parent accounts efficiently"
-          icon={<FiUser />} // Sử dụng FiUser từ react-icons/fi
+          title="Quản lý Phụ huynh"
+          description="Quản lý và giám sát tài khoản phụ huynh một cách hiệu quả"
+          icon={<FaUserFriends />}
+          statistics={pageStatistics}
         />
 
-        {/* Search and Add Button Section */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-          <div className="relative w-full md:w-64 mb-4 md:mb-0">
-            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
-            <input
-              type="text"
-              placeholder={`Tìm kiếm thông tin ${CURRENT_ROLE_INFO.name}`}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              onChange={(e) => handleSearchChange(e.target.value)}
-            />
-          </div>
-          <Button
-            type="primary"
-            icon={<UserAddOutlined className="mr-2" />}
-            onClick={handleAddParent}
-            className="flex items-center justify-center px-8 py-2 !bg-blue-600 !text-white !rounded-lg hover:!bg-blue-700 transition-all transform hover:scale-105 shadow-lg hover:shadow-blue-600/30 !border-none"
-          >
-            Thêm tài khoản Phụ huynh
-          </Button>
-        </div>
+        {/* Enhanced Filter Bar */}
+        <FilterBar
+          searchText={searchText}
+          onSearchChange={handleSearchChange}
+          onAddParent={handleAddParent}
+          onRefresh={fetchParentsData}
+          isSubmitting={isSubmitting}
+          totalCount={filteredParents.length}
+        />
 
-        {/* Table Section */}
-        <Card className="!bg-white !rounded-lg !shadow-sm !p-6 !overflow-hidden !border !border-gray-200/[.50]">
-          {loading ? ( // Sử dụng loading từ Redux
-            <div className="text-center py-12 flex flex-col items-center justify-center gap-4">
-              <Spin
-                indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />}
-              />
-              <p className="text-gray-500">Đang tải dữ liệu...</p>
-            </div>
-          ) : (
+        {/* Enhanced Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...modernTheme.animations.smooth, delay: 0.4 }}
+          style={{ marginTop: "24px" }}
+        >
+          <Card style={modernCardStyle}>
             <Table
               columns={columns}
               dataSource={filteredParents}
-              rowKey="user_id" // Đảm bảo key đúng là user_id từ API của bạn
+              rowKey="user_id"
+              loading={loading}
               pagination={{
                 pageSize: 10,
-                className: `
-                  [&_.ant-pagination-prev]:!rounded-md [&_.ant-pagination-prev]:!border [&_.ant-pagination-prev]:!border-gray-300 [&_.ant-pagination-prev]:!text-gray-900 [&_.ant-pagination-prev]:hover:!border-blue-600 [&_.ant-pagination-prev]:hover:!text-blue-600 [&_.ant-pagination-prev]:!transition-colors
-                  [&_.ant-pagination-next]:!rounded-md [&_.ant-pagination-next]:!border [&_.ant-pagination-next]:!border-gray-300 [&_.ant-pagination-next]:!text-gray-900 [&_.ant-pagination-next]:hover:!border-blue-600 [&_.ant-pagination-next]:hover:!text-blue-600 [&_.ant-pagination-next]:!transition-colors
-                  [&_.ant-pagination-item]:!rounded-md [&_.ant-pagination-item]:!border [&_.ant-pagination-item]:!border-gray-300 [&_.ant-pagination-item]:!text-gray-900 [&_.ant-pagination-item]:hover:!border-blue-600 [&_.ant-pagination-item]:hover:!text-blue-600 [&_.ant-pagination-item]:!transition-colors
-                  [&_.ant-pagination-item-active]:!bg-blue-600 [&_.ant-pagination-item-active]:!text-white [&_.ant-pagination-item-active]:!border-blue-600 [&_.ant-pagination-item-active]:hover:!bg-blue-700 [&_.ant-pagination-item-active]:hover:!text-white
-                  [&_.ant-pagination-disabled]:!opacity-50 [&_.ant-pagination-disabled]:!cursor-not-allowed
-                  p-4 border-t border-gray-200 bg-white
-                `,
+                showSizeChanger: true,
+                showQuickJumper: true,
+                showTotal: (total, range) => (
+                  <Text style={{ color: "#64748b", fontWeight: 500 }}>
+                    Hiển thị {range[0]}-{range[1]} trong tổng số {total} phụ
+                    huynh
+                  </Text>
+                ),
+                style: { padding: "16px 0" },
               }}
-              scroll={{ x: "max-content" }}
+              scroll={{ x: 1000 }}
               locale={{
                 emptyText: (
-                  <span className="text-gray-500">
-                    Không có dữ liệu phụ huynh
-                  </span>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={modernTheme.animations.smooth}
+                    style={{ padding: "64px 0" }}
+                  >
+                    <Empty
+                      image={
+                        <div
+                          style={{
+                            fontSize: "64px",
+                            color: "#d1d5db",
+                            marginBottom: "16px",
+                          }}
+                        >
+                          <FaUserFriends />
+                        </div>
+                      }
+                      description={
+                        <div>
+                          <Title
+                            level={4}
+                            style={{ color: "#64748b", marginBottom: "8px" }}
+                          >
+                            {searchText
+                              ? "Không tìm thấy phụ huynh"
+                              : "Chưa có phụ huynh nào"}
+                          </Title>
+                          <Text
+                            style={{
+                              color: "#9ca3af",
+                              maxWidth: "400px",
+                              display: "block",
+                              margin: "0 auto",
+                            }}
+                          >
+                            {searchText
+                              ? `Không có phụ huynh nào phù hợp với từ khóa "${searchText}"`
+                              : "Danh sách phụ huynh sẽ hiển thị ở đây khi có dữ liệu."}
+                          </Text>
+                          {searchText && (
+                            <Button
+                              onClick={() => setSearchText("")}
+                              style={{
+                                marginTop: "16px",
+                                borderRadius: modernTheme.borderRadius.lg,
+                              }}
+                            >
+                              Xóa bộ lọc
+                            </Button>
+                          )}
+                        </div>
+                      }
+                    />
+                  </motion.div>
                 ),
               }}
-              className={`
-                !bg-white
-                [&_.ant-table]:!bg-white
-                [&_.ant-table-thead_>_tr_>_th]:!bg-blue-50/[.50] [&_.ant-table-thead_>_tr_>_th]:!text-gray-900 [&_.ant-table-thead_>_tr_>_th]:!px-6 [&_.ant-table-thead_>_tr_>_th]:!py-3 [&_.ant-table-thead_>_tr_>_th]:!font-semibold
-                [&_.ant-table-tbody_>_tr]:!border-b [&_.ant-table-tbody_>_tr]:!border-gray-200
-                [&_.ant-table-tbody_>_tr:last-child_>_td]:!border-b-0
-                [&_.ant-table-tbody_>_tr:hover]:!bg-blue-50/[.50]
-                [&_.ant-table-tbody_>_tr_>_td]:!text-gray-900 [&_.ant-table-tbody_>_tr_>_td]:!px-6 [&_.ant-table-tbody_>_tr_>_td]:!py-4
-                !rounded-lg !overflow-hidden
-              `}
             />
-          )}
-        </Card>
+          </Card>
+        </motion.div>
 
-        {/* Modal Thêm tài khỏản */}
+        {/* Enhanced Parent Modal */}
         <Modal
           title={
-            editingParent
-              ? "Sửa tài khoản Phụ huynh"
-              : "Thêm tài khoản Phụ huynh mới"
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div
+                style={{
+                  backgroundColor: modernTheme.colors.parentTheme.primary,
+                  borderRadius: modernTheme.borderRadius.md,
+                  padding: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <UserOutlined style={{ color: "white", fontSize: "16px" }} />
+              </div>
+              <span style={{ fontSize: "18px", fontWeight: 600 }}>
+                {editingParent
+                  ? "Chỉnh sửa thông tin Phụ huynh"
+                  : "Thêm Phụ huynh mới"}
+              </span>
+            </div>
           }
           open={isModalVisible}
           onCancel={() => setIsModalVisible(false)}
           footer={null}
-          className={`
-            [&_.ant-modal-content]:!bg-white [&_.ant-modal-content]:!p-6 [&_.ant-modal-content]:!rounded-lg [&_.ant-modal-content]:!shadow-lg
-            [&_.ant-modal-header]:!bg-white [&_.ant-modal-header]:!border-b [&_.ant-modal-header]:!border-gray-200/50 [&_.ant-modal-header]:!p-6
-            [&_.ant-modal-title]:!text-gray-900 [&_.ant-modal-title]:!text-xl [&_.ant-modal-title]:!font-semibold
-          `}
+          width={800}
+          style={{ top: 20 }}
         >
-          <Form form={form} layout="vertical" onFinish={handleFormSubmit}>
-            <Form.Item
-              name="fullname"
-              label={
-                <span className="flex items-center gap-2">
-                  <FiUser className="text-blue-500" /> Họ và tên
-                </span>
-              }
-              rules={[
-                { required: true, message: "Vui lòng nhập họ tên!" },
-                {
-                  pattern: /^[\p{L}\s]{3,50}$/u,
-                  message: "Chỉ chứa chữ và khoảng trắng.",
-                },
-                { min: 3, message: "Ít nhất 3 ký tự." },
-                { max: 50, message: "Không vượt quá 50 ký tự." },
-              ]}
-            >
-              <Input placeholder="Nhập họ và tên" className="..." />
-            </Form.Item>
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={handleFormSubmit}
+            style={{ marginTop: "24px" }}
+          >
+            <Row gutter={16}>
+              {/* Personal Information Section */}
+              <Col span={24}>
+                <div
+                  style={{
+                    backgroundColor: "#f8fafc",
+                    padding: "16px",
+                    borderRadius: modernTheme.borderRadius.lg,
+                    marginBottom: "24px",
+                    border: "1px solid #e2e8f0",
+                  }}
+                >
+                  <Title
+                    level={5}
+                    style={{ margin: "0 0 16px 0", color: "#1e293b" }}
+                  >
+                    👤 Thông tin cá nhân
+                  </Title>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item
+                        name="fullname"
+                        label="Họ và tên"
+                        rules={[
+                          { required: true, message: "Vui lòng nhập họ tên!" },
+                          {
+                            pattern: /^[\p{L}\s]{3,50}$/u,
+                            message: "Chỉ chứa chữ và khoảng trắng.",
+                          },
+                          { min: 3, message: "Ít nhất 3 ký tự." },
+                          { max: 50, message: "Không vượt quá 50 ký tự." },
+                        ]}
+                      >
+                        <Input
+                          placeholder="Nhập họ và tên"
+                          style={{
+                            height: "40px",
+                            borderRadius: modernTheme.borderRadius.md,
+                          }}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        name="dayofbirth"
+                        label="Ngày sinh"
+                        rules={[
+                          {
+                            required: true,
+                            message: "Vui lòng chọn ngày sinh!",
+                          },
+                        ]}
+                      >
+                        <DatePicker
+                          style={{
+                            width: "100%",
+                            height: "40px",
+                            borderRadius: modernTheme.borderRadius.md,
+                          }}
+                          format="DD/MM/YYYY"
+                          placeholder="Chọn ngày sinh"
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        name="gender"
+                        label="Giới tính"
+                        rules={[
+                          {
+                            required: true,
+                            message: "Vui lòng chọn giới tính!",
+                          },
+                        ]}
+                      >
+                        <Select
+                          placeholder="Chọn giới tính"
+                          style={{ height: "40px" }}
+                        >
+                          <Option value="Male">Nam</Option>
+                          <Option value="Female">Nữ</Option>
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        name="major"
+                        label="Nghề nghiệp"
+                        rules={[
+                          {
+                            required: true,
+                            message: "Vui lòng nhập nghề nghiệp!",
+                          },
+                        ]}
+                      >
+                        <Input
+                          placeholder="Nhập nghề nghiệp"
+                          style={{
+                            height: "40px",
+                            borderRadius: modernTheme.borderRadius.md,
+                          }}
+                        />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </div>
+              </Col>
 
-            {/* dayofbirth */}
-            <Form.Item
-              name="dayofbirth"
-              label={
-                <span className="flex items-center gap-2">
-                  <FiCalendar className="text-blue-500" /> Ngày sinh
-                </span>
-              }
-              rules={[
-                {
-                  required: true,
-                  message: "Vui lòng chọn Ngày tháng năm sinh!",
-                },
-              ]}
-            >
-              <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
-            </Form.Item>
+              {/* Contact Information Section */}
+              <Col span={24}>
+                <div
+                  style={{
+                    backgroundColor: "#f0f9ff",
+                    padding: "16px",
+                    borderRadius: modernTheme.borderRadius.lg,
+                    marginBottom: "24px",
+                    border: "1px solid #bae6fd",
+                  }}
+                >
+                  <Title
+                    level={5}
+                    style={{ margin: "0 0 16px 0", color: "#1e293b" }}
+                  >
+                    📞 Thông tin liên hệ
+                  </Title>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item
+                        name="email"
+                        label="Email"
+                        rules={[
+                          { required: true, message: "Vui lòng nhập email!" },
+                          { type: "email", message: "Email không hợp lệ!" },
+                          { max: 100, message: "Không vượt quá 100 ký tự." },
+                        ]}
+                      >
+                        <Input
+                          placeholder="Nhập địa chỉ email"
+                          style={{
+                            height: "40px",
+                            borderRadius: modernTheme.borderRadius.md,
+                          }}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        name="phone"
+                        label="Số điện thoại"
+                        rules={[
+                          {
+                            required: true,
+                            message: "Vui lòng nhập số điện thoại!",
+                          },
+                          {
+                            pattern: /^(0|\+84)[3|5|7|8|9][0-9]{8}$/,
+                            message:
+                              "SĐT không hợp lệ (VD: 0912345678 hoặc +84912345678)",
+                          },
+                        ]}
+                      >
+                        <Input
+                          placeholder="Nhập số điện thoại"
+                          style={{
+                            height: "40px",
+                            borderRadius: modernTheme.borderRadius.md,
+                          }}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={24}>
+                      <Form.Item
+                        name="address"
+                        label="Địa chỉ"
+                        rules={[
+                          { required: true, message: "Vui lòng nhập địa chỉ!" },
+                        ]}
+                      >
+                        <Input
+                          placeholder="Nhập địa chỉ thường trú"
+                          style={{
+                            height: "40px",
+                            borderRadius: modernTheme.borderRadius.md,
+                          }}
+                        />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </div>
+              </Col>
 
-            {/* Major */}
-            <Form.Item
-              name="major"
-              label={
-                <span className="flex items-center gap-2">
-                  <FiBriefcase className="text-blue-500" /> Nghề nghiệp
-                </span>
-              }
-              rules={[
-                { required: true, message: "Vui lòng nhập nghề nghiệp!" },
-              ]}
-            >
-              {/* Sử dụng Input và đặt nó ReadOnly nếu không muốn người dùng chỉnh sửa */}
-              <Input placeholder="Nhập nghề nghiệp" className="..." />
-            </Form.Item>
+              {/* Status Section */}
+              <Col span={24}>
+                <div
+                  style={{
+                    backgroundColor: "#f0fdf4",
+                    padding: "16px",
+                    borderRadius: modernTheme.borderRadius.lg,
+                    marginBottom: "24px",
+                    border: "1px solid #bbf7d0",
+                  }}
+                >
+                  <Title
+                    level={5}
+                    style={{ margin: "0 0 16px 0", color: "#1e293b" }}
+                  >
+                    ⚙️ Trạng thái tài khoản
+                  </Title>
+                  <Row gutter={16}>
+                    <Col span={24}>
+                      <Form.Item
+                        name="status"
+                        label="Trạng thái hoạt động"
+                        rules={[
+                          {
+                            required: true,
+                            message: "Vui lòng chọn trạng thái!",
+                          },
+                        ]}
+                      >
+                        <Select
+                          placeholder="Chọn trạng thái"
+                          style={{ height: "40px" }}
+                        >
+                          <Option value={true}>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px",
+                              }}
+                            >
+                              <CheckCircleOutlined
+                                style={{ color: modernTheme.colors.success }}
+                              />
+                              Hoạt động
+                            </div>
+                          </Option>
+                          <Option value={false}>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px",
+                              }}
+                            >
+                              <CloseCircleOutlined
+                                style={{ color: modernTheme.colors.error }}
+                              />
+                              Tạm ngưng
+                            </div>
+                          </Option>
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </div>
+              </Col>
+            </Row>
 
-            {/* gender */}
-            <Form.Item
-              name="gender"
-              label={
-                <span className="flex items-center gap-2">
-                  <FiUser className="text-blue-500" /> Giới tính
-                </span>
-              }
-              rules={[{ required: true, message: "Vui lòng chọn giới tính!" }]}
-              // initialValue có thể để trống hoặc đặt giá trị mặc định "Nam" hoặc "Nữ"
-              // initialValue={editingNurse ? (editingNurse.gender === 'male' ? 'Nam' : 'Nữ') : undefined}
-              // Hoặc nếu backend lưu 'Nam'/'Nữ' thì giữ nguyên:
-              initialValue={editingParent ? editingParent.gender : undefined} // Dựa vào dữ liệu từ backend
+            {/* Form Actions */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "12px",
+                paddingTop: "24px",
+                borderTop: "1px solid #e2e8f0",
+              }}
             >
-              <Select placeholder="Chọn giới tính" className="...">
-                <Option value="Male">Nam</Option>
-                <Option value="Female">Nữ</Option>
-                {/* Nếu bạn có thêm giới tính khác, có thể thêm Option ở đây */}
-              </Select>
-            </Form.Item>
-
-            {/* Address */}
-            <Form.Item
-              name="address"
-              label={
-                <span className="flex items-center gap-2">
-                  <FiHome className="text-blue-500" /> Địa chỉ
-                </span>
-              }
-              rules={[{ required: true, message: "Vui lòng nhập địa chỉ!" }]}
-            >
-              <Input placeholder="Địa chỉ thường chú" className="..." />
-            </Form.Item>
-
-            {/* Email */}
-            <Form.Item
-              name="email"
-              label={
-                <span className="flex items-center gap-2">
-                  <FiMail className="text-blue-500" /> Email
-                </span>
-              }
-              rules={[
-                { required: true, message: "Vui lòng nhập email!" },
-                { type: "email", message: "Email không hợp lệ!" },
-                { max: 100, message: "Không vượt quá 100 ký tự." },
-              ]}
-            >
-              <Input placeholder="Địa chỉ email" className="..." />
-            </Form.Item>
-
-            {/* Số điện thoại */}
-            <Form.Item
-              name="phone"
-              label={
-                <span className="flex items-center gap-2">
-                  <FiPhone className="text-blue-500" /> Số điện thoại
-                </span>
-              }
-              rules={[
-                { required: true, message: "Vui lòng nhập số điện thoại!" },
-                {
-                  pattern: /^(0|\+84)[3|5|7|8|9][0-9]{8}$/,
-                  message:
-                    "SĐT không hợp lệ (VD: 0912345678 hoặc +84912345678)",
-                },
-              ]}
-            >
-              <Input placeholder="Số điện thoại liên hệ" className="..." />
-            </Form.Item>
-
-            {/* Trạng thái */}
-            <Form.Item
-              name="status"
-              label={
-                <span className="flex items-center gap-2">
-                  <FiTag className="text-blue-500" /> Trạng thái
-                </span>
-              }
-              rules={[{ required: true, message: "Vui lòng chọn trạng thái!" }]}
-            >
-              <Select placeholder="Chọn trạng thái" className="...">
-                <Option value={true}>Hoạt động</Option>
-                <Option value={false}>Ngưng hoạt động</Option>
-              </Select>
-            </Form.Item>
-
-            {/* Password (only for new parent)
-            {!editingParent && (
-              <Form.Item
-                name="password"
-                label={<span className="text-gray-900">Mật khẩu</span>}
-                rules={[
-                  { required: true, message: "Vui lòng nhập mật khẩu!" },
-                  { min: 6, message: "Mật khẩu phải có ít nhất 6 ký tự." },
-                  { max: 50, message: "Mật khẩu không quá 50 ký tự." },
-                  {
-                    pattern:
-                      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,50}$/,
-                    message:
-                      "Mật khẩu phải chứa ít nhất một chữ hoa, một chữ thường, một số và một ký tự đặc biệt.",
-                  },
-                ]}
+              <Button
+                onClick={() => setIsModalVisible(false)}
+                disabled={isSubmitting}
+                style={{
+                  height: "40px",
+                  padding: "0 24px",
+                  borderRadius: modernTheme.borderRadius.md,
+                }}
               >
-                <Input.Password
-                  placeholder="Mật khẩu cho tài khoản mới"
-                  className="!border !border-gray-300 !rounded-lg focus:!ring-2 focus:!ring-blue-500 focus:!outline-none hover:!border-blue-600/50 !transition-colors !bg-white !text-gray-900"
-                />
-              </Form.Item>
-            )} */}
-
-            <Form.Item className="mt-5 text-right">
-              <Space>
-                <Button
-                  onClick={() => setIsModalVisible(false)}
-                  disabled={isSubmitting}
-                  className="px-4 py-2 !border !border-gray-300 !rounded-lg hover:!bg-gray-100 !transition-colors !text-gray-900"
-                >
-                  Hủy
-                </Button>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  loading={isSubmitting}
-                  className="px-4 py-2 !bg-blue-600 !text-white !rounded-lg hover:!bg-blue-700 !transition-colors disabled:!opacity-50 !border-none"
-                >
-                  {editingParent ? "Cập nhật" : "Thêm mới"}
-                </Button>
-              </Space>
-            </Form.Item>
+                Hủy bỏ
+              </Button>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={isSubmitting}
+                style={{
+                  height: "40px",
+                  padding: "0 24px",
+                  borderRadius: modernTheme.borderRadius.md,
+                  background: modernTheme.colors.parentTheme.gradient,
+                  border: "none",
+                  fontWeight: 600,
+                }}
+              >
+                {editingParent ? "Cập nhật thông tin" : "Thêm phụ huynh mới"}
+              </Button>
+            </div>
           </Form>
         </Modal>
 
-        {/* Modal thêm thông tin học sinh cho phụ huynh */}
+        {/* Enhanced Student Modal */}
         <Modal
+          title={
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div
+                style={{
+                  backgroundColor: modernTheme.colors.success,
+                  borderRadius: modernTheme.borderRadius.md,
+                  padding: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <FaChild style={{ color: "white", fontSize: "16px" }} />
+              </div>
+              <span style={{ fontSize: "18px", fontWeight: 600 }}>
+                Thêm học sinh cho: {selectedParent?.fullname || ""}
+              </span>
+            </div>
+          }
           open={modalAddStudentForParent}
-          title={`Thêm học sinh cho phụ huynh: ${
-            selectedParent?.full_name || ""
-          }`}
           onCancel={() => {
             setModalAddStudentForParent(false);
             setSelectedParent(null);
             addStudentForParentForm.resetFields();
           }}
-          onOk={() => addStudentForParentForm.submit()}
-          okText="Thêm"
-          cancelText="Hủy"
+          footer={null}
+          width={600}
         >
           <Form
             form={addStudentForParentForm}
             layout="vertical"
-            onFinish={(values) => handleSubmitAddStudentForParentForm(values)}
+            onFinish={handleSubmitAddStudentForParentForm}
+            style={{ marginTop: "24px" }}
           >
             <Form.Item
               hidden
               name="parent_id"
-              label="Mã phụ huynh"
-              initialValue={selectedParent?.user_id} // <-- Giá trị sinh tự động
+              initialValue={selectedParent?.user_id}
             >
               <Input hidden />
             </Form.Item>
 
-            <Form.Item
-              name="student_code"
-              label="Mã học sinh"
-              initialValue={newStudentCode}
-              hidden={newStudentCode} // <-- Giá trị sinh tự động
-            >
+            <Form.Item name="student_code" initialValue={newStudentCode} hidden>
               <Input readOnly />
             </Form.Item>
 
-            {/* Tên học sinh */}
-            <Form.Item
-              name="full_name"
-              label="Tên học sinh"
-              rules={[
-                { required: true, message: "Vui lòng nhập tên học sinh" },
-                {
-                  min: 2,
-                  message: "Tên học sinh phải có ít nhất 2 ký tự",
-                },
-                {
-                  max: 50,
-                  message: "Tên học sinh không vượt quá 50 ký tự",
-                },
-                {
-                  validator: (_, value) => {
-                    if (!value || /^[^\d]*$/.test(value)) {
-                      return Promise.resolve();
-                    }
-                    return Promise.reject("Tên học sinh không được chứa số");
-                  },
-                },
-              ]}
-            >
-              <Input placeholder="Nhập tên học sinh" />
-            </Form.Item>
+            <Row gutter={16}>
+              <Col span={24}>
+                <div
+                  style={{
+                    backgroundColor: "#f0fdf4",
+                    padding: "16px",
+                    borderRadius: modernTheme.borderRadius.lg,
+                    marginBottom: "24px",
+                    border: "1px solid #bbf7d0",
+                  }}
+                >
+                  <Title
+                    level={5}
+                    style={{ margin: "0 0 16px 0", color: "#1e293b" }}
+                  >
+                    👶 Thông tin học sinh
+                  </Title>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item
+                        name="full_name"
+                        label="Tên học sinh"
+                        rules={[
+                          {
+                            required: true,
+                            message: "Vui lòng nhập tên học sinh",
+                          },
+                          {
+                            min: 2,
+                            message: "Tên học sinh phải có ít nhất 2 ký tự",
+                          },
+                          {
+                            max: 50,
+                            message: "Tên học sinh không vượt quá 50 ký tự",
+                          },
+                          {
+                            validator: (_, value) => {
+                              if (!value || /^[^\d]*$/.test(value)) {
+                                return Promise.resolve();
+                              }
+                              return Promise.reject(
+                                "Tên học sinh không được chứa số"
+                              );
+                            },
+                          },
+                        ]}
+                      >
+                        <Input
+                          placeholder="Nhập tên học sinh"
+                          style={{
+                            height: "40px",
+                            borderRadius: modernTheme.borderRadius.md,
+                          }}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        name="gender"
+                        label="Giới tính"
+                        rules={[
+                          {
+                            required: true,
+                            message: "Vui lòng chọn giới tính",
+                          },
+                        ]}
+                      >
+                        <Select
+                          placeholder="Chọn giới tính"
+                          style={{ height: "40px" }}
+                          allowClear
+                        >
+                          <Select.Option value="male">Nam</Select.Option>
+                          <Select.Option value="female">Nữ</Select.Option>
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        name="day_of_birth"
+                        label="Ngày sinh"
+                        rules={[
+                          {
+                            required: true,
+                            message: "Vui lòng chọn ngày sinh",
+                          },
+                          {
+                            validator: (_, value) => {
+                              if (!value) return Promise.resolve();
+                              const today = new Date();
+                              const selected = new Date(
+                                value.format("YYYY-MM-DD")
+                              );
+                              if (selected >= today) {
+                                return Promise.reject(
+                                  "Ngày sinh không hợp lệ (trong tương lai)"
+                                );
+                              }
+                              return Promise.resolve();
+                            },
+                          },
+                        ]}
+                      >
+                        <DatePicker
+                          format="DD/MM/YYYY"
+                          style={{
+                            width: "100%",
+                            height: "40px",
+                            borderRadius: modernTheme.borderRadius.md,
+                          }}
+                          placeholder="Chọn ngày sinh"
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        name="class_name"
+                        label="Lớp"
+                        rules={[
+                          { required: true, message: "Vui lòng chọn lớp" },
+                        ]}
+                      >
+                        <Select
+                          placeholder="Chọn lớp học"
+                          style={{ height: "40px" }}
+                        >
+                          {[
+                            "1A1",
+                            "1B",
+                            "1C",
+                            "2A",
+                            "2B",
+                            "2C",
+                            "3A",
+                            "3B",
+                            "3C",
+                            "4A",
+                            "4B",
+                            "4C",
+                            "5A",
+                            "5B",
+                            "5C",
+                          ].map((className) => (
+                            <Select.Option key={className} value={className}>
+                              {className}
+                            </Select.Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </div>
+              </Col>
+            </Row>
 
-            {/* Giới tính */}
-            <Form.Item
-              name="gender"
-              label="Giới tính"
-              rules={[{ required: true, message: "Vui lòng chọn giới tính" }]}
+            {/* Form Actions */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "12px",
+                paddingTop: "24px",
+                borderTop: "1px solid #e2e8f0",
+              }}
             >
-              <Select placeholder="Chọn giới tính" allowClear>
-                <Select.Option value="male">Nam</Select.Option>
-                <Select.Option value="female">Nữ</Select.Option>
-              </Select>
-            </Form.Item>
-
-            {/* Ngày sinh */}
-            <Form.Item
-              name="day_of_birth"
-              label="Ngày sinh"
-              rules={[
-                { required: true, message: "Vui lòng chọn ngày sinh" },
-                {
-                  validator: (_, value) => {
-                    if (!value) return Promise.resolve();
-                    const today = new Date();
-                    const selected = new Date(value.format("YYYY-MM-DD"));
-                    if (selected >= today) {
-                      return Promise.reject(
-                        "Ngày sinh không hợp lệ (trong tương lai)"
-                      );
-                    }
-                    return Promise.resolve();
-                  },
-                },
-              ]}
-            >
-              <DatePicker format="YYYY-MM-DD" style={{ width: "100%" }} />
-            </Form.Item>
-
-            {/* Lớp */}
-            <Form.Item
-              name="class_name"
-              label="Lớp"
-              rules={[{ required: true, message: "Vui lòng chọn lớp" }]}
-            >
-              <Select placeholder="Chọn lớp học">
-                {[
-                  "1A1",
-                  "1B",
-                  "1C",
-                  "2A",
-                  "2B",
-                  "2C",
-                  "3A",
-                  "3B",
-                  "3C",
-                  "4A",
-                  "4B",
-                  "4C",
-                  "5A",
-                  "5B",
-                  "5C",
-                ].map((className) => (
-                  <Select.Option key={className} value={className}>
-                    {className}
-                  </Select.Option>
-                ))}
-              </Select>
-            </Form.Item>
+              <Button
+                onClick={() => {
+                  setModalAddStudentForParent(false);
+                  setSelectedParent(null);
+                  addStudentForParentForm.resetFields();
+                }}
+                style={{
+                  height: "40px",
+                  padding: "0 24px",
+                  borderRadius: modernTheme.borderRadius.md,
+                }}
+              >
+                Hủy bỏ
+              </Button>
+              <Button
+                type="primary"
+                htmlType="submit"
+                style={{
+                  height: "40px",
+                  padding: "0 24px",
+                  borderRadius: modernTheme.borderRadius.md,
+                  background: modernTheme.colors.success,
+                  border: "none",
+                  fontWeight: 600,
+                }}
+              >
+                Thêm học sinh
+              </Button>
+            </div>
           </Form>
         </Modal>
       </div>
     </div>
   );
 }
+
+{
+  /* Enhanced Global Styles */
+}
+<style jsx global>{`
+  .ant-table-thead > tr > th {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-bottom: 2px solid #e2e8f0;
+    font-weight: 700;
+    color: #1e293b;
+    padding: 20px 16px;
+    font-size: 14px;
+  }
+
+  .ant-table-tbody > tr > td {
+    border-bottom: 1px solid #f1f5f9;
+    padding: 20px 16px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .ant-table-tbody > tr:hover > td {
+    background-color: #f8fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+
+  .ant-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .ant-card:hover {
+    transform: translateY(-2px);
+    box-shadow: ${modernTheme.shadows.hover} !important;
+  }
+
+  .ant-btn {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .ant-btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .ant-input,
+  .ant-input-number,
+  .ant-picker,
+  .ant-select-selector {
+    border-radius: ${modernTheme.borderRadius.md} !important;
+    border: 2px solid #f3f4f6 !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+
+  .ant-input:focus,
+  .ant-input-focused,
+  .ant-input-number:focus,
+  .ant-input-number-focused,
+  .ant-picker-focused,
+  .ant-select-focused .ant-select-selector {
+    border-color: ${modernTheme.colors.parentTheme.primary} !important;
+    box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1) !important;
+  }
+
+  .ant-pagination-item {
+    border-radius: ${modernTheme.borderRadius.md} !important;
+    border: 1px solid #e5e7eb !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+
+  .ant-pagination-item:hover {
+    border-color: ${modernTheme.colors.parentTheme.primary} !important;
+    transform: translateY(-1px) !important;
+  }
+
+  .ant-pagination-item-active {
+    background: ${modernTheme.colors.parentTheme.primary} !important;
+    border-color: ${modernTheme.colors.parentTheme.primary} !important;
+  }
+
+  .ant-pagination-item-active a {
+    color: white !important;
+  }
+
+  .ant-pagination-prev,
+  .ant-pagination-next {
+    border-radius: ${modernTheme.borderRadius.md} !important;
+    border: 1px solid #e5e7eb !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+
+  .ant-pagination-prev:hover,
+  .ant-pagination-next:hover {
+    border-color: ${modernTheme.colors.parentTheme.primary} !important;
+    transform: translateY(-1px) !important;
+  }
+
+  .ant-modal-content {
+    border-radius: ${modernTheme.borderRadius.xl} !important;
+    box-shadow: ${modernTheme.shadows.hover} !important;
+    overflow: hidden;
+  }
+
+  .ant-modal-header {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    padding: 24px !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+  }
+
+  .ant-modal-body {
+    padding: 0 24px 24px 24px !important;
+  }
+
+  .ant-empty-image {
+    margin-bottom: 16px !important;
+  }
+
+  .ant-badge-status-dot {
+    width: 8px !important;
+    height: 8px !important;
+  }
+
+  .ant-avatar {
+    border: 2px solid rgba(22, 119, 255, 0.1) !important;
+  }
+`}</style>;
