@@ -12,7 +12,8 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import DocumentDetail from "./pages/DocumentDetail";
 import SupportPage from "./pages/SupportPage/SupportPage";
-import ForgotPassword from "./pages/ForgotPaswordPage";
+import ForgotPassword from "./pages/ForgotPasswordPage";
+import ResetPassword from "./pages/ResetPasswordPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 
 // Admin
@@ -98,6 +99,8 @@ function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/reset-password/:token" element={<ResetPassword />} />
       <Route path="/documents/:id" element={<DocumentDetail />} />
       <Route path="/support" element={<SupportPage />} />
       <Route path="/unauthorized" element={<UnauthorizedPage />} />

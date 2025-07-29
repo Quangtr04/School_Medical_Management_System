@@ -13,64 +13,157 @@ const initialState = {
   success: false,
 };
 
-export const loginUser = createAsyncThunk("loginUser", async (values, { rejectWithValue }) => {
-  try {
-    const response = await api.post("/login", values);
+export const loginUser = createAsyncThunk(
+  "loginUser",
+  async (values, { rejectWithValue }) => {
+    try {
+      const response = await api.post("/login", values);
 
-    // Giả sử API trả về user info và token
-    const { token, user } = response.data;
+      // Giả sử API trả về user info và token
+      const { token, user } = response.data;
 
-    // Lưu token vào localStorage (hoặc sessionStorage) để duy trì trạng thái đăng nhập
-    localStorage.setItem("accessToken", token);
-    localStorage.setItem("currentUser", JSON.stringify(user));
+      // Lưu token vào localStorage (hoặc sessionStorage) để duy trì trạng thái đăng nhập
+      localStorage.setItem("accessToken", token);
+      localStorage.setItem("currentUser", JSON.stringify(user));
 
-    return { user, token };
-  } catch (error) {
-    // Xử lý lỗi từ API
-    let errorMessage = "Đăng nhập thất bại. Vui lòng thử lại.";
-    if (error.response && error.response.data && error.response.data.message) {
-      errorMessage = error.response.data.message;
+      return { user, token };
+    } catch (error) {
+      // Xử lý lỗi từ API
+      let errorMessage = "Đăng nhập thất bại. Vui lòng thử lại.";
+
+      if (error.response) {
+        if (error.response.status === 401) {
+          errorMessage = "Sai tài khoản hoặc mật khẩu. Vui lòng kiểm tra lại!";
+        } else if (error.response.data && error.response.data.message) {
+          errorMessage = error.response.data.message;
+        }
+      }
+
+      return rejectWithValue(errorMessage);
     }
-    return rejectWithValue(errorMessage);
   }
-});
+);
 
-export const sendOtp = createAsyncThunk("auth/sendOtp", async (credentials, { rejectWithValue }) => {
-  try {
-    const response = await api.post("/auth/forgot-password", credentials);
-    return response.data;
-  } catch (error) {
-    let errorMessage = "Failed to send OTP. Please try again.";
-    if (error.response && error.response.data && error.response.data.message) {
-      errorMessage = error.response.data.message;
+export const sendOtp = createAsyncThunk(
+  "auth/sendOtp",
+  async (credentials, { rejectWithValue }) => {
+    try {
+      console.log("Sending forgot password request:", credentials);
+
+      // Xử lý dựa trên loại định danh (email hoặc phone)
+      const { identifier, type } = credentials;
+      const trimmedIdentifier = identifier.trim();
+
+      // Tạo request data dựa trên loại
+      const requestData = { username: trimmedIdentifier };
+
+      console.log("Formatted request data:", requestData);
+
+      // This endpoint will check if the email/phone exists and send a reset token
+      const response = await api.post("/login/forgot-password", requestData);
+      console.log("Success response:", response.data);
+
+      // Store userId from response for reset password step
+      if (response.data && response.data.userId) {
+        localStorage.setItem("resetUserId", response.data.userId);
+      }
+
+      return response.data;
+    } catch (error) {
+      let errorMessage =
+        "Không thể gửi yêu cầu khôi phục mật khẩu. Vui lòng thử lại.";
+
+      console.log("Error response:", error);
+      console.log("Error response details:", {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+      });
+
+      if (error.response) {
+        if (error.response.status === 404) {
+          errorMessage = "Không tìm thấy tài khoản với thông tin này.";
+        } else if (error.response.status === 400) {
+          errorMessage =
+            error.response.data.message || "Định dạng không hợp lệ.";
+        } else if (error.response.data && error.response.data.message) {
+          errorMessage = error.response.data.message;
+        }
+      }
+
+      return rejectWithValue(errorMessage);
     }
-    return rejectWithValue(errorMessage);
   }
-});
+);
+
+export const resetPassword = createAsyncThunk(
+  "auth/resetPassword",
+  async (credentials, { rejectWithValue }) => {
+    try {
+      // Get userId from localStorage that was saved during sendOtp
+      const userId = localStorage.getItem("resetUserId");
+
+      if (!userId) {
+        return rejectWithValue(
+          "Phiên làm việc đã hết hạn. Vui lòng thực hiện lại quá trình quên mật khẩu."
+        );
+      }
+
+      const requestData = {
+        user_id: parseInt(userId),
+        newPass: credentials.password,
+        confirmPass: credentials.confirmPassword,
+      };
+
+      console.log("Sending reset password request:", requestData);
+
+      const response = await api.post("/login/reset-password", requestData);
+      return response.data;
+    } catch (error) {
+      let errorMessage = "Không thể đặt lại mật khẩu. Vui lòng thử lại.";
+
+      console.log("Reset password error:", error);
+
+      if (
+        error.response &&
+        error.response.data &&
+        error.response.data.message
+      ) {
+        errorMessage = error.response.data.message;
+      }
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
 
 // initializeAuth thunk của bạn
-export const initializeAuth = createAsyncThunk("auth/initializeAuth", async (_, { dispatch, rejectWithValue }) => {
-  // Added rejectWithValue here
-  try {
-    const accessToken = localStorage.getItem("accessToken");
-    const currentUser = localStorage.getItem("currentUser");
+export const initializeAuth = createAsyncThunk(
+  "auth/initializeAuth",
+  async (_, { dispatch, rejectWithValue }) => {
+    // Added rejectWithValue here
+    try {
+      const accessToken = localStorage.getItem("accessToken");
+      const currentUser = localStorage.getItem("currentUser");
 
-    console.log(currentUser);
+      console.log(currentUser);
 
-    if (accessToken && currentUser) {
-      const user = JSON.parse(currentUser);
-      dispatch(authSlice.actions.setAuth({ user, accessToken }));
+      if (accessToken && currentUser) {
+        const user = JSON.parse(currentUser);
+        dispatch(authSlice.actions.setAuth({ user, accessToken }));
+      }
+      dispatch(authSlice.actions.finishAuthInitialization());
+      return true; // Mark as fulfilled
+    } catch (error) {
+      console.error("Failed to initialize auth from localStorage", error);
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("currentUser");
+      dispatch(authSlice.actions.finishAuthInitialization());
+      return rejectWithValue(
+        "Không thể tải thông tin đăng nhập. Vui lòng đăng nhập lại."
+      );
     }
-    dispatch(authSlice.actions.finishAuthInitialization());
-    return true; // Mark as fulfilled
-  } catch (error) {
-    console.error("Failed to initialize auth from localStorage", error);
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("currentUser");
-    dispatch(authSlice.actions.finishAuthInitialization());
-    return rejectWithValue("Không thể tải thông tin đăng nhập. Vui lòng đăng nhập lại.");
   }
-});
+);
 
 const authSlice = createSlice({
   name: "auth",
@@ -152,7 +245,8 @@ const authSlice = createSlice({
       })
       .addCase(initializeAuth.rejected, (state, action) => {
         state.isAuthInitialized = true; // Mark as initialized even on rejection to prevent hanging UI
-        state.authInitializationError = action.payload || "Lỗi khởi tạo xác thực không xác định.";
+        state.authInitializationError =
+          action.payload || "Lỗi khởi tạo xác thực không xác định.";
       })
 
       .addCase(sendOtp.pending, (state) => {
@@ -167,19 +261,31 @@ const authSlice = createSlice({
       })
       .addCase(sendOtp.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || "Something went wrong";
+        state.error = action.payload || "Không thể gửi email khôi phục";
         state.success = false;
+      })
+
+      // Add cases for resetPassword
+      .addCase(resetPassword.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(resetPassword.fulfilled, (state) => {
+        state.loading = false;
+        state.error = null;
+        state.success = true;
+      })
+      .addCase(resetPassword.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Đặt lại mật khẩu thất bại";
       });
   },
 });
 
 // EXPORT ALL NEW ACTIONS
 export const {
-  setNotification,
-  clearNotification,
   logout,
-  clearAuthError, // This one is used by ForgotPasswordPage
-  setAuth,
+  clearAuthError,
   clearAuthSuccess,
   finishAuthInitialization, // <-- NEWLY EXPORTED
 } = authSlice.actions;

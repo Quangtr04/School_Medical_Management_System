@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Create API instance
 const api = axios.create({
-  baseURL: "http://192.168.111.10:3000/api",
+  baseURL: "http://172.20.10.2:3000/api",
   headers: {
     "Content-Type": "application/json",
   },
@@ -17,6 +17,7 @@ api.interceptors.request.use(
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
+
     return config;
   },
   (error) => Promise.reject(error)

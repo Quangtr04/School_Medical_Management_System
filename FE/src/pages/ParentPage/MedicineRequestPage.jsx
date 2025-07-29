@@ -157,7 +157,7 @@ function MedicineRequestPage() {
 
     // Reset form value cho prescription
     form.setFieldValue("prescription", []);
-    form.setFieldValue("prescription", []);
+    // form.setFieldValue("prescription", []);
 
     if (!children || children.length === 0) {
       toast.warning("Chưa có dữ liệu học sinh để gửi yêu cầu.");

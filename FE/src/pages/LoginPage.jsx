@@ -13,6 +13,7 @@ import { clearAuthError, loginUser } from "../redux/auth/authSlice";
 function LoginForm() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [formError, setFormError] = useState("");
 
   // Khởi tạo dispatch
   const dispatch = useDispatch();
@@ -60,12 +61,14 @@ function LoginForm() {
   useEffect(() => {
     if (error) {
       toast.error(error);
+      setFormError(error); // Lưu lỗi vào state để hiển thị trong form
       dispatch(clearAuthError()); // Thêm dòng này để clear error sau khi toast
     }
   }, [error, dispatch]);
 
   const onFinish = async (values) => {
     console.log("Success:", values);
+    setFormError(""); // Xóa lỗi cũ khi submit form
     dispatch(loginUser(values));
   };
 
@@ -90,6 +93,13 @@ function LoginForm() {
         <p className="text-3xl font-bold text-gray-900 mb-8">
           Đăng nhập hệ thống <br /> Y tế học đường
         </p>
+
+        {/* Hiển thị thông báo lỗi */}
+        {formError && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-600">{formError}</p>
+          </div>
+        )}
 
         <Form
           name="login"
@@ -188,12 +198,14 @@ function LoginForm() {
                 </span>
               </Checkbox>
             </Form.Item>
-            <a
-              href="/forgot-password"
-              className="font-medium text-blue-600 hover:text-blue-500"
-            >
-              Quên mật khẩu?
-            </a>
+            <div className="mt-6">
+              <NavLink
+                to="/forgot-password"
+                className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
+              >
+                Quên mật khẩu?
+              </NavLink>
+            </div>
           </div>
 
           {/* Submit Button (updated to use Redux loading state) */}

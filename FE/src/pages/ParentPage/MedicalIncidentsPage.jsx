@@ -518,7 +518,8 @@ const MedicalIncidentsPage = () => {
       (filters.student === "all" ||
         incident.student_code === filters.student) &&
       (filters.severity === "all" ||
-        incident.severity_level === filters.severity)
+        incident.severity_level?.toLowerCase() ===
+          filters.severity.toLowerCase())
     );
   });
 
@@ -1376,7 +1377,10 @@ const MedicalIncidentsPage = () => {
               <Option value="all">Tất cả học sinh</Option>
               {children?.map((child) => (
                 <Option key={child.student_id} value={child.student_id}>
-                  {child.name}
+                  {child.name ||
+                    child.full_name ||
+                    child.student_name ||
+                    `Học sinh ${child.student_id}`}
                 </Option>
               ))}
               {/* Add options based on the data we have */}
@@ -1392,14 +1396,6 @@ const MedicalIncidentsPage = () => {
                       ?.student_name || `Học sinh ${code}`}
                   </Option>
                 ))}
-              {/* Add hardcoded options for testing if no data */}
-              {dataSource.length === 0 &&
-                (!children || children.length === 0) && (
-                  <>
-                    <Option value="STU001">Nguyen Van D</Option>
-                    <Option value="STU003">Học sinh STU003</Option>
-                  </>
-                )}
             </Select>
             <Select
               placeholder="Mức độ nghiêm trọng"
@@ -1408,9 +1404,9 @@ const MedicalIncidentsPage = () => {
               onChange={(value) => setFilters({ ...filters, severity: value })}
             >
               <Option value="all">Tất cả mức độ</Option>
-              <Option value="Nhẹ">Nhẹ</Option>
-              <Option value="Trung bình">Trung bình</Option>
-              <Option value="Nặng">Nặng</Option>
+              <Option value="nguy kịch">Nguy kịch</Option>
+              <Option value="vừa">Vừa</Option>
+              <Option value="nặng">Nặng</Option>
             </Select>
           </Space>
         </div>
