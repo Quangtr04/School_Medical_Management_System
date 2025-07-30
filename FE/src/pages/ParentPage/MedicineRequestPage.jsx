@@ -953,7 +953,7 @@ function MedicineRequestPage() {
             </p>
             <p>
               <Text strong>ID Y tá:</Text>{" "}
-              {selectedMedicationRequest.nurse_id || "Chưa gán"}
+              {selectedMedicationRequest.nurse_id || "Chưa có y tá tiếp nhận"}
             </p>
             <p>
               <Text strong>Ngày tạo:</Text>{" "}
@@ -967,11 +967,7 @@ function MedicineRequestPage() {
               <div>
                 <Text strong>Hình ảnh đơn thuốc:</Text>
                 <br />
-                <div style={{ marginBottom: 10 }}>
-                  <Text type="secondary" style={{ fontSize: "12px" }}>
-                    URL gốc: {selectedMedicationRequest.image_url}
-                  </Text>
-                </div>
+
                 {/* Hiển thị nhiều hình ảnh nếu có */}
                 {(() => {
                   const imageUrls = extractAllImageUrls(
