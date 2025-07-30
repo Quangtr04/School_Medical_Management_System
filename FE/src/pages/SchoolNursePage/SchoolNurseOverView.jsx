@@ -138,7 +138,8 @@ function getLowOrExpiredSupplies(medicalSupplies) {
   const today = new Date();
   return medicalSupplies.filter((item) => {
     const expiredDate = new Date(item.expired_date);
-    const daysRemaining = (expiredDate - today) / (1000 * 60 * 60 * 24);
+    const daysRemaining = (expiredDate - today) / (1000 * 60 * 60 * 24); //milliseconds sang ngày.
+
     return (
       item.quantity <= 50 || daysRemaining <= 30 || item.is_active === false
     );
@@ -259,7 +260,6 @@ export default function NurseDashboardEnhanced() {
   const medicalSupplies = useSelector(
     (state) => state.medicalSupplies.supplies
   );
-
   const campaigns = useSelector((state) => state.vaccination.campaigns);
   const examinations = useSelector((state) => state.examination.records);
 

@@ -3,8 +3,8 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../../configs/config-axios"; // Điều chỉnh đường dẫn đến instance axios của bạn
 
 const initialState = {
-  loading: false,
   logs: [],
+  loading: false,
   logNote: null,
   logsByDate: [],
   error: null,

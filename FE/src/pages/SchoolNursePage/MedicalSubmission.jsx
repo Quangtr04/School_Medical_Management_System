@@ -56,6 +56,7 @@ import {
   updateLogByLogId,
 } from "../../redux/nurse/dailylogs/dailyLogSlice";
 import dayjs from "dayjs";
+import { fetchUsers } from "../../redux/admin/adminSlice";
 
 const { Text, Title } = Typography;
 
@@ -76,7 +77,7 @@ const statusConfig = {
     text: "Đã duyệt",
   },
 
-  cancelled: {
+  declined: {
     icon: <CloseOutlined />,
     color: "#ff4d4f", // chữ màu đỏ (Ant Design danger)
     bgColor: "#fff1f0", // nền đỏ nhạt
@@ -160,7 +161,10 @@ export default function MedicalSubmission() {
   const { logs, loadingLog, errorLog } = useSelector((state) => state.logs);
 
   const students = useSelector((state) => state.studentRecord.healthRecords);
+  const nurses = useSelector((state) => state.admin.users);
+  console.log(nurses);
 
+  const user = JSON.parse(localStorage.getItem("currentUser"));
   const token = localStorage.getItem("accessToken");
 
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -256,10 +260,11 @@ export default function MedicalSubmission() {
   useEffect(() => {
     dispatch(fetchAllMedicationSubmissions());
     dispatch(fetchAllStudentHealthRecords());
+    dispatch(fetchUsers({ endpointPath: "/admin/nurses" }));
   }, [dispatch]);
 
   useEffect(() => {
-    const id = selectedRequest?.id;
+    const id = selectedRequest?.id_req;
     if (id) dispatch(getDailyLogByReqId(id));
   }, [dispatch, selectedRequest]);
 
@@ -272,24 +277,37 @@ export default function MedicalSubmission() {
       const today = dayjs().startOf("day");
       // const today = dayjs("2025-07-28");
       const logToday = logs.find((log) => dayjs(log.date).isSame(today, "day"));
+      if (logToday.nurse_id === user.user_id) {
+        const validateValue = {
+          selectedDate: today,
+          full_name: logToday?.full_name || null,
+          parent_name: logToday?.parent_name || null,
+          note: logToday?.note || null,
+          image_url: "",
+          status: logToday?.status || "pending",
+          log_id: logToday?.log_id || null,
+        };
 
-      const validateValue = {
-        selectedDate: today,
-        full_name: logToday?.full_name || null,
-        parent_name: logToday?.parent_name || null,
-        note: logToday?.note || null,
-        image_url: "",
-        status: logToday?.status || "pending",
-        log_id: logToday?.log_id || null,
-      };
+        console.log("validateValue", validateValue);
 
-      console.log("validateValue", validateValue);
-
-      giveMedicineForm.setFieldsValue(validateValue);
+        giveMedicineForm.setFieldsValue(validateValue);
+      } else {
+        toast.warning("Bạn không phải người phụ trách đơn uống thuốc này");
+      }
     }
-  }, [dispatch, logs, giveMedicinceModal, selectedRequest, giveMedicineForm]);
+  }, [
+    dispatch,
+    logs,
+    giveMedicinceModal,
+    selectedRequest,
+    giveMedicineForm,
+    user.user_id,
+  ]);
+  console.log("logs", logs);
 
   const handleViewDetailRequest = useCallback((record) => {
+    console.log(record);
+
     setSelectedRequest(record);
     setRequestDetailModalVisible(true);
   }, []);
@@ -323,8 +341,13 @@ export default function MedicalSubmission() {
   );
 
   const handleDeclineSubmission = (values) => {
-    const reqId = selectedRequest.id_req || selectedRequest._id;
-    const payload = { reqId, status: "DECLINED", note: values.note, token };
+    const reqId = selectedRequest.id_req;
+    const payload = {
+      reqId,
+      status: "DECLINED",
+      reasons: values.reasons,
+      token,
+    };
     dispatch(updateMedicationSubmissionReq(payload))
       .unwrap()
       .then(() => {
@@ -340,12 +363,17 @@ export default function MedicalSubmission() {
   const handleGiveMedicine = useCallback(
     async (record) => {
       console.log("record", record);
+      setSelectedRequest(record);
       const today = dayjs().startOf("day");
       // const today = dayjs("2025-07-28");
+      console.log(selectedRequest);
 
       // Chuyển start_date và end_date sang dayjs
       const startDate = dayjs(record?.start_date).startOf("day");
       const endDate = dayjs(record?.end_date).startOf("day");
+
+      const logToday = logs.find((log) => dayjs(log.date).isSame(today, "day"));
+      console.log("logToday", logToday);
 
       // Kiểm tra today có nằm trong khoảng không
       const isTodayInRange =
@@ -359,12 +387,16 @@ isSame(endDate) → true nếu hôm nay đúng ngày kết thúc.
 
 (isAfter(startDate) && isBefore(endDate)) → true nếu hôm nay nằm giữa khoảng.
  */
+      const isNurseIdTheSame = logToday?.nurse_id === user?.user_id;
 
       if (!isTodayInRange) {
         toast.warning(
           "Hôm nay không nằm trong khoảng ngày bắt đầu và kết thúc uống thuốc!"
         );
         return; // Dừng hàm nếu không hợp lệ
+      } else if (!isNurseIdTheSame) {
+        toast.warning("Bạn ko phải người phụ trách đơn thuốc này!");
+        return;
       }
 
       if (isTodayInRange) {
@@ -377,7 +409,7 @@ isSame(endDate) → true nếu hôm nay đúng ngày kết thúc.
         }
       }
     },
-    [dispatch]
+    [dispatch, logs, user, selectedRequest]
   );
 
   const handleSubmitGiveMedicineForm = useCallback(
@@ -433,6 +465,43 @@ isSame(endDate) → true nếu hôm nay đúng ngày kết thúc.
             </Badge>
           </div>
         ),
+      },
+
+      {
+        title: (
+          <div className="flex items-center justify-center gap-2">
+            <MedicineBoxOutlined className="text-purple-500" />
+            <span>Được xét duyệt bởi</span>
+          </div>
+        ),
+        dataIndex: "nurse_id",
+        key: "nurse_id",
+        width: 140,
+        align: "center",
+        render: (id, record) => {
+          const nurse = nurses.find((n) => n.user_id === id);
+
+          // Map trạng thái sang nội dung hiển thị
+          const statusMap = {
+            CANCELLED: "Đã huỷ",
+            ACCEPTED: "Đã chấp thuận",
+            PENDING: "Chờ duyệt",
+          };
+
+          return (
+            <div className="flex justify-center">
+              {nurse ? (
+                nurse.fullname
+              ) : statusMap[record.status] ? (
+                <span className="text-gray-400 italic">
+                  {statusMap[record.status]}
+                </span>
+              ) : (
+                <span className="text-gray-400 italic">Không xác định</span>
+              )}
+            </div>
+          );
+        },
       },
       {
         title: (
@@ -661,6 +730,7 @@ isSame(endDate) → true nếu hôm nay đúng ngày kết thúc.
       handleRespondRequest,
       handleOpenDeclinedModal,
       handleGiveMedicine,
+      nurses,
     ]
   );
 
@@ -1357,7 +1427,7 @@ isSame(endDate) → true nếu hôm nay đúng ngày kết thúc.
                   onFinish={handleDeclineSubmission}
                 >
                   <Form.Item
-                    name="note"
+                    name="reasons"
                     label={
                       <div style={{ display: "flex", alignItems: "center" }}>
                         <EditOutlined
@@ -1445,6 +1515,7 @@ isSame(endDate) → true nếu hôm nay đúng ngày kết thúc.
                       loading={loading}
                       danger
                       htmlType="submit"
+                      onClick={() => declinedForm.submit()}
                       style={{
                         borderRadius: "8px",
                         height: "44px",
@@ -1484,7 +1555,7 @@ isSame(endDate) → true nếu hôm nay đúng ngày kết thúc.
                 onFinish={handleSubmitGiveMedicineForm}
                 form={giveMedicineForm}
                 initialValues={{
-                  status: "PENDING", // giá trị mặc định cho Select
+                  status: "Chưa cho uống", // giá trị mặc định cho Select
                 }}
               >
                 <Form.Item name="selectedDate" label="Ngày uống thuốc">

@@ -75,7 +75,7 @@ export default function ManagerOverViewPage() {
         <Col xs={24} sm={8}>
           <Card>
             <Statistic
-              title="Đơn đã duyệt trong tháng"
+              title="Tổng đơn đã duyệt"
               value={approved}
               valueStyle={{ color: COLORS[1] }}
             />
@@ -84,7 +84,7 @@ export default function ManagerOverViewPage() {
         <Col xs={24} sm={8}>
           <Card>
             <Statistic
-              title="Đơn đã từ chối trong tháng"
+              title="Tổng đon từ chối"
               value={declined}
               valueStyle={{ color: COLORS[2] }}
             />
@@ -118,5 +118,3 @@ export default function ManagerOverViewPage() {
     </div>
   );
 }
-
-

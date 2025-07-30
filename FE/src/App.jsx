@@ -65,8 +65,7 @@ import { fetchAllMedicalIncidents } from "./redux/nurse/medicalIncidents/medical
 import { fetchAllHealthExaminations } from "./redux/nurse/heathExaminations/heathExamination";
 import { fetchManagerNotifications } from "./redux/manager/managerNotificationSlice";
 import { fetchNurseNotifications } from "./redux/nurse/nurseNotificationSlice";
-import ClassMangerPage from "./pages/AdminPage/ClassMangerPage";
-import ClassMangerPageDetail from "./pages/AdminPage/ClassMangerPageDetail";
+
 import VaccinationStudentList from "./pages/SchoolNursePage/VaccinationStudentList";
 import ExaminationStudentList from "./pages/SchoolNursePage/ExaminationStudentList";
 
@@ -119,8 +118,6 @@ function App() {
         <Route path="nurses" element={<NurseManagementPage />} />
         <Route path="parents" element={<ParentManagementPage />} />
         <Route path="managers" element={<ManagerManagementPage />} />
-        <Route path="class-manager" element={<ClassMangerPage />} />
-        <Route path="class-manager/:id" element={<ClassMangerPageDetail />} />
       </Route>
 
       {/* Nurse Routes */}

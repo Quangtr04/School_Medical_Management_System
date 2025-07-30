@@ -53,12 +53,6 @@ export default function AdminSideBar() {
     },
 
     {
-      key:"class-manager",
-      icon: <Class></Class>,
-      label: <Link to="/admin/class-manager" >Quản lý lớp học</Link>
-    },
-
-    {
       key: "/",
       icon: <ArrowLeftOutlined />,
       label: <Link to="/">Quay về trang chủ</Link>,

@@ -3,7 +3,7 @@ const sql = require("mssql");
 
 const config = {
   user: "sa", // Your SQL Server username
-  password: "quangtr28092004", // Your SQL Server password
+  password: "123456", // Your SQL Server password
   server: "localhost", // You might need to change this if your SQL Server is on a different machine
   // or if it's a named instance (e.g., 'localhost\\SQLEXPRESS')
   database: "SWP391", // Your SQL Server database name

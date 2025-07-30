@@ -348,7 +348,7 @@ export default function ModernMedicalSuppliesPage() {
     if (quantity !== null) {
       if (quantity === 0 || !isActive) {
         config = statusConfig.inactive;
-      } else if (quantity < 50) {
+      } else if (quantity < 100) {
         config = statusConfig.low_stock;
       }
     } else if (!isActive) {
@@ -1476,11 +1476,29 @@ export default function ModernMedicalSuppliesPage() {
                     </span>
                   }
                   rules={[
-                    { required: true, message: "Vui lòng nhập số lượng" },
+                    { required: true, message: "Vui lòng nhập số lượng!" },
+                    {
+                      validator: (_, value) => {
+                        if (
+                          value === undefined ||
+                          value === null ||
+                          value === ""
+                        ) {
+                          return Promise.reject("Vui lòng nhập số lượng!");
+                        }
+                        if (isNaN(value) || typeof value !== "number") {
+                          return Promise.reject("Chỉ được nhập số hợp lệ!");
+                        }
+                        if (value < 1) {
+                          return Promise.reject("Số lượng phải lớn hơn 0!");
+                        }
+                        return Promise.resolve();
+                      },
+                    },
                   ]}
                 >
                   <InputNumber
-                    min={0}
+                    min={1}
                     style={{
                       width: "100%",
                       borderRadius: modernTheme.borderRadius.md,

@@ -33,18 +33,9 @@ export const fetchMedicationSubmissionById = createAsyncThunk(
 // Hàm thunk mới: Cập nhật trạng thái đơn thuốc
 export const updateMedicationSubmissionReq = createAsyncThunk(
   "medicationSubmissions/updateStatus",
-  async ({ reqId, status, token }, { rejectWithValue }) => {
+  async ({ reqId, status, reasons }, { rejectWithValue }) => {
     try {
-      // Sử dụng `api.patch` trực tiếp và truyền token vào headers
-      const config = token
-        ? {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        : {}; // Nếu không có token, gửi rỗng hoặc không truyền config
-
-      const response = await api.patch(`/nurse/medication-submissions/${reqId}/update`, { status }, config);
+      const response = await api.patch(`/nurse/medication-submissions/${reqId}/update`, { status, reasons });
       console.log(response);
 
       return response.data;

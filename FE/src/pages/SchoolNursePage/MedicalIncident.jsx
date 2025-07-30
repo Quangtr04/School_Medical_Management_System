@@ -245,12 +245,16 @@ export default function MedicalIncident() {
   const [statusFilter, setStatusFilter] = useState(null);
   const [typeFilter, setTypeFilter] = useState(null);
   const [dateFilter, setDateFilter] = useState(null);
+
   const [addMedicalIncidentModal, setIsModalVisible] = useState(false);
   const [currentIncident, setCurrentIncident] = useState(null);
   const [form] = Form.useForm();
+
   const [selectedParentName, setSelectedParentName] = useState("");
+
   const [medicalIncidentsDetailModal, setMedicalIncidentsDetailModal] =
     useState(false);
+
   const [selectedIncident, setSelectedIncident] = useState(null);
   const medicationUsed = Form.useWatch("medication_used", form) || [];
   const [selectedStatus, setSelectedStatus] = useState();
@@ -382,10 +386,10 @@ export default function MedicalIncident() {
         form.setFieldsValue({
           ...incident,
           occurred_at: incident.occurred_at
-            ? moment(incident.occurred_at)
+            ? dayjs(incident.occurred_at)
             : null,
           resolved_at: incident.resolved_at
-            ? moment(incident.resolved_at)
+            ? dayjs(incident.resolved_at)
             : null,
           medication_used: incident.medication_used?.map((item) => ({
             supply_name: item.supply_name,
@@ -458,7 +462,7 @@ export default function MedicalIncident() {
           });
       }
     } catch (info) {
-      message.error("Vui lòng điền đầy đủ và chính xác thông tin!");
+      toast.error("Vui lòng điền đầy đủ và chính xác thông tin!");
     }
   }, [form, currentIncident, dispatch]);
 
@@ -486,12 +490,7 @@ export default function MedicalIncident() {
         setMedicalIncidentsDetailModal(false);
         setSelectedIncident(null);
         setSelectedStatus(undefined);
-        dispatch(
-          fetchAllMedicalIncidents({
-            page: pagination.current,
-            pageSize: pagination.pageSize,
-          })
-        );
+        dispatch(fetchAllMedicalIncidents({}));
       })
       .catch(() => {
         toast.error("Cập nhật trạng thái thất bại!");
@@ -1961,6 +1960,7 @@ export default function MedicalIncident() {
                     : null,
                   medication_used: selectedIncident.medication_used,
                   parent_name: selectedIncident.parent_name,
+                  event_id: selectedIncident.event_id,
                 }}
               >
                 <Row gutter={[24, 24]}>

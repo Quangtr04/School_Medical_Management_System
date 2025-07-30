@@ -201,13 +201,10 @@ export default function ExaminationStudentList() {
     }
   }, [selectedStudent, updateStudentRecModal, updateExaminationForm]);
 
-  const handleEditRecord = useCallback(
-    (record) => {
-      setSelectedStudent(record);
-      setUpdateStudentRecModal(true);
-    },
-    [updateExaminationForm]
-  );
+  const handleEditRecord = useCallback((record) => {
+    setSelectedStudent(record);
+    setUpdateStudentRecModal(true);
+  }, []);
 
   const handleUpdateRecord = useCallback(
     async (values) => {
@@ -1327,11 +1324,14 @@ export default function ExaminationStudentList() {
                   >
                     <DatePicker
                       showTime={{
-                        defaultValue: dayjs(),
+                        defaultValue: dayjs().hour(6).minute(0), // Giờ mặc định khi mở TimePicker
                         disabledHours: () =>
                           Array.from({ length: 24 }, (_, i) => i).filter(
                             (hour) => hour < 6 || hour > 17
                           ),
+                      }}
+                      disabledDate={(current) => {
+                        return current && current < dayjs().startOf("day"); // Ngăn chọn ngày trước hôm nay
                       }}
                       placeholder="Chọn ngày và giờ khám"
                       style={{
