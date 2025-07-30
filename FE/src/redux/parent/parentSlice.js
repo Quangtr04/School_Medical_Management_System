@@ -33,135 +33,191 @@ const initialState = {
 
 // Async Thunks for API calls
 // Student Information
-export const getParentChildren = createAsyncThunk("parent/getChildren", async (_, { rejectWithValue }) => {
-  try {
-    const response = await api.get("/parent/students");
-    console.log("Parent children API response:", response.data);
+export const getParentChildren = createAsyncThunk(
+  "parent/getChildren",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get("/parent/students");
+      console.log("Parent children API response:", response.data);
 
-    // Return list of children from response data or direct response
-    if (response.data && response.data.data && Array.isArray(response.data.data)) {
-      // Make sure each child has an id property and process health data
-      return response.data.data.map((child) => {
-        // Ensure health object exists
-        const health = child.health || {};
+      // Return list of children from response data or direct response
+      if (
+        response.data &&
+        response.data.data &&
+        Array.isArray(response.data.data)
+      ) {
+        // Make sure each child has an id property and process health data
+        return response.data.data.map((child) => {
+          // Ensure health object exists
+          const health = child.health || {};
 
-        // Translate gender for display
-        const displayGender = child.gender === "Male" ? "Nam" : child.gender === "Female" ? "Nữ" : child.gender || "";
+          // Translate gender for display
+          const displayGender =
+            child.gender === "Male"
+              ? "Nam"
+              : child.gender === "Female"
+              ? "Nữ"
+              : child.gender || "";
 
-        return {
-          ...child,
-          id: child.student_id || child.id, // Ensure id exists for compatibility
-          gender: displayGender, // Use translated gender
-          health: {
-            ...health,
-            height_cm:
-              health.height_cm !== undefined && health.height_cm !== null ? parseFloat(health.height_cm) : null,
-            weight_kg:
-              health.weight_kg !== undefined && health.weight_kg !== null ? parseFloat(health.weight_kg) : null,
-            blood_type: health.blood_type || null,
-            allergy: health.allergy || "",
-          },
-        };
-      });
+          return {
+            ...child,
+            id: child.student_id || child.id, // Ensure id exists for compatibility
+            gender: displayGender, // Use translated gender
+            health: {
+              ...health,
+              height_cm:
+                health.height_cm !== undefined && health.height_cm !== null
+                  ? parseFloat(health.height_cm)
+                  : null,
+              weight_kg:
+                health.weight_kg !== undefined && health.weight_kg !== null
+                  ? parseFloat(health.weight_kg)
+                  : null,
+              blood_type: health.blood_type || null,
+              allergy: health.allergy || "",
+            },
+          };
+        });
+      }
+      if (Array.isArray(response.data)) {
+        // Make sure each child has an id property and process health data
+        return response.data.map((child) => {
+          // Ensure health object exists
+          const health = child.health || {};
+
+          // Translate gender for display
+          const displayGender =
+            child.gender === "Male"
+              ? "Nam"
+              : child.gender === "Female"
+              ? "Nữ"
+              : child.gender || "";
+
+          return {
+            ...child,
+            id: child.student_id || child.id, // Ensure id exists for compatibility
+            gender: displayGender, // Use translated gender
+            health: {
+              ...health,
+              height_cm:
+                health.height_cm !== undefined && health.height_cm !== null
+                  ? parseFloat(health.height_cm)
+                  : null,
+              weight_kg:
+                health.weight_kg !== undefined && health.weight_kg !== null
+                  ? parseFloat(health.weight_kg)
+                  : null,
+              blood_type: health.blood_type || null,
+              allergy: health.allergy || "",
+            },
+          };
+        });
+      }
+      return [];
+    } catch (error) {
+      console.error("Error fetching children:", error);
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch children information"
+      );
     }
-    if (Array.isArray(response.data)) {
-      // Make sure each child has an id property and process health data
-      return response.data.map((child) => {
-        // Ensure health object exists
-        const health = child.health || {};
-
-        // Translate gender for display
-        const displayGender = child.gender === "Male" ? "Nam" : child.gender === "Female" ? "Nữ" : child.gender || "";
-
-        return {
-          ...child,
-          id: child.student_id || child.id, // Ensure id exists for compatibility
-          gender: displayGender, // Use translated gender
-          health: {
-            ...health,
-            height_cm:
-              health.height_cm !== undefined && health.height_cm !== null ? parseFloat(health.height_cm) : null,
-            weight_kg:
-              health.weight_kg !== undefined && health.weight_kg !== null ? parseFloat(health.weight_kg) : null,
-            blood_type: health.blood_type || null,
-            allergy: health.allergy || "",
-          },
-        };
-      });
-    }
-    return [];
-  } catch (error) {
-    console.error("Error fetching children:", error);
-    return rejectWithValue(error.response?.data?.message || "Failed to fetch children information");
   }
-});
+);
 
-export const getChildDetails = createAsyncThunk("parent/getChildDetails", async (student_id, { rejectWithValue }) => {
-  try {
-    // Check if student_id is valid before making the API call
-    if (!student_id) {
-      console.warn("Attempted to fetch child details with undefined student_id");
-      return null;
-    }
+export const getChildDetails = createAsyncThunk(
+  "parent/getChildDetails",
+  async (student_id, { rejectWithValue }) => {
+    try {
+      // Check if student_id is valid before making the API call
+      if (!student_id) {
+        console.warn(
+          "Attempted to fetch child details with undefined student_id"
+        );
+        return null;
+      }
 
-    const response = await api.get(`/parent/students/${student_id}`);
-    // Extract payload where student details reside
-    const payload = response.data.data ?? response.data;
+      const response = await api.get(`/parent/students/${student_id}`);
+      // Extract payload where student details reside
+      const payload = response.data.data ?? response.data;
 
-    // Process the child data
-    const processChildData = (child) => {
-      // Ensure health object exists
-      const health = child.health || {};
+      // Process the child data
+      const processChildData = (child) => {
+        // Ensure health object exists
+        const health = child.health || {};
 
-      // Translate gender for display
-      const displayGender = child.gender === "Male" ? "Nam" : child.gender === "Female" ? "Nữ" : child.gender || "";
+        // Translate gender for display
+        const displayGender =
+          child.gender === "Male"
+            ? "Nam"
+            : child.gender === "Female"
+            ? "Nữ"
+            : child.gender || "";
 
-      return {
-        ...child,
-        id: child.student_id || child.id, // Ensure id exists for compatibility
-        gender: displayGender, // Use translated gender
-        health: {
-          ...health,
-          height_cm: health.height_cm !== undefined && health.height_cm !== null ? parseFloat(health.height_cm) : null,
-          weight_kg: health.weight_kg !== undefined && health.weight_kg !== null ? parseFloat(health.weight_kg) : null,
-          blood_type: health.blood_type || null,
-          allergy: health.allergy || "",
-        },
+        return {
+          ...child,
+          id: child.student_id || child.id, // Ensure id exists for compatibility
+          gender: displayGender, // Use translated gender
+          health: {
+            ...health,
+            height_cm:
+              health.height_cm !== undefined && health.height_cm !== null
+                ? parseFloat(health.height_cm)
+                : null,
+            weight_kg:
+              health.weight_kg !== undefined && health.weight_kg !== null
+                ? parseFloat(health.weight_kg)
+                : null,
+            blood_type: health.blood_type || null,
+            allergy: health.allergy || "",
+          },
+        };
       };
-    };
 
-    // If payload is array, find matching student_id
-    if (Array.isArray(payload)) {
-      const childData = payload.find((item) => item.student_id === student_id) || null;
-      return childData ? processChildData(childData) : null;
+      // If payload is array, find matching student_id
+      if (Array.isArray(payload)) {
+        const childData =
+          payload.find((item) => item.student_id === student_id) || null;
+        return childData ? processChildData(childData) : null;
+      }
+
+      // Otherwise payload is object
+      return payload ? processChildData(payload) : null;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch child details"
+      );
     }
-
-    // Otherwise payload is object
-    return payload ? processChildData(payload) : null;
-  } catch (error) {
-    return rejectWithValue(error.response?.data?.message || "Failed to fetch child details");
   }
-});
+);
 
-export const getParentProfile = createAsyncThunk("parent/getProfile", async (_, { rejectWithValue }) => {
-  try {
-    console.log("Fetching profile using token");
-    // Thêm timestamp để tránh cache
-    const timestamp = new Date().getTime();
-    const response = await api.get(`/parent/profile?_t=${timestamp}`);
-    console.log("Profile data received:", response.data);
+export const getParentProfile = createAsyncThunk(
+  "parent/getProfile",
+  async (_, { rejectWithValue }) => {
+    try {
+      console.log("Fetching profile using token");
+      // Thêm timestamp để tránh cache
+      const timestamp = new Date().getTime();
+      const response = await api.get(`/parent/profile?_t=${timestamp}`);
+      console.log("Profile data received:", response.data);
 
-    // Trả về dữ liệu người dùng từ mảng data
-    if (response.data && response.data.data && Array.isArray(response.data.data) && response.data.data.length > 0) {
-      return response.data.data[0]; // Lấy phần tử đầu tiên từ mảng data
+      // Trả về dữ liệu người dùng từ mảng data
+      if (
+        response.data &&
+        response.data.data &&
+        Array.isArray(response.data.data) &&
+        response.data.data.length > 0
+      ) {
+        return response.data.data[0]; // Lấy phần tử đầu tiên từ mảng data
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error("Get profile error:", error.response || error);
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch profile"
+      );
     }
-
-    return response.data;
-  } catch (error) {
-    console.error("Get profile error:", error.response || error);
-    return rejectWithValue(error.response?.data?.message || "Failed to fetch profile");
   }
-});
+);
 
 export const updateParentProfile = createAsyncThunk(
   "parent/updateProfile",
@@ -182,7 +238,10 @@ export const updateParentProfile = createAsyncThunk(
         // Lỗi từ server (status code không phải 2xx)
         console.error("Server error status:", error.response.status);
         console.error("Server error data:", error.response.data);
-        return rejectWithValue(error.response.data?.message || `Server error: ${error.response.status}`);
+        return rejectWithValue(
+          error.response.data?.message ||
+            `Server error: ${error.response.status}`
+        );
       } else if (error.request) {
         // Không nhận được response từ server
         console.error("No response received:", error.request);
@@ -208,7 +267,9 @@ export const getApprovedConsents = createAsyncThunk(
       const response = await api.get("/parent/consents-checkups-agree", config);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to fetch approved consents");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch approved consents"
+      );
     }
   }
 );
@@ -222,22 +283,32 @@ export const getDeclinedConsents = createAsyncThunk(
           Authorization: `Bearer ${accessToken}`,
         },
       };
-      const response = await api.get("/parent/consents-checkups-declined", config);
+      const response = await api.get(
+        "/parent/consents-checkups-declined",
+        config
+      );
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to fetch approved consents");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch approved consents"
+      );
     }
   }
 );
 
-export const getCheckupDetails = createAsyncThunk("parent/getCheckupDetails", async (id, { rejectWithValue }) => {
-  try {
-    const response = await api.get(`/parent/consents-checkups/${id}`);
-    return response.data;
-  } catch (error) {
-    return rejectWithValue(error.response?.data?.message || "Failed to fetch checkup details");
+export const getCheckupDetails = createAsyncThunk(
+  "parent/getCheckupDetails",
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`/parent/consents-checkups/${id}`);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch checkup details"
+      );
+    }
   }
-});
+);
 
 export const getAllCheckupDetails = createAsyncThunk(
   "parent/getAllCheckupDetails",
@@ -251,7 +322,9 @@ export const getAllCheckupDetails = createAsyncThunk(
       const response = await api.get(`/parent/consents-checkups`, config);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to fetch checkup details");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch checkup details"
+      );
     }
   }
 );
@@ -265,10 +338,15 @@ export const getStudentCheckups = createAsyncThunk(
           Authorization: `Bearer ${accessToken}`,
         },
       };
-      const response = await api.get(`/parent/consents-checkup/${studentId}/students`, config);
+      const response = await api.get(
+        `/parent/consents-checkup/${studentId}/students`,
+        config
+      );
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to fetch checkup details");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch checkup details"
+      );
     }
   }
 );
@@ -282,10 +360,15 @@ export const getStudentCheckupsResult = createAsyncThunk(
           Authorization: `Bearer ${accessToken}`,
         },
       };
-      const response = await api.get(`/parent/consents-checkup/${checkupId}/students/${studentId}`, config);
+      const response = await api.get(
+        `/parent/consents-checkup/${checkupId}/students/${studentId}`,
+        config
+      );
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to fetch checkup details");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch checkup details"
+      );
     }
   }
 );
@@ -299,10 +382,15 @@ export const getPendingConsents = createAsyncThunk(
           Authorization: `Bearer ${accessToken}`,
         },
       };
-      const response = await api.get("/parent/consents-checkups-pending", config);
+      const response = await api.get(
+        "/parent/consents-checkups-pending",
+        config
+      );
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to fetch pending consents");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch pending consents"
+      );
     }
   }
 );
@@ -311,7 +399,10 @@ export const respondToConsentForm = createAsyncThunk(
   "parent/respondToConsentForm",
   async ({ form_id, response, notes }, { rejectWithValue, dispatch }) => {
     try {
-      const apiResponse = await api.post(`/parent/consents-checkups/${form_id}/respond`, { response, notes });
+      const apiResponse = await api.post(
+        `/parent/consents-checkups/${form_id}/respond`,
+        { response, notes }
+      );
 
       // Sau khi phản hồi thành công, cập nhật danh sách
       dispatch(getApprovedConsents());
@@ -319,7 +410,9 @@ export const respondToConsentForm = createAsyncThunk(
 
       return apiResponse.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to respond to consent form");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to respond to consent form"
+      );
     }
   }
 );
@@ -328,7 +421,10 @@ export const updateConsentStatus = createAsyncThunk(
   "parent/updateConsentStatus",
   async ({ checkup_id, status, notes }, { rejectWithValue, dispatch }) => {
     try {
-      const response = await api.patch(`/parent/checkups/${checkup_id}/consent`, { status, notes });
+      const response = await api.patch(
+        `/parent/checkups/${checkup_id}/consent`,
+        { status, notes }
+      );
 
       // Sau khi cập nhật thành công, cập nhật danh sách
       dispatch(getApprovedConsents());
@@ -336,7 +432,9 @@ export const updateConsentStatus = createAsyncThunk(
 
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to update consent status");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to update consent status"
+      );
     }
   }
 );
@@ -351,10 +449,14 @@ export const getHealthDeclaration = createAsyncThunk(
         return rejectWithValue("Student ID is required");
       }
 
-      const response = await api.get(`/parent/students/${student_id}/health-declaration`);
+      const response = await api.get(
+        `/parent/students/${student_id}/health-declaration`
+      );
       return { student_id, data: response.data };
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to fetch health declaration");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch health declaration"
+      );
     }
   }
 );
@@ -366,14 +468,22 @@ export const updateHealthDeclaration = createAsyncThunk(
       // Format current date as a proper string in local time
       const now = new Date();
       const formattedDate =
-        now.toISOString().split("T")[0] + "T" + now.toTimeString().split(" ")[0] + "." + now.getMilliseconds() + "Z";
+        now.toISOString().split("T")[0] +
+        "T" +
+        now.toTimeString().split(" ")[0] +
+        "." +
+        now.getMilliseconds() +
+        "Z";
 
       const dataWithTimestamp = {
         ...declarationData,
         updated_at: formattedDate,
       };
 
-      const response = await api.patch(`/parent/students/${studentId}/health-declaration`, dataWithTimestamp);
+      const response = await api.patch(
+        `/parent/students/${studentId}/health-declaration`,
+        dataWithTimestamp
+      );
 
       // Also update the child health data in the Redux store
       dispatch(
@@ -390,24 +500,31 @@ export const updateHealthDeclaration = createAsyncThunk(
 
       return { studentId, data: response.data };
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to update health declaration");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to update health declaration"
+      );
     }
   }
 );
 
 // Medical Incidents
-export const getParentIncidents = createAsyncThunk("parent/getIncidents", async (_, { rejectWithValue }) => {
-  try {
-    console.log("Fetching parent incidents with token");
-    // The token is automatically added by the axios interceptor
-    const response = await api.get("/parent/incidents");
-    console.log("Incidents data received:", response.data);
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching incidents:", error);
-    return rejectWithValue(error.response?.data?.message || "Failed to fetch medical incidents");
+export const getParentIncidents = createAsyncThunk(
+  "parent/getIncidents",
+  async (_, { rejectWithValue }) => {
+    try {
+      console.log("Fetching parent incidents with token");
+      // The token is automatically added by the axios interceptor
+      const response = await api.get("/parent/incidents");
+      console.log("Incidents data received:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching incidents:", error);
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch medical incidents"
+      );
+    }
   }
-});
+);
 
 export const getIncidentDetails = createAsyncThunk(
   "parent/getIncidentDetails",
@@ -445,7 +562,8 @@ export const getIncidentDetails = createAsyncThunk(
 
       // Return a more detailed error message
       return rejectWithValue({
-        message: error.response?.data?.message || "Failed to fetch incident details",
+        message:
+          error.response?.data?.message || "Failed to fetch incident details",
         status: error.response?.status,
         statusText: error.response?.statusText,
         url: error.config?.url,
@@ -479,7 +597,9 @@ export const submitMedicationRequest = createAsyncThunk(
     } catch (error) {
       console.error("Error submitting medication request:", error);
 
-      return rejectWithValue(error.response?.data?.message || "Failed to submit medication request");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to submit medication request"
+      );
     }
   }
 );
@@ -495,7 +615,10 @@ export const getMedicationRequestDetail = createAsyncThunk(
         },
       };
 
-      const response = await api.get(`/parent/medical-submissions/${id_req}`, config);
+      const response = await api.get(
+        `/parent/medical-submissions/${id_req}`,
+        config
+      );
       console.log("Medication requests response:", response.data.data);
 
       // Trả về đối tượng chi tiết, giả sử nó nằm trong response.data
@@ -519,7 +642,10 @@ export const getMedicationDailyLog = createAsyncThunk(
         },
       };
 
-      const response = await api.get(`/parent/medical-daily-log/${id_req}/students/${student_id}`, config);
+      const response = await api.get(
+        `/parent/medical-daily-log/${id_req}/students/${student_id}`,
+        config
+      );
       console.log("Medication daily log response:", response);
 
       // Trả về đối tượng chi tiết, giả sử nó nằm trong response.data
@@ -551,7 +677,9 @@ export const getAllMedicationRequest = createAsyncThunk(
       // Điều chỉnh endpoint và truyền config
       return response.data.data;
     } catch (error) {
-      return rejectWithValue(error.message || "Failed to fetch medication requests");
+      return rejectWithValue(
+        error.message || "Failed to fetch medication requests"
+      );
     }
   }
 );
@@ -568,24 +696,33 @@ export const cancelMedicationRequest = createAsyncThunk(
       // Gửi PATCH không có body, nên truyền null ở vị trí data
       await api.patch(`/parent/medical-submissions/${id_req}/cancel`, config);
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || error.message || "Failed to cancel medication request");
+      return rejectWithValue(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to cancel medication request"
+      );
     }
   }
 );
 
 // Vaccinations
-export const getVaccineCampaigns = createAsyncThunk("parent/getVaccineCampaigns", async (_, { rejectWithValue }) => {
-  try {
-    // Skip API call if student_id is undefined or null
-    const response = await api.get("/parent/vaccine-campaigns");
-    console.log(response.data.data);
-    return response.data?.data;
-  } catch (error) {
-    console.error("Error fetching vaccine campaigns:", error);
-    // Return empty array instead of rejecting to prevent UI errors
-    return rejectWithValue(error.response?.data?.message || "Failed to fetch vaccine campaigns");
+export const getVaccineCampaigns = createAsyncThunk(
+  "parent/getVaccineCampaigns",
+  async (_, { rejectWithValue }) => {
+    try {
+      // Skip API call if student_id is undefined or null
+      const response = await api.get("/parent/vaccine-campaigns");
+      console.log(response.data.data);
+      return response.data?.data;
+    } catch (error) {
+      console.error("Error fetching vaccine campaigns:", error);
+      // Return empty array instead of rejecting to prevent UI errors
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch vaccine campaigns"
+      );
+    }
   }
-});
+);
 
 export const getVaccineCampaignDetails = createAsyncThunk(
   "parent/getVaccineCampaignDetails",
@@ -604,48 +741,68 @@ export const getVaccineCampaignDetails = createAsyncThunk(
       };
 
       console.log(`Fetching campaign details for ID ${campaignId}...`);
-      const response = await api.get(`/parent/vaccine-campaigns/${campaignId}`, config);
+      const response = await api.get(
+        `/parent/vaccine-campaigns/${campaignId}`,
+        config
+      );
       console.log("Campaign details response:", response);
       return response.data?.data || response.data;
     } catch (error) {
-      console.error(`Error fetching campaign details for ID ${campaignId}:`, error);
+      console.error(
+        `Error fetching campaign details for ID ${campaignId}:`,
+        error
+      );
       // Return null instead of rejecting to prevent UI errors
-      return rejectWithValue(error.response?.data?.message || "Failed to fetch campaign details");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch campaign details"
+      );
     }
   }
 );
 
-export const getApprovedCampaigns = createAsyncThunk("parent/getApprovedCampaigns", async (_, { rejectWithValue }) => {
-  try {
-    console.log("Fetching approved campaigns...");
-    const response = await api.get("/parent/vaccine-campaign-approved");
-    console.log("Approved campaigns response:", response);
-    return response.data?.data || response.data || [];
-  } catch (error) {
-    console.error("Error fetching approved campaigns:", error);
-    // Return empty array instead of rejecting to prevent UI errors
-    return rejectWithValue(error.response?.data?.message || "Failed to fetch approved campaigns");
+export const getApprovedCampaigns = createAsyncThunk(
+  "parent/getApprovedCampaigns",
+  async (_, { rejectWithValue }) => {
+    try {
+      console.log("Fetching approved campaigns...");
+      const response = await api.get("/parent/vaccine-campaign-approved");
+      console.log("Approved campaigns response:", response);
+      return response.data?.data || response.data || [];
+    } catch (error) {
+      console.error("Error fetching approved campaigns:", error);
+      // Return empty array instead of rejecting to prevent UI errors
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch approved campaigns"
+      );
+    }
   }
-});
+);
 
-export const getDeclinedCampaigns = createAsyncThunk("parent/getDeclinedCampaigns", async (_, { rejectWithValue }) => {
-  try {
-    console.log("Fetching declined campaigns...");
-    const response = await api.get("/parent/vaccine-campaign-declined");
-    console.log("Declined campaigns response:", response);
-    return response.data?.data || response.data || [];
-  } catch (error) {
-    console.error("Error fetching declined campaigns:", error);
-    // Return empty array instead of rejecting to prevent UI errors
-    return rejectWithValue(error.response?.data?.message || "Failed to fetch declined campaigns");
+export const getDeclinedCampaigns = createAsyncThunk(
+  "parent/getDeclinedCampaigns",
+  async (_, { rejectWithValue }) => {
+    try {
+      console.log("Fetching declined campaigns...");
+      const response = await api.get("/parent/vaccine-campaign-declined");
+      console.log("Declined campaigns response:", response);
+      return response.data?.data || response.data || [];
+    } catch (error) {
+      console.error("Error fetching declined campaigns:", error);
+      // Return empty array instead of rejecting to prevent UI errors
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch declined campaigns"
+      );
+    }
   }
-});
+);
 
 export const getStudentVaccinations = createAsyncThunk(
   "parent/getStudentVaccinations",
   async ({ campaignId, studentId }, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/parent/vaccine-campaigns/${campaignId}/students/${studentId}`);
+      const response = await api.get(
+        `/parent/vaccine-campaigns/${campaignId}/students/${studentId}`
+      );
       console.log("Student vaccinations response:", {
         campaignId,
         studentId,
@@ -660,7 +817,9 @@ export const getStudentVaccinations = createAsyncThunk(
       console.error("Error fetching student vaccinations:", error);
       return rejectWithValue({
         vaccinations: [],
-        error: error.response?.data?.message || "Failed to fetch student vaccinations",
+        error:
+          error.response?.data?.message ||
+          "Failed to fetch student vaccinations",
       });
     }
   }
@@ -693,7 +852,9 @@ export const resendToVaccinationConsent = createAsyncThunk(
       return response.data;
     } catch (error) {
       console.error("Error responding to vaccination consent:", error);
-      return rejectWithValue(error.response?.data?.message || "Failed to submit vaccination consent");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to submit vaccination consent"
+      );
     }
   }
 );
@@ -725,7 +886,9 @@ export const respondToVaccinationConsent = createAsyncThunk(
       return response.data;
     } catch (error) {
       console.error("Error responding to vaccination consent:", error);
-      return rejectWithValue(error.response?.data?.message || "Failed to submit vaccination consent");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to submit vaccination consent"
+      );
     }
   }
 );
@@ -739,7 +902,10 @@ export const updateVaccinationResponse = createAsyncThunk(
         return rejectWithValue("Campaign ID is required");
       }
 
-      const response = await api.patch(`/parent/vaccine-campaigns/${id}/status`, { status, studentId });
+      const response = await api.patch(
+        `/parent/vaccine-campaigns/${id}/status`,
+        { status, studentId }
+      );
 
       // After successful update, refresh the campaign lists
       dispatch(getVaccineCampaigns());
@@ -754,29 +920,40 @@ export const updateVaccinationResponse = createAsyncThunk(
       return response.data;
     } catch (error) {
       console.error("Error updating vaccination response:", error);
-      return rejectWithValue(error.response?.data?.message || "Failed to update vaccination response");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to update vaccination response"
+      );
     }
   }
 );
 
 // Notifications
-export const getParentNotifications = createAsyncThunk("parent/getNotifications", async (_, { rejectWithValue }) => {
-  try {
-    const response = await api.get("/parent/notifications");
-    return response.data;
-  } catch (error) {
-    return rejectWithValue(error.response?.data?.message || "Failed to fetch notifications");
+export const getParentNotifications = createAsyncThunk(
+  "parent/getNotifications",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get("/parent/notifications");
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch notifications"
+      );
+    }
   }
-});
+);
 
 export const markNotificationAsRead = createAsyncThunk(
   "parent/markNotificationAsRead",
   async (notificationId, { rejectWithValue }) => {
     try {
-      const response = await api.put(`/parent/notifications/${notificationId}/read`);
+      const response = await api.put(
+        `/parent/notifications/${notificationId}/read`
+      );
       return { notificationId, response: response.data };
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to mark notification as read");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to mark notification as read"
+      );
     }
   }
 );
@@ -788,7 +965,10 @@ export const markAllNotificationsAsRead = createAsyncThunk(
       const response = await api.put("/parent/notifications/read-all");
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to mark all notifications as read");
+      return rejectWithValue(
+        error.response?.data?.message ||
+          "Failed to mark all notifications as read"
+      );
     }
   }
 );
@@ -814,7 +994,9 @@ export const respondToCheckupConsent = createAsyncThunk(
       );
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to submit checkup consent");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to submit checkup consent"
+      );
     }
   }
 );
@@ -840,7 +1022,9 @@ export const updateToCheckupConsent = createAsyncThunk(
       );
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to submit checkup consent");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to submit checkup consent"
+      );
     }
   }
 );
@@ -850,10 +1034,15 @@ export const requestCheckupAppointment = createAsyncThunk(
   "parent/requestCheckupAppointment",
   async (appointmentData, { rejectWithValue }) => {
     try {
-      const response = await api.post("/parent/checkups/request", appointmentData);
+      const response = await api.post(
+        "/parent/checkups/request",
+        appointmentData
+      );
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to request appointment");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to request appointment"
+      );
     }
   }
 );
@@ -862,10 +1051,14 @@ export const getCheckupHistory = createAsyncThunk(
   "parent/getCheckupHistory",
   async (student_id, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/parent/students/${student_id}/checkup-history`);
+      const response = await api.get(
+        `/parent/students/${student_id}/checkup-history`
+      );
       return { studentId: student_id, history: response.data };
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to fetch checkup history");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch checkup history"
+      );
     }
   }
 );
@@ -874,10 +1067,14 @@ export const getCheckupAppointments = createAsyncThunk(
   "parent/getCheckupAppointments",
   async (student_id, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/parent/students/${student_id}/appointments`);
+      const response = await api.get(
+        `/parent/students/${student_id}/appointments`
+      );
       return { studentId: student_id, appointments: response.data };
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to fetch appointments");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch appointments"
+      );
     }
   }
 );
@@ -931,15 +1128,23 @@ const parentSlice = createSlice({
           state.children[childIndex].health = {
             ...state.children[childIndex].health,
             height_cm:
-              healthData.height_cm !== undefined && healthData.height_cm !== null
+              healthData.height_cm !== undefined &&
+              healthData.height_cm !== null
                 ? parseFloat(healthData.height_cm)
                 : state.children[childIndex].health.height_cm,
             weight_kg:
-              healthData.weight_kg !== undefined && healthData.weight_kg !== null
+              healthData.weight_kg !== undefined &&
+              healthData.weight_kg !== null
                 ? parseFloat(healthData.weight_kg)
                 : state.children[childIndex].health.weight_kg,
-            blood_type: healthData.blood_type || state.children[childIndex].health.blood_type || null,
-            allergy: healthData.allergy || state.children[childIndex].health.allergy || "",
+            blood_type:
+              healthData.blood_type ||
+              state.children[childIndex].health.blood_type ||
+              null,
+            allergy:
+              healthData.allergy ||
+              state.children[childIndex].health.allergy ||
+              "",
           };
 
           // Update gender display if needed
@@ -954,7 +1159,8 @@ const parentSlice = createSlice({
       // Also update selectedChild if it matches
       if (
         state.selectedChild &&
-        (state.selectedChild.student_id === studentId || state.selectedChild.id === studentId)
+        (state.selectedChild.student_id === studentId ||
+          state.selectedChild.id === studentId)
       ) {
         // Ensure health object exists
         if (!state.selectedChild.health) {
@@ -972,8 +1178,12 @@ const parentSlice = createSlice({
             healthData.weight_kg !== undefined && healthData.weight_kg !== null
               ? parseFloat(healthData.weight_kg)
               : state.selectedChild.health.weight_kg,
-          blood_type: healthData.blood_type || state.selectedChild.health.blood_type || null,
-          allergy: healthData.allergy || state.selectedChild.health.allergy || "",
+          blood_type:
+            healthData.blood_type ||
+            state.selectedChild.health.blood_type ||
+            null,
+          allergy:
+            healthData.allergy || state.selectedChild.health.allergy || "",
         };
 
         // Update gender display if needed
@@ -1102,7 +1312,9 @@ const parentSlice = createSlice({
           // Cập nhật danh sách phù hợp dựa trên trạng thái
           if (checkup.status === "approved") {
             // Thêm vào danh sách approved nếu chưa có
-            const existingIndex = state.checkups.approved.findIndex((c) => c.id === checkup.id);
+            const existingIndex = state.checkups.approved.findIndex(
+              (c) => c.id === checkup.id
+            );
             if (existingIndex === -1) {
               state.checkups.approved.push(checkup);
             } else {
@@ -1110,10 +1322,14 @@ const parentSlice = createSlice({
             }
 
             // Xóa khỏi danh sách pending nếu có
-            state.checkups.pending = state.checkups.pending.filter((c) => c.id !== checkup.id);
+            state.checkups.pending = state.checkups.pending.filter(
+              (c) => c.id !== checkup.id
+            );
           } else if (checkup.status === "rejected") {
             // Xóa khỏi danh sách pending
-            state.checkups.pending = state.checkups.pending.filter((c) => c.id !== checkup.id);
+            state.checkups.pending = state.checkups.pending.filter(
+              (c) => c.id !== checkup.id
+            );
           }
         }
       })
@@ -1140,7 +1356,9 @@ const parentSlice = createSlice({
           const lists = ["approved", "pending", "appointments", "history"];
 
           lists.forEach((listName) => {
-            const index = state.checkups[listName].findIndex((c) => c.id === checkup.id);
+            const index = state.checkups[listName].findIndex(
+              (c) => c.id === checkup.id
+            );
             if (index !== -1) {
               state.checkups[listName][index] = checkup;
             }
@@ -1209,7 +1427,8 @@ const parentSlice = createSlice({
       })
       .addCase(getHealthDeclaration.fulfilled, (state, action) => {
         state.loading = false;
-        state.healthDeclarations[action.payload.student_id] = action.payload.data;
+        state.healthDeclarations[action.payload.student_id] =
+          action.payload.data;
       })
       .addCase(getHealthDeclaration.rejected, (state, action) => {
         state.loading = false;
@@ -1223,7 +1442,8 @@ const parentSlice = createSlice({
       })
       .addCase(updateHealthDeclaration.fulfilled, (state, action) => {
         state.loading = false;
-        state.healthDeclarations[action.payload.studentId] = action.payload.data;
+        state.healthDeclarations[action.payload.studentId] =
+          action.payload.data;
         state.success = true;
       })
       .addCase(updateHealthDeclaration.rejected, (state, action) => {
@@ -1463,9 +1683,14 @@ const parentSlice = createSlice({
               )
           );
 
-          state.vaccinations.studentVaccinations[key] = [...existing, ...newResults];
+          state.vaccinations.studentVaccinations[key] = [
+            ...existing,
+            ...newResults,
+          ];
         } else {
-          console.warn("⚠️ Payload thiếu studentId hoặc vaccinations không phải array");
+          console.warn(
+            "⚠️ Payload thiếu studentId hoặc vaccinations không phải array"
+          );
         }
       })
 
@@ -1501,12 +1726,16 @@ const parentSlice = createSlice({
 
         // Handle case where notifications has a structure like {items: [...]}
         if (state.notifications && state.notifications.items) {
-          const index = state.notifications.items.findIndex((notification) => notification.id === notificationId);
+          const index = state.notifications.items.findIndex(
+            (notification) => notification.id === notificationId
+          );
           if (index !== -1) {
             state.notifications.items[index].isRead = true;
           }
         } else if (Array.isArray(state.notifications)) {
-          const index = state.notifications.findIndex((notification) => notification.id === notificationId);
+          const index = state.notifications.findIndex(
+            (notification) => notification.id === notificationId
+          );
           if (index !== -1) {
             state.notifications[index].isRead = true;
           }

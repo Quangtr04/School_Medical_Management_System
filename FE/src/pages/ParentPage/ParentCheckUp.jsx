@@ -24,6 +24,7 @@ import {
   CloseCircleOutlined,
   InfoCircleOutlined,
   FileTextOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 import moment from "moment";
 import {
@@ -86,9 +87,20 @@ const CheckupsPage = () => {
       dispatch(getPendingConsents(accessToken)),
       dispatch(getApprovedConsents(accessToken)),
       dispatch(getDeclinedConsents(accessToken)),
-    ]).finally(() => {
-      setIsLoading(false);
-    });
+    ])
+      .then(() => {
+        if (selectedChild?.student_id) {
+          dispatch(
+            getStudentCheckups({
+              studentId: selectedChild.student_id,
+              accessToken: accessToken,
+            })
+          );
+        }
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   };
 
   useEffect(() => {
@@ -114,7 +126,7 @@ const CheckupsPage = () => {
     console.log("📦 Dữ liệu checkups từ Redux:", checkups);
 
     // 📋 Khám sắp tới (Pending)
-    const pendingForms = checkups.pending?.forms || [];
+    const pendingForms = checkups?.pending?.forms || [];
     setCampaigns(Array.isArray(pendingForms) ? pendingForms : []);
     console.log(
       `📋 Sắp tới (PENDING) – ${pendingForms.length} chiến dịch`,
@@ -122,7 +134,7 @@ const CheckupsPage = () => {
     );
 
     // ✅ Đã đồng ý (Approved)
-    const approvedForms = (checkups.approved?.forms || []).filter(
+    const approvedForms = (checkups?.approved?.forms || []).filter(
       (form) => form.status === "AGREED"
     );
     setApprovedCampaigns(approvedForms);
@@ -132,7 +144,7 @@ const CheckupsPage = () => {
     );
 
     // ❌ Từ chối (Declined)
-    const declinedForms = (checkups.declined?.forms || []).filter(
+    const declinedForms = (checkups?.declined?.forms || []).filter(
       (form) => form.status === "DECLINED"
     );
     setDeclinedCampaigns(declinedForms);
@@ -144,7 +156,7 @@ const CheckupsPage = () => {
     // 📄 Kết quả khám - Chỉ lưu vào state nhưng không hiển thị trong thống kê
     if (
       selectedChild?.student_id &&
-      checkups.studentCheckups?.[selectedChild.student_id]
+      checkups?.studentCheckups?.[selectedChild.student_id]
     ) {
       const resultData = checkups.studentCheckups[selectedChild.student_id];
       setCheckupResults(resultData);
@@ -360,13 +372,30 @@ const CheckupsPage = () => {
               <Card
                 title="Tổng quan khám sức khỏe"
                 style={{ marginBottom: 16 }}
+                extra={
+                  <Button
+                    icon={<ReloadOutlined />}
+                    onClick={fetchData}
+                    size="small"
+                    loading={isLoading}
+                  >
+                    Làm mới
+                  </Button>
+                }
               >
                 {selectedChild ? (
                   <Row gutter={[16, 16]}>
                     <Col span={12}>
                       <Statistic
                         title="Sắp tới"
-                        value={campaigns.length}
+                        value={
+                          campaigns.length +
+                          approvedCampaigns.filter((c) =>
+                            moment(c.scheduled_date)
+                              .startOf("day")
+                              .isSameOrAfter(moment().startOf("day"))
+                          ).length
+                        }
                         suffix="đợt"
                         valueStyle={{ color: "#1890ff" }}
                       />
@@ -390,7 +419,9 @@ const CheckupsPage = () => {
                 campaigns={[
                   ...campaigns,
                   ...approvedCampaigns.filter((c) =>
-                    moment(c.scheduled_date).isSameOrAfter(moment(), "day")
+                    moment(c.scheduled_date)
+                      .startOf("day")
+                      .isSameOrAfter(moment().startOf("day"))
                   ),
                 ]}
                 loading={childrenLoading}
@@ -412,10 +443,9 @@ const CheckupsPage = () => {
                       dataSource={[
                         ...campaigns,
                         ...approvedCampaigns.filter((c) =>
-                          moment(c.scheduled_date).isSameOrAfter(
-                            moment(),
-                            "day"
-                          )
+                          moment(c.scheduled_date)
+                            .startOf("day")
+                            .isSameOrAfter(moment().startOf("day"))
                         ),
                       ].map((item, index) => ({
                         ...item,
