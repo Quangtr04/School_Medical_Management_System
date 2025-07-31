@@ -258,7 +258,7 @@ const ManagerPageHeader = ({ title, description, icon, statistics = [] }) => {
         >
           <Row gutter={[24, 24]}>
             {statistics.map((stat, index) => (
-              <Col xs={24} sm={12} lg={6} key={index}>
+              <Col xs={24} sm={12} lg={8} key={index}>
                 <StatisticsCard {...stat} />
               </Col>
             ))}
@@ -361,18 +361,6 @@ export default function ManagerManagementPage() {
       icon: CloseCircleOutlined,
       color: modernTheme.colors.error,
       trend: -5,
-    },
-    {
-      title: "Mới trong tháng",
-      value: managers.filter((m) => {
-        const createdDate = new Date(m.created_at);
-        const now = new Date();
-        const monthAgo = new Date(now.getFullYear(), now.getMonth(), 1);
-        return createdDate >= monthAgo;
-      }).length,
-      icon: BankOutlined,
-      color: modernTheme.colors.secondary,
-      trend: 15,
     },
   ];
 

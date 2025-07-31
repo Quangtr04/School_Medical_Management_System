@@ -338,6 +338,9 @@ export default function VaccinationStudentList() {
       key: "status",
       width: 160,
       render: (_, record) => {
+        //_ tên biến đại diện cho tham số đầu tiên mà không cần sử dụng đến trong logic bên trong hàm.
+        console.log(record);
+
         const isVaccinated = record.vaccinated_at;
         const needsFollowUp = record.follow_up_required === "Có";
 

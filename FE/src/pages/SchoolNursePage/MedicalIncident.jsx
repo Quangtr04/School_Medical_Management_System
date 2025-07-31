@@ -236,6 +236,7 @@ export default function MedicalIncident() {
     loading,
     pagination,
   } = useSelector((state) => state.medicalIncidents);
+
   const { supplies: medicalSupplies } = useSelector(
     (state) => state.medicalSupplies
   );
@@ -248,6 +249,7 @@ export default function MedicalIncident() {
 
   const [addMedicalIncidentModal, setIsModalVisible] = useState(false);
   const [currentIncident, setCurrentIncident] = useState(null);
+
   const [form] = Form.useForm();
 
   const [selectedParentName, setSelectedParentName] = useState("");
@@ -1559,6 +1561,7 @@ export default function MedicalIncident() {
                 },
               ]}
             >
+              {/* fields: render function của Form.List */}
               {(fields, { add, remove }) => (
                 <>
                   <div className="flex items-center gap-2 mb-4">
@@ -1576,7 +1579,10 @@ export default function MedicalIncident() {
                     </span>
                   </div>
 
+                  {/* form động (Form.List) */}
                   {fields.map(({ key, name, ...restField }) => {
+                    // key : 	Dùng làm React key khi render từng dòng
+                    // name : index
                     const currentSupplyName = medicationUsed[name]?.supply_name;
                     const selectedSupplyInfo = medicalSupplies?.find(
                       (supply) => supply.name === currentSupplyName
@@ -1646,7 +1652,7 @@ export default function MedicalIncident() {
                                   min: 1,
                                   message: "Số lượng phải lớn hơn 0",
                                 },
-                                ({ getFieldValue }) => ({
+                                () => ({
                                   validator(_, value) {
                                     if (
                                       !selectedSupplyInfo ||

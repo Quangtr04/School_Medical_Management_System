@@ -61,10 +61,6 @@ ChartJS.register(
   BarElement
 );
 
-const { Title, Text } = Typography;
-const { Option } = Select;
-const { RangePicker } = DatePicker;
-
 export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const dispatch = useDispatch();
@@ -1071,16 +1067,6 @@ export default function ReportsPage() {
               </p>
             </div>
           </div>
-          <Space>
-            <Button
-              type="default"
-              icon={<TableOutlined />}
-              onClick={handleGenerateReport}
-              className="flex items-center gap-1 px-5 py-2 !rounded-lg !border !border-indigo-300 hover:!bg-indigo-50 !transition-colors !text-indigo-700 !font-medium !shadow-sm"
-            >
-              📑 Xuất báo cáo
-            </Button>
-          </Space>
         </header>
 
         {loading ? (

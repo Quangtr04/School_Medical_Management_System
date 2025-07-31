@@ -55,8 +55,7 @@ import { FaSyringe, FaStethoscope } from "react-icons/fa";
 import { TbNurse } from "react-icons/tb";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { fetchApprovedStudentsByCampaignId } from "../../redux/nurse/vaccinations/vaccinationSlice";
-import { fetchHealthExaminationById } from "../../redux/nurse/heathExaminations/heathExamination";
+
 import { motion } from "framer-motion";
 import _ from "lodash";
 import Stepper, { Step } from "../../Animation/Step/Stepper";
@@ -208,7 +207,6 @@ const isNormalHealthStatus = (status) => {
   return ["bình thường", "tốt"].includes(normalized);
 };
 
-// Enhanced Countdown component
 function CountdownTimer({ targetDate }) {
   const [timeLeft, setTimeLeft] = useState(() => calcTimeLeft(targetDate));
 
@@ -244,10 +242,10 @@ function calcTimeLeft(targetDate) {
   const now = new Date();
   const target = new Date(targetDate);
   const total = Math.max(0, target - now);
-  const days = Math.floor(total / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((total / (1000 * 60 * 60)) % 24);
-  const minutes = Math.floor((total / (1000 * 60)) % 60);
-  const seconds = Math.floor((total / 1000) % 60);
+  const days = Math.floor(total / (1000 * 60 * 60 * 24)); //Chuyển total mili-giây thành số ngày còn lại.
+  const hours = Math.floor((total / (1000 * 60 * 60)) % 24); //Tính số giờ còn lại, sau khi đã trừ phần ngày.
+  const minutes = Math.floor((total / (1000 * 60)) % 60); //Tính số phút còn lại, sau khi đã trừ phần giờ.
+  const seconds = Math.floor((total / 1000) % 60); //Tính số giây còn lại, sau khi trừ phút.
   return { total, days, hours, minutes, seconds };
 }
 
@@ -303,14 +301,11 @@ export default function NurseDashboardEnhanced() {
     [campaigns, examinations]
   );
 
-  console.log(upcomingAppointments);
-
   const studentWithDangerHealth = useMemo(
     () =>
-      children.filter((child) => {
-        const status = child.health?.health_status;
-        return !isNormalHealthStatus(status);
-      }),
+      children.filter(
+        (child) => !isNormalHealthStatus(child.health?.health_status)
+      ),
     [children]
   );
 
@@ -704,19 +699,6 @@ export default function NurseDashboardEnhanced() {
                         fontSize: "32px",
                       }}
                     />
-                    <Badge
-                      count={recentMedicalIncidents.length}
-                      style={{
-                        backgroundColor: "#ef4444",
-                        marginTop: "8px",
-                        marginLeft: "30px",
-                      }}
-                      offset={[15, 50]}
-                    >
-                      <span style={{ color: "#991b1b", fontSize: "14px" }}>
-                        Gần đây
-                      </span>
-                    </Badge>
                   </div>
                 </Card>
               </motion.div>

@@ -1051,9 +1051,11 @@ export default function VaccinationEnhanced() {
                                 <Text strong style={{ color: "#0085fd" }}>
                                   {item.scheduled_date
                                     ? (() => {
+                                        //Immediately Invoked Function Expression
                                         try {
                                           const today = new Date();
                                           const days = differenceInCalendarDays(
+                                            //lấy para1 - para2
                                             parseISO(item.scheduled_date),
                                             today
                                           );
@@ -1466,7 +1468,7 @@ export default function VaccinationEnhanced() {
                     disabledDate={
                       (current) =>
                         (current &&
-                          current < moment().add(2, "days").startOf("day")) ||
+                          current < moment().add(1, "days").startOf("day")) ||
                         current.day() === 0 || // Chủ Nhật
                         current.day() === 6 // Thứ Bảy
                     }
@@ -1662,7 +1664,7 @@ export default function VaccinationEnhanced() {
                           return "Đã đến ngày tiêm - Cần thực hiện ngay hôm nay";
                         }
                         const days = differenceInCalendarDays(scheduled, today);
-                        if (days >= 0 && days <= 30) {
+                        if (days >= 0 && days <= 31) {
                           return `Sắp diễn ra trong ${days} ngày - Cần chuẩn bị sẵn sàng`;
                         }
                         return "Lịch tiêm đã được lên kế hoạch";

@@ -156,13 +156,10 @@ export default function MedicalSubmission() {
     (state) => state.medicationSubmission
   );
 
-  console.log(data);
-
   const { logs, loadingLog, errorLog } = useSelector((state) => state.logs);
 
   const students = useSelector((state) => state.studentRecord.healthRecords);
   const nurses = useSelector((state) => state.admin.users);
-  console.log(nurses);
 
   const user = JSON.parse(localStorage.getItem("currentUser"));
   const token = localStorage.getItem("accessToken");
@@ -480,7 +477,7 @@ isSame(endDate) → true nếu hôm nay đúng ngày kết thúc.
         align: "center",
         render: (id, record) => {
           const nurse = nurses.find((n) => n.user_id === id);
-
+          console.log(record);
           // Map trạng thái sang nội dung hiển thị
           const statusMap = {
             CANCELLED: "Đã huỷ",
