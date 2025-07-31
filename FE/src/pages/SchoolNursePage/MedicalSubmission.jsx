@@ -285,8 +285,6 @@ export default function MedicalSubmission() {
           log_id: logToday?.log_id || null,
         };
 
-        console.log("validateValue", validateValue);
-
         giveMedicineForm.setFieldsValue(validateValue);
       } else {
         toast.warning("Bạn không phải người phụ trách đơn uống thuốc này");
@@ -300,11 +298,8 @@ export default function MedicalSubmission() {
     giveMedicineForm,
     user.user_id,
   ]);
-  console.log("logs", logs);
 
   const handleViewDetailRequest = useCallback((record) => {
-    console.log(record);
-
     setSelectedRequest(record);
     setRequestDetailModalVisible(true);
   }, []);
@@ -328,7 +323,6 @@ export default function MedicalSubmission() {
 
   const handleOpenDeclinedModal = useCallback(
     (record) => {
-      console.log(record);
       if (!record) return;
       setSelectedRequest(record);
       setDeclinedModal(true);
@@ -359,18 +353,15 @@ export default function MedicalSubmission() {
 
   const handleGiveMedicine = useCallback(
     async (record) => {
-      console.log("record", record);
       setSelectedRequest(record);
       const today = dayjs().startOf("day");
       // const today = dayjs("2025-07-28");
-      console.log(selectedRequest);
 
       // Chuyển start_date và end_date sang dayjs
       const startDate = dayjs(record?.start_date).startOf("day");
       const endDate = dayjs(record?.end_date).startOf("day");
 
       const logToday = logs.find((log) => dayjs(log.date).isSame(today, "day"));
-      console.log("logToday", logToday);
 
       // Kiểm tra today có nằm trong khoảng không
       const isTodayInRange =
@@ -411,7 +402,6 @@ isSame(endDate) → true nếu hôm nay đúng ngày kết thúc.
 
   const handleSubmitGiveMedicineForm = useCallback(
     async (values) => {
-      console.log("Values nhận vào từ Form:", values);
       try {
         await dispatch(
           updateLogByLogId({ logId: values.log_id, status: values.status })
