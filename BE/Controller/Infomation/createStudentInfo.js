@@ -1,6 +1,7 @@
 const sqlServerPool = require("../../Utils/connectMySql");
 const sql = require("mssql");
 const sendNotification = require("../../Utils/sendNotification");
+const sendEmail = require("../../Utils/mailer");
 
 // Hàm chuẩn hóa ngày về múi giờ Việt Nam (GMT+7)
 function normalizeDateVN(dateInput) {
@@ -74,6 +75,17 @@ const createStudentInformation = async (req, res, next) => {
         .input("student_id", sql.Int, student_id)
         .input("created_at", sql.DateTime, new Date())
         .query(`INSERT INTO Student_Health (student_id, created_at) VALUES (@student_id, @created_at)`);
+
+      const emailParent = await pool
+        .request()
+        .input("parent_id", sql.Int, parent_id)
+        .query("SELECT email FROM Users WHERE user_id = @parent_id");
+
+      await sendEmail(
+        emailParent.recordset[0]?.email,
+        "Thông báo học sinh",
+        `Thông tin học sinh mới đã được tạo thành công`
+      );
 
       return res.status(200).json({
         status: "success",
