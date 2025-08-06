@@ -105,6 +105,23 @@ const respondConsent = async (req, res, next) => {
           "Một phụ huynh đã đồng ý cho con em tham gia khám sức khỏe."
         );
       }
+    } else if (status === "DECLINED") {
+      // 🔔 Gửi thông báo cho Nurse nếu từ chối
+      const nurseInfo = await pool.request().input("checkup_id", sql.Int, checkup_id).query(`
+          SELECT created_by FROM Medical_Checkup_Schedule
+          WHERE checkup_id = @checkup_id
+        `);
+
+      if (nurseInfo.recordset.length > 0) {
+        const nurseId = nurseInfo.recordset[0].created_by;
+
+        await sendNotification(
+          pool,
+          nurseId,
+          "Phụ huynh đã từ chối khám sức khỏe",
+          `Một phụ huynh đã từ chối cho con em tham gia khám sức khỏe vì lý do: ${note}.`
+        );
+      }
     }
 
     res.json({ message: "Consent updated successfully" });

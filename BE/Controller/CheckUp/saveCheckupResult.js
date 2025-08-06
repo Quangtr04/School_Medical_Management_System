@@ -25,10 +25,13 @@ const saveCheckupResult = async (req, res) => {
         SELECT id, student_id FROM Checkup_Participation
         WHERE id = @id
       `);
+    console.log("Checkup record:", needs_counseling);
 
     if (checkExist.recordset.length === 0) {
       return res.status(404).json({ message: "Checkup record not found" });
     }
+
+    const needsCounselingValue = needs_counseling === true ? 1 : 0;
 
     // ✅ Thực hiện cập nhật
     await pool
@@ -44,7 +47,7 @@ const saveCheckupResult = async (req, res) => {
       .input("blood_pressure", sql.NVarChar, blood_pressure)
       .input("notes", sql.NVarChar, notes || null)
       .input("abnormal_signs", sql.NVarChar, abnormal_signs || null)
-      .input("needs_counseling", sql.Bit, needs_counseling ? 1 : 0).query(`
+      .input("needs_counseling", sql.Bit, needsCounselingValue).query(`
         UPDATE Checkup_Participation
         SET
           checked_at = @checked_at,
@@ -66,9 +69,9 @@ const saveCheckupResult = async (req, res) => {
   `);
 
     let healthStatus = "Khỏe mạnh";
-    if (abnormal_signs && needs_counseling === true) {
+    if (abnormal_signs && needsCounselingValue === true) {
       healthStatus = "Cần theo dõi";
-    } else if (needs_counseling === true) {
+    } else if (needsCounselingValue === true) {
       healthStatus = "Cần theo dõi";
     }
 

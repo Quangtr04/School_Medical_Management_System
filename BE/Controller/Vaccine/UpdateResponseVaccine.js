@@ -5,7 +5,7 @@ const sendNotification = require("../../Utils/sendNotification");
 const UpdateResponseByManager = async (req, res, next) => {
   try {
     const { campaign_id } = req.params;
-    const { status, note } = req.body;
+    const { status, response } = req.body;
 
     if (!["APPROVED", "DECLINED"].includes(status)) {
       return res.status(400).json({ message: "Invalid status. Must be 'APPROVED' or 'DECLINED'." });
@@ -33,7 +33,10 @@ const UpdateResponseByManager = async (req, res, next) => {
       .request()
       .input("campaign_id", sql.Int, campaign_id)
       .input("status", sql.VarChar, status)
-      .query("UPDATE Vaccination_Campaign SET approval_status = @status WHERE campaign_id = @campaign_id");
+      .input("response", sql.NVarChar, response ?? null)
+      .query(
+        "UPDATE Vaccination_Campaign SET approval_status = @status, response = @response WHERE campaign_id = @campaign_id"
+      );
 
     if (status === "DECLINED") {
       await pool.request().input("campaign_id", sql.Int, campaign_id).query(`
@@ -45,7 +48,7 @@ const UpdateResponseByManager = async (req, res, next) => {
         pool,
         created_by,
         "Chiến dịch tiêm chủng bị từ chối",
-        `Chiến dịch tiêm bạn tạo đã bị từ chối bởi quản lý vì lý do: ${note}.`
+        `Chiến dịch tiêm bạn tạo đã bị từ chối bởi quản lý bởi lý do ${response}.`
       );
     }
 
@@ -123,7 +126,7 @@ const UpdateResponseByParent = async (req, res, next) => {
       .input("form_id", sql.Int, form_id)
       .input("parent_id", sql.Int, parent_id)
       .input("submit_at", sql.DateTime, new Date())
-      .input("note", sql.NVarChar, note || "").query(`
+      .input("note", sql.NVarChar, note || null).query(`
         UPDATE Vaccination_Consent_Form
         SET status = @status, submitted_at = @submit_at, note = @note
         WHERE form_id = @form_id AND parent_id = @parent_id
@@ -145,6 +148,17 @@ const UpdateResponseByParent = async (req, res, next) => {
         await sendNotification(
           pool,
           nurseId.recordset[0].created_by,
+          "Lịch tiêm chủng bị từ chối",
+          `Phụ huynh đã từ chối tiêm chủng cho con. Lý do: ${note}`
+        );
+
+        const emailNurse = await pool
+          .request()
+          .input("user_id", sql.Int, nurseId.recordset[0].created_by)
+          .query("SELECT email FROM Users WHERE user_id = @user_id");
+
+        await sendEmail(
+          emailNurse.recordset[0].email,
           "Lịch tiêm chủng bị từ chối",
           `Phụ huynh đã từ chối tiêm chủng cho con. Lý do: ${note}`
         );
@@ -174,6 +188,17 @@ const UpdateResponseByParent = async (req, res, next) => {
         nurseId.recordset[0].created_by,
         "Xác nhận tiêm chủng",
         "Phụ huynh đã đồng ý tiêm chủng cho học sinh."
+      );
+
+      const emailNurse = await pool
+        .request()
+        .input("user_id", sql.Int, nurseId.recordset[0].created_by)
+        .query("SELECT email FROM Users WHERE user_id = @user_id");
+
+      await sendEmail(
+        emailNurse.recordset[0].email,
+        "Xác nhận tiêm chủng",
+        "Phụ huynh đã đồng ý lại lịch tiêm chủng cho học sinh."
       );
     }
 

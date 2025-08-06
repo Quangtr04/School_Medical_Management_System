@@ -238,7 +238,7 @@ const updateMedicationSubmissionReqByNurse = async (req, res, next) => {
   // Lấy ID của yêu cầu và ID của y tá từ request
   const ReqId = req.params.ReqId;
   const nurseId = req.user?.user_id;
-  const { status, note } = req.body; // Trạng thái mới: ACCEPTED hoặc DECLINED
+  const { status, reasons } = req.body; // Trạng thái mới: ACCEPTED hoặc DECLINED
   const pool = await sqlServerPool;
 
   // Kiểm tra xem có phải ngày cuối tuần (Thứ 7 hoặc Chủ nhật) không
@@ -261,9 +261,10 @@ const updateMedicationSubmissionReqByNurse = async (req, res, next) => {
       .input("id_req", sql.Int, ReqId)
       .input("nurse_id", sql.Int, nurseId)
       .input("status", sql.NVarChar, status)
+      .input("reasons", sql.NVarChar, reasons || null)
       .input("updated_at", sql.DateTime, normalizeDateVN(new Date())).query(`
         UPDATE Medication_Submisstion_Request
-        SET status = @status, nurse_id = @nurse_id, updated_at = @updated_at
+        SET status = @status, nurse_id = @nurse_id, updated_at = @updated_at, reasons = @reasons
         WHERE id_req = @id_req
       `);
 
@@ -366,7 +367,7 @@ const updateMedicationSubmissionReqByNurse = async (req, res, next) => {
           pool,
           parentId,
           "Cập nhật trạng thái yêu cầu gửi thuốc",
-          `Trạng thái yêu cầu gửi thuốc đã bị từ chối`
+          `Trạng thái yêu cầu gửi thuốc đã bị từ chối vì lý do ${reasons}`
         );
 
         // Gửi email thông báo nếu lấy được email
@@ -376,7 +377,7 @@ const updateMedicationSubmissionReqByNurse = async (req, res, next) => {
             "Cập nhật trạng thái yêu cầu gửi thuốc",
             `Kính gửi quý phụ huynh,
 
-            Rất tiếc, yêu cầu gửi thuốc của quý phụ huynh đã bị từ chối bởi y tá phụ trách vì lý do ${note}.
+            Rất tiếc, yêu cầu gửi thuốc của quý phụ huynh đã bị từ chối bởi y tá phụ trách vì lý do ${reasons}.
 
             Vui lòng đăng nhập vào hệ thống để xem chi tiết lý do từ chối hoặc liên hệ với nhà trường để biết thêm thông tin.
 

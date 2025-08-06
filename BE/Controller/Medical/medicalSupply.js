@@ -112,6 +112,18 @@ const updateMedicalSupply = async (req, res, next) => {
        WHERE supply_id = @supply_id`
     );
 
+  if (quantity > 0) {
+    await pool
+      .request()
+      .input("supply_id", sql.Int, supplyId)
+      .query("UPDATE Medical_Supply SET is_active = 1 WHERE supply_id = @supply_id");
+  } else if (quantity <= 0) {
+    await pool
+      .request()
+      .input("supply_id", sql.Int, supplyId)
+      .query("UPDATE Medical_Supply SET is_active = 0 WHERE supply_id = @supply_id");
+  }
+
   if (result.rowsAffected.length > 0) {
     res.status(200).json({
       status: "success",

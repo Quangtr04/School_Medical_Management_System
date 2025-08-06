@@ -7,7 +7,7 @@
 
 /**
  * @swagger
- * /login:
+ * /api/login:
  *   post:
  *     summary: Đăng nhập
  *     tags: [Auth]
@@ -33,7 +33,7 @@
 
 /**
  * @swagger
- * /login/forgot-password:
+ * /api/login/forgot-password:
  *   post:
  *     summary: Gửi yêu cầu quên mật khẩu
  *     tags: [Auth]
@@ -56,7 +56,7 @@
 
 /**
  * @swagger
- * /login/reset-password:
+ * /api/login/reset-password:
  *   post:
  *     summary: Đặt lại mật khẩu mới
  *     tags: [Auth]

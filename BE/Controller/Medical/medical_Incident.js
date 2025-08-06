@@ -57,15 +57,16 @@ const createMedicalIncident = async (req, res) => {
       .input("nurse_id", sql.Int, nurse_id)
       .input("status", sql.VarChar(50), IncidentData.status)
       .input("resolution_notes", sql.NVarChar(sql.MAX), IncidentData.resolution_notes || null)
+      .input("description_detail", sql.NVarChar(sql.MAX), IncidentData.description_detail || null)
       .input("resolved_at", sql.DateTime, resolvedAtVN).query(`
         INSERT INTO Medical_Incident (
-          serverity_id, subject_info_id, student_id, description,
+          serverity_id, subject_info_id, student_id, description, description_detail,
           occurred_at, reported_at, nurse_id, status,
           resolution_notes, resolved_at
         )
         OUTPUT INSERTED.event_id
         VALUES (
-          @serverity_id, @subject_info_id, @student_id, @description,
+          @serverity_id, @subject_info_id, @student_id, @description, @description_detail,
           @occurred_at, GETDATE(), @nurse_id, @status,
           @resolution_notes, @resolved_at
         );
@@ -171,7 +172,7 @@ const updateIncident = async (req, res) => {
       .request()
       .input("event_id", sql.Int, event_id)
       .input("nurse_id", sql.Int, nurse_id)
-      .query("SELECT * FROM Medical_incident WHERE event_id = @event_id AND nurse_id = @nurse_id");
+      .query("SELECT * FROM Medical_Incident WHERE event_id = @event_id AND nurse_id = @nurse_id");
 
     if (existingIncident.recordset.length === 0) {
       return res.status(404).json({ error: "Incident not found" });
@@ -183,7 +184,7 @@ const updateIncident = async (req, res) => {
     const newStatus = status ?? oldData.status;
 
     await pool.request().input("event_id", sql.Int, event_id).input("status", sql.VarChar(50), newStatus).query(`
-        UPDATE Medical_incident
+        UPDATE Medical_Incident
         SET status = @status
         WHERE event_id = @event_id
       `);
@@ -254,6 +255,7 @@ const getAllIncidents = async (req, res) => {
         MI.reported_at,
         MI.resolution_notes,
         MI.resolved_at,
+        MI.description_detail,
 
         -- Danh sách thuốc/vật tư sử dụng
         STUFF((
@@ -264,7 +266,7 @@ const getAllIncidents = async (req, res) => {
           FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, ''
         ) AS medication_used
 
-      FROM Medical_incident MI
+      FROM Medical_Incident MI
       JOIN Severity_Of_Incident SE ON MI.serverity_id = SE.serverity_id
       JOIN Student_Information S ON MI.student_id = S.student_id
       JOIN Users P ON MI.subject_info_id = P.user_id
@@ -317,6 +319,7 @@ const getIncidentsByUserId = async (req, res) => {
           MI.reported_at,
           MI.resolution_notes,
           MI.resolved_at,
+          MI.description_detail,
 
           -- Danh sách thuốc/vật tư sử dụng
           STUFF((
@@ -327,7 +330,7 @@ const getIncidentsByUserId = async (req, res) => {
             FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, ''
           ) AS medication_used
 
-        FROM Medical_incident MI
+        FROM Medical_Incident MI
         JOIN Severity_Of_Incident SE ON MI.serverity_id = SE.serverity_id
         JOIN Student_Information S ON MI.student_id = S.student_id
         JOIN Users P ON MI.subject_info_id = P.user_id
@@ -386,6 +389,7 @@ const getIncidentByStudentId = async (req, res) => {
           MI.reported_at,
           MI.resolution_notes,
           MI.resolved_at,
+          MI.description_detail,
 
           -- Danh sách thuốc/vật tư sử dụng
           STUFF((
@@ -396,7 +400,7 @@ const getIncidentByStudentId = async (req, res) => {
             FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, ''
           ) AS medication_used
 
-        FROM Medical_incident MI
+        FROM Medical_Incident MI
         JOIN Severity_Of_Incident SE ON MI.serverity_id = SE.serverity_id
         JOIN Student_Information S ON MI.student_id = S.student_id
         JOIN Users P ON MI.subject_info_id = P.user_id
@@ -452,6 +456,7 @@ const getIncidentById = async (req, res) => {
           MI.reported_at,
           MI.resolution_notes,
           MI.resolved_at,
+          MI.description_detail,
 
           -- Danh sách thuốc/vật tư sử dụng
           STUFF((
@@ -462,7 +467,7 @@ const getIncidentById = async (req, res) => {
             FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, ''
           ) AS medication_used
 
-        FROM Medical_incident MI
+        FROM Medical_Incident MI
         JOIN Severity_Of_Incident SE ON MI.serverity_id = SE.serverity_id
         JOIN Student_Information S ON MI.student_id = S.student_id
         JOIN Users P ON MI.subject_info_id = P.user_id

@@ -1,6 +1,5 @@
 const express = require("express");
 const authenticateToken = require("../middlewares/authMiddlewares");
-const validateInput = require("../Utils/validateInput");
 const Schemas = require("../Schemas/Schemas");
 
 // --- Import Controllers ---
@@ -60,6 +59,7 @@ const {
 const upload = require("../middlewares/multerConfig");
 const { getLogsByRequestIdAndUserIdAndStudentId, getLogByLogId } = require("../Controller/Medical/medicationDailyLog");
 const { sendRequest } = require("../Controller/Request/sendRequest");
+const validateInput = require("../middlewares/validateInput");
 
 const parentRouter = express.Router();
 

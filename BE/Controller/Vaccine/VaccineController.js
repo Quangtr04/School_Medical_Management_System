@@ -2,6 +2,7 @@ const sql = require("mssql");
 const sqlServerPool = require("../../Utils/connectMySql");
 const sendNotification = require("../../Utils/sendNotification");
 const sendEmail = require("../../Utils/mailer");
+const { log } = require("node:console");
 
 const createVaccinationCampaign = async (req, res) => {
   try {
@@ -42,15 +43,21 @@ const createVaccinationCampaign = async (req, res) => {
     }
     const campaignId = result.recordset[0].campaign_id;
     // Notify all managers about the new vaccination campaign
-    const managers = await pool.request().query(`SELECT user_id FROM Users WHERE role_id = 2`);
-    const managerIds = managers.recordset.map((m) => m.user_id);
+    const emailManager = await pool.request().query(`SELECT email FROM Users Where role_id = 2`);
+    const managerIds = await pool.request().query(`SELECT user_id FROM Users Where role_id = 2`);
 
     // Respond with the created campaign ID
-    sendNotification(
+    await sendNotification(
       pool,
-      managerIds,
+      managerIds.recordset[0].user_id,
       "New Vaccination Campaign",
       `A new vaccination campaign has been created: "${title}".`
+    );
+
+    await sendEmail(
+      emailManager.recordset[0].email,
+      "Lịch tiêm chủng mới",
+      `Có một lịch tiêm chủng mới cần phê duyệt: "${title}".`
     );
 
     res.status(201).json({ message: "Vaccination campaign created", id: campaignId });
@@ -127,16 +134,20 @@ const deleteVaccinationCampaign = async (req, res) => {
 
 const responseVaccinationCampaign = async (req, res) => {
   const { id } = req.params;
-  const { status, note } = req.body;
+  const { status, response } = req.body;
 
   if (!["APPROVED", "DECLINED"].includes(status)) {
     return res.status(400).json({ message: "Invalid status value. 'APPROVED' or 'DECLINED'." });
   }
   try {
     const pool = await sqlServerPool;
-    const result = await pool.request().input("status", sql.NVarChar, status).input("id", sql.Int, id).query(`
+    const result = await pool
+      .request()
+      .input("status", sql.NVarChar, status)
+      .input("id", sql.Int, id)
+      .input("response", sql.NVarChar, response).query(`
         UPDATE Vaccination_Campaign
-        SET approval_status = @status, approved_by = 'principal'
+        SET approval_status = @status, approved_by = 'principal', response = @response
         WHERE campaign_id = @id;
       `);
     if (result.rowsAffected[0] === 0) {
@@ -151,10 +162,21 @@ const responseVaccinationCampaign = async (req, res) => {
       const className = campaign.recordset[0].class_name;
       const nurseId = campaign.recordset[0].created_by;
 
+      const emailNurse = await pool
+        .request()
+        .input("user_id", sql.Int, nurseId)
+        .query("SELECT email FROM Users WHERE user_id = @user_id");
+
       // Gửi thông báo đến nurse
       await sendNotification(
         pool,
         nurseId,
+        "Lịch tiêm chủng được duyệt",
+        `Lịch tiêm chủng cho lớp ${className} đã được duyệt.`
+      );
+
+      await sendEmail(
+        emailNurse.recordset[0].email,
         "Lịch tiêm chủng được duyệt",
         `Lịch tiêm chủng cho lớp ${className} đã được duyệt.`
       );
@@ -202,7 +224,6 @@ const responseVaccinationCampaign = async (req, res) => {
         //   console.warn(`⚠️ Không tìm thấy email cho parent_id: ${stu.parent_id}`);
         // }
       }
-      res.status(200).json({ message: "Vaccination campaign approved" });
     } else if (status === "DECLINED") {
       const campaign = await pool.request().input("id", sql.Int, id).query(`
         SELECT class AS class_name, created_by FROM Vaccination_Campaign WHERE campaign_id = @id
@@ -215,7 +236,7 @@ const responseVaccinationCampaign = async (req, res) => {
         pool,
         nurseId,
         "Lịch tiêm chủng bị từ chối",
-        `Lịch tiêm chủng cho lớp ${className} đã bị từ chối.`
+        `Lịch tiêm chủng cho lớp ${className} đã bị từ chối bởi lý do ${response}.`
       );
 
       const email = await pool
@@ -226,9 +247,10 @@ const responseVaccinationCampaign = async (req, res) => {
       await sendEmail(
         email.recordset[0].email,
         "Lịch tiêm chủng bị từ chối",
-        `Lịch tiêm chủng cho lớp ${className} đã bị từ chối vì lý do ${note}.`
+        `Lịch tiêm chủng cho lớp ${className} đã bị từ chối bởi lý do ${response}.`
       );
     }
+    res.status(200).json({ message: "Vaccination campaign response updated successfully" });
   } catch (error) {
     console.error("Error updating vaccination campaign status:", error);
     res.status(500).json({ message: "Internal server error" });

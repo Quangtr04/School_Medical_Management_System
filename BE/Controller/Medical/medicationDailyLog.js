@@ -131,15 +131,14 @@ const checkUnupdatedMedicationLogs = async () => {
         log.status,
         log.image_url,
         req.parent_id,
-        u.full_name AS parent_name,
+        u.fullname AS parent_name,
         u.email AS parent_email
       FROM Medication_Daily_Log log
       JOIN Medication_Submisstion_Request req ON log.id_req = req.id_req
       JOIN Users u ON req.parent_id = u.user_id
       WHERE 
         log.date = CAST(GETDATE() AS DATE)
-        AND log.status = 'PENDING'
-        AND log.image_url IS NULL
+        AND log.status LIKE 'PENDING'
         AND CAST(GETDATE() AS TIME) > '18:00:00'
     `);
 

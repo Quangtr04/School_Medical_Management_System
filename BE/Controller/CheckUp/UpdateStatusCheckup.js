@@ -4,7 +4,7 @@ const sendNotification = require("../../Utils/sendNotification");
 
 const UpdateStatusCheckupByManager = async (req, res) => {
   const { checkup_id } = req.params;
-  const { status, note } = req.body;
+  const { status, response } = req.body;
 
   if (!["APPROVED", "DECLINED"].includes(status)) {
     return res.status(400).json({ message: "Invalid status value. Must be 'APPROVED' or 'DECLINED'." });
@@ -33,7 +33,10 @@ const UpdateStatusCheckupByManager = async (req, res) => {
       .request()
       .input("status", sql.NVarChar, status)
       .input("checkup_id", sql.Int, checkup_id)
-      .query("UPDATE Medical_Checkup_Schedule SET approval_status = @status WHERE checkup_id = @checkup_id");
+      .input("response", sql.NVarChar, response ?? null)
+      .query(
+        "UPDATE Medical_Checkup_Schedule SET approval_status = @status, response = @response WHERE checkup_id = @checkup_id"
+      );
 
     const nurseId = checkExist.recordset[0].created_by;
     const className = checkExist.recordset[0].class;
@@ -52,7 +55,7 @@ const UpdateStatusCheckupByManager = async (req, res) => {
           pool,
           nurseId,
           "Lịch khám bị từ chối",
-          "Lịch khám sức khỏe bạn tạo đã bị từ chối bởi quản lý."
+          `Lịch khám sức khỏe bạn tạo đã bị từ chối bởi quản lý bởi lý do ${response}.`
         );
       }
     }
@@ -134,9 +137,10 @@ const UpdateStatusCheckupParent = async (req, res) => {
       .input("status", sql.NVarChar, status)
       .input("checkup_id", sql.Int, checkup_id)
       .input("note", sql.NVarChar, note)
-      .input("parent_id", sql.Int, parent_id).query(`
+      .input("parent_id", sql.Int, parent_id)
+      .input("updated_at", sql.DateTime, new Date()).query(`
         UPDATE Checkup_Consent_Form
-        SET status = @status, submitted_at = GETDATE(), note = @note
+        SET status = @status, submitted_at = GETDATE(), note = @note, updated_at = @updated_at
         WHERE checkup_id = @checkup_id AND parent_id = @parent_id
       `);
 
@@ -160,7 +164,18 @@ const UpdateStatusCheckupParent = async (req, res) => {
           pool,
           nurseId,
           "Phụ huynh từ chối khám sức khỏe",
-          "Một phụ huynh đã từ chối cho con em tham gia khám sức khỏe."
+          `Một phụ huynh đã từ chối cho con em tham gia khám sức khỏe vì lý do ${note}.`
+        );
+
+        const emailNurse = await pool
+          .request()
+          .input("user_id", sql.Int, nurseId)
+          .query("SELECT email FROM Users WHERE user_id = @user_id");
+
+        await sendEmail(
+          emailNurse.recordset[0].email,
+          "Phụ huynh từ chối khám sức khỏe",
+          `Một phụ huynh đã từ chối cho con em tham gia khám sức khỏe vì lý do ${note}.`
         );
       }
     }
@@ -209,6 +224,17 @@ const UpdateStatusCheckupParent = async (req, res) => {
             nurseId,
             "Phụ huynh đồng ý khám sức khỏe",
             "Một phụ huynh đã đồng ý cho con em tham gia khám sức khỏe."
+          );
+
+          const emailNurse = await pool
+            .request()
+            .input("user_id", sql.Int, nurseId)
+            .query("SELECT email FROM Users WHERE user_id = @user_id");
+
+          await sendEmail(
+            emailNurse.recordset[0].email,
+            "Phụ huynh đồng ý khám sức khỏe",
+            "Một phụ huynh đã đồng ý lại lịch khám sức khỏe cho con em."
           );
         }
       }

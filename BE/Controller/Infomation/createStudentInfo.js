@@ -21,29 +21,17 @@ const createStudentInformation = async (req, res, next) => {
   const pool = await sqlServerPool;
 
   try {
-    const { student_code, class_name, parent_id } = studentInfo;
+    const { class_name, parent_id } = studentInfo;
 
-    // check exist
-    const studentCodeExists = await pool
-      .request()
-      .input("student_code", sql.NVarChar, student_code)
-      .query(
-        "SELECT COUNT(*) AS count FROM Student_Information WHERE student_code = @student_code"
-      );
+    // Generate student_code
+    const studentCodeCountResult = await pool.request().query("SELECT COUNT(*) AS count FROM Student_Information");
 
-    if (studentCodeExists.recordset[0].count > 0) {
-      return res.status(400).json({
-        status: "fail",
-        message: "Student code already exists",
-      });
-    }
+    const studentCode = `HS${studentCodeCountResult.recordset[0].count + 1}`;
 
     const classExists = await pool
       .request()
       .input("class_name", sql.NVarChar, class_name)
-      .query(
-        "SELECT COUNT(*) AS count FROM Class WHERE class_name = @class_name"
-      );
+      .query("SELECT COUNT(*) AS count FROM Class WHERE class_name = @class_name");
 
     if (classExists.recordset[0].count === 0) {
       return res.status(400).json({
@@ -55,15 +43,13 @@ const createStudentInformation = async (req, res, next) => {
     const addressParent = await pool
       .request()
       .input("parent_id", sql.Int, parent_id)
-      .query(
-        "SELECT address FROM Parent_Information WHERE parent_id = @parent_id"
-      );
+      .query("SELECT address FROM Users WHERE user_id = @parent_id");
 
     const address = addressParent.recordset[0]?.address || "";
 
     const result = await pool
       .request()
-      .input("student_code", sql.NVarChar, studentInfo.student_code)
+      .input("student_code", sql.NVarChar, studentCode)
       .input("full_name", sql.NVarChar, studentInfo.full_name)
       .input("gender", sql.NVarChar, studentInfo.gender)
       .input("day_of_birth", sql.Date, studentInfo.day_of_birth)
@@ -71,31 +57,23 @@ const createStudentInformation = async (req, res, next) => {
       .input("parent_id", sql.Int, parent_id)
       .input("address", sql.NVarChar, address)
       .input("created_at", sql.DateTime, normalizeDateVN(new Date())).query(`
-    INSERT INTO Student_Information 
-    (student_code, full_name, gender, date_of_birth, class_name, parent_id, address, created_at)
-    OUTPUT INSERTED.student_id
-    VALUES 
-    (@student_code, @full_name, @gender, @day_of_birth, @class_name, @parent_id, @address, @created_at)
-  `);
+        INSERT INTO Student_Information 
+        (student_code, full_name, gender, date_of_birth, class_name, parent_id, address, created_at)
+        OUTPUT INSERTED.student_id
+        VALUES 
+        (@student_code, @full_name, @gender, @day_of_birth, @class_name, @parent_id, @address, @created_at)
+      `);
 
     if (result.rowsAffected[0] > 0) {
-      // Gửi tb cho phụ huynh
       const student_id = result.recordset[0].student_id;
-      await sendNotification(
-        pool,
-        parent_id,
-        "Thông báo học sinh",
-        `Thông tin học sinh mới đã được tạo thành công`
-      );
+
+      await sendNotification(pool, parent_id, "Thông báo học sinh", `Thông tin học sinh mới đã được tạo thành công`);
 
       await pool
         .request()
         .input("student_id", sql.Int, student_id)
         .input("created_at", sql.DateTime, new Date())
-        .query(
-          `INSERT INTO Student_Health (student_id, created_at) 
-         VALUES (@student_id, @created_at)`
-        );
+        .query(`INSERT INTO Student_Health (student_id, created_at) VALUES (@student_id, @created_at)`);
 
       return res.status(200).json({
         status: "success",
@@ -126,9 +104,7 @@ const updateStudentInfoById = async (req, res, next) => {
     const classCheck = await pool
       .request()
       .input("class_name", sql.NVarChar, studentInfo.class_name)
-      .query(
-        "SELECT COUNT(*) AS count FROM Class WHERE class_name = @class_name"
-      );
+      .query("SELECT COUNT(*) AS count FROM Class WHERE class_name = @class_name");
 
     if (classCheck.recordset[0].count === 0) {
       return res.status(400).json({
@@ -141,9 +117,7 @@ const updateStudentInfoById = async (req, res, next) => {
     const parentResult = await pool
       .request()
       .input("student_id", sql.Int, studentId)
-      .query(
-        "SELECT parent_id FROM Student_Information WHERE student_id = @student_id"
-      );
+      .query("SELECT parent_id FROM Student_Information WHERE student_id = @student_id");
 
     const parentId = parentResult.recordset[0]?.parent_id || null;
 

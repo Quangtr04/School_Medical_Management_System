@@ -9,7 +9,7 @@ const {
 } = require("../Controller/CheckUp/saveCheckupResult");
 
 const authenticateToken = require("../middlewares/authMiddlewares");
-const validateInput = require("../Utils/validateInput");
+
 const Schemas = require("../Schemas/Schemas");
 const {
   getCheckupListApproved,
@@ -63,6 +63,7 @@ const {
 } = require("../Controller/Medical/medicationDailyLog");
 
 const { getLogByLogId, getLogsByDateAndNurse } = require("../Controller/Medical/medicationDailyLog");
+const validateInput = require("../middlewares/validateInput");
 
 const nurseRouter = express.Router();
 

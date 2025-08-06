@@ -32,7 +32,9 @@ const options = {
     ],
   },
   // ...existing code...
-  apis: [path.join(__dirname, "../docs/*.js")],
+  apis: [
+    path.join(__dirname, "../docs/**/*.js"), // Vẫn giữ nếu bạn có tài liệu ở docs/
+  ],
   // ...existing code...
 };
 

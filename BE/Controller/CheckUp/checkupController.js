@@ -37,21 +37,21 @@ const createSchedule = async (req, res, next) => {
     const checkupId = result.recordset[0].checkup_id;
 
     // ✅ Gửi thông báo cho tất cả Manager
-    const managers = await pool.request().query(`SELECT user_id FROM Users WHERE role_id = 2`);
-    const managerIds = managers.recordset.map((m) => m.user_id);
-    const emailManager = await pool
-      .request()
-      .input("user_id", sql.Int, managerIds)
-      .query(`SELECT email FROM Users WHERE user_id = @user_id`);
+    const emailManager = await pool.request().query(`SELECT email FROM Users Where role_id = 2`);
+    const managerIds = await pool.request().query(`SELECT user_id FROM Users Where role_id = 2`);
 
     await sendNotification(
       pool,
-      managerIds,
+      managerIds.recordset[0].user_id,
       "Lịch khám sức khỏe mới",
       `Có một lịch khám sức khỏe mới cần phê duyệt: "${title}".`
     );
 
-    await sendEmail(emailManager, "Lịch khám sức khỏe mới", `Có một lịch khám sức khỏe mới cần phê duyệt: "${title}".`);
+    await sendEmail(
+      emailManager.recordset[0].email,
+      "Lịch khám sức khỏe mới",
+      `Có một lịch khám sức khỏe mới cần phê duyệt: "${title}".`
+    );
 
     res.status(201).json({ message: "Schedule created", id: checkupId });
   } catch (err) {
@@ -158,12 +158,17 @@ const getPending = async (req, res, next) => {
 const responseSchedule = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { status, note } = req.body;
+    const { status, response } = req.body;
+
     const pool = await sqlServerPool;
 
-    await pool.request().input("id", sql.Int, id).input("status", sql.NVarChar, status).query(`
+    await pool
+      .request()
+      .input("id", sql.Int, id)
+      .input("status", sql.NVarChar, status)
+      .input("response", sql.NVarChar, response ?? null).query(`
         UPDATE Medical_Checkup_Schedule
-        SET approval_status = @status, approved_by = 'principal'
+        SET approval_status = @status, approved_by = 'principal', response = @response
         WHERE checkup_id = @id;
       `);
 
@@ -225,11 +230,11 @@ const responseSchedule = async (req, res, next) => {
           `Vui lòng xác nhận lịch khám sức khỏe cho học sinh lớp ${className}.`
         );
 
-        await sendEmail(
-          emailParent.recordset[0].email,
-          "Cần xác nhận lịch khám sức khỏe",
-          `Vui lòng xác nhận lịch khám sức khỏe cho học sinh lớp ${className}.`
-        );
+        // await sendEmail(
+        //   emailParent.recordset[0].email,
+        //   "Cần xác nhận lịch khám sức khỏe",
+        //   `Vui lòng xác nhận lịch khám sức khỏe cho học sinh lớp ${className}.`
+        // );
       }
     } else if (status === "DECLINED") {
       const checkupResult = await pool
@@ -252,13 +257,13 @@ const responseSchedule = async (req, res, next) => {
         pool,
         nurseId,
         "Lịch khám bị từ chối",
-        "Lịch khám sức khỏe bạn tạo đã bị từ chối bởi quản lý."
+        `Lịch khám sức khỏe bạn tạo đã bị từ chối bởi quản lý bởi lý do ${response}.`
       );
 
       await sendEmail(
         email.recordset[0].email,
         "Lịch khám bị từ chối",
-        `Lịch khám sức khỏe bạn tạo đã bị từ chối bởi quản lý vì lý do ${note}.`
+        `Lịch khám sức khỏe bạn tạo đã bị từ chối bởi quản lý bởi lý do ${response}.`
       );
     }
 

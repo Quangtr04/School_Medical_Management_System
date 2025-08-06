@@ -41,7 +41,7 @@ CREATE TABLE Medication_Submisstion_Request (
     student_id INT NOT NULL FOREIGN KEY REFERENCES Student_Information(student_id),
     status NVARCHAR(50) NOT NULL,
     created_at DATETIME DEFAULT GETDATE(),
-    nurse_id INT NOT NULL FOREIGN KEY REFERENCES Users(user_id),
+    nurse_id INT NULL FOREIGN KEY REFERENCES Users(user_id),
     note NVARCHAR(MAX),
     image_url NVARCHAR(255),
     start_date DATE NOT NULL,

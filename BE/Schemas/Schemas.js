@@ -46,7 +46,7 @@ const HealthDeclaration = {
 
 const StudentInformation = {
   student_id: { type: "int", required: false },
-  student_code: { type: "string", required: true },
+  student_code: { type: "string", required: false },
   full_name: { type: "string", required: true },
   gender: { type: "string", required: true },
   day_of_birth: { type: "date", required: true },

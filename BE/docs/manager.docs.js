@@ -2,22 +2,23 @@
  * @swagger
  * tags:
  *   name: Manager
- *   description: API dành cho Hiệu trưởng để quản lý lịch khám, tiêm chủng và thông tin
+ *   description: API dành cho hiệu trưởng để quản lý khám sức khỏe và tiêm chủng
  */
 
 /**
  * @swagger
- * /manager/profile:
+ * /api/manager/profile:
  *   get:
- *     summary: Lấy thông tin cá nhân hiệu trưởng
+ *     summary: Lấy thông tin cá nhân của hiệu trưởng
  *     tags: [Manager]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Trả về thông tin cá nhân
+ *         description: Thông tin cá nhân
+ *
  *   patch:
- *     summary: Cập nhật thông tin cá nhân hiệu trưởng
+ *     summary: Cập nhật thông tin hiệu trưởng
  *     tags: [Manager]
  *     security:
  *       - bearerAuth: []
@@ -33,20 +34,20 @@
 
 /**
  * @swagger
- * /manager/checkups/pending:
+ * /api/manager/checkups/pending:
  *   get:
- *     summary: Lấy danh sách lịch khám đang chờ duyệt
+ *     summary: Lấy danh sách lịch khám chờ duyệt
  *     tags: [Manager]
  *     responses:
  *       200:
- *         description: Danh sách lịch khám
+ *         description: Danh sách lịch khám chờ duyệt
  */
 
 /**
  * @swagger
- * /manager/checkups/{id}/respond:
+ * /api/manager/checkups/{id}/respond:
  *   post:
- *     summary: Phản hồi (duyệt / từ chối) lịch khám
+ *     summary: Phản hồi chấp nhận hoặc từ chối lịch khám
  *     tags: [Manager]
  *     parameters:
  *       - in: path
@@ -70,7 +71,7 @@
 
 /**
  * @swagger
- * /manager/checkups/{checkup_id}/status:
+ * /api/manager/checkups/{checkup_id}/status:
  *   patch:
  *     summary: Cập nhật trạng thái lịch khám
  *     tags: [Manager]
@@ -88,7 +89,6 @@
  *             properties:
  *               status:
  *                 type: string
- *                 enum: [APPROVED, DECLINED]
  *     responses:
  *       200:
  *         description: Cập nhật thành công
@@ -96,7 +96,7 @@
 
 /**
  * @swagger
- * /manager/checkups:
+ * /api/manager/checkups:
  *   get:
  *     summary: Lấy danh sách tất cả lịch khám
  *     tags: [Manager]
@@ -107,7 +107,7 @@
 
 /**
  * @swagger
- * /manager/checkups/{id}:
+ * /api/manager/checkups/{id}:
  *   get:
  *     summary: Lấy chi tiết lịch khám theo ID
  *     tags: [Manager]
@@ -120,6 +120,7 @@
  *     responses:
  *       200:
  *         description: Chi tiết lịch khám
+ *
  *   delete:
  *     summary: Xóa lịch khám theo ID
  *     tags: [Manager]
@@ -136,42 +137,42 @@
 
 /**
  * @swagger
- * /manager/checkups-approved:
+ * /api/manager/checkups-approved:
  *   get:
- *     summary: Lấy lịch khám đã được duyệt
+ *     summary: Lấy danh sách lịch khám đã duyệt
  *     tags: [Manager]
  *     responses:
  *       200:
- *         description: Danh sách lịch khám đã duyệt
+ *         description: Danh sách đã duyệt
  */
 
 /**
  * @swagger
- * /manager/checkups-declined:
+ * /api/manager/checkups-declined:
  *   get:
- *     summary: Lấy lịch khám đã bị từ chối
+ *     summary: Lấy danh sách lịch khám bị từ chối
  *     tags: [Manager]
  *     responses:
  *       200:
- *         description: Danh sách lịch khám bị từ chối
+ *         description: Danh sách bị từ chối
  */
 
 /**
  * @swagger
- * /manager/vaccine-campaigns:
+ * /api/manager/vaccine-campaigns:
  *   get:
- *     summary: Lấy danh sách lịch tiêm chủng
+ *     summary: Lấy danh sách chiến dịch tiêm chủng
  *     tags: [Manager]
  *     responses:
  *       200:
- *         description: Danh sách chiến dịch tiêm chủng
+ *         description: Danh sách chiến dịch
  */
 
 /**
  * @swagger
- * /manager/vaccine-campaigns/{id}:
+ * /api/manager/vaccine-campaigns/{id}:
  *   get:
- *     summary: Lấy chi tiết lịch tiêm chủng theo ID
+ *     summary: Lấy chi tiết chiến dịch tiêm chủng theo ID
  *     tags: [Manager]
  *     parameters:
  *       - in: path
@@ -181,7 +182,8 @@
  *           type: integer
  *     responses:
  *       200:
- *         description: Chi tiết chiến dịch tiêm chủng
+ *         description: Chi tiết chiến dịch
+ *
  *   delete:
  *     summary: Xóa chiến dịch tiêm chủng
  *     tags: [Manager]
@@ -198,40 +200,40 @@
 
 /**
  * @swagger
- * /manager/vaccine-campaigns-pending:
+ * /api/manager/vaccine-campaigns-pending:
  *   get:
  *     summary: Lấy danh sách chiến dịch tiêm chủng chờ duyệt
  *     tags: [Manager]
  *     responses:
  *       200:
- *         description: Danh sách chiến dịch đang chờ
+ *         description: Danh sách chờ duyệt
  */
 
 /**
  * @swagger
- * /manager/vaccine-campaigns-approved:
+ * /api/manager/vaccine-campaigns-approved:
  *   get:
- *     summary: Lấy danh sách chiến dịch đã duyệt
+ *     summary: Lấy danh sách chiến dịch tiêm chủng đã duyệt
  *     tags: [Manager]
  *     responses:
  *       200:
- *         description: Danh sách chiến dịch đã duyệt
+ *         description: Danh sách đã duyệt
  */
 
 /**
  * @swagger
- * /manager/vaccine-campaigns-declined:
+ * /api/manager/vaccine-campaigns-declined:
  *   get:
- *     summary: Lấy danh sách chiến dịch bị từ chối
+ *     summary: Lấy danh sách chiến dịch tiêm chủng bị từ chối
  *     tags: [Manager]
  *     responses:
  *       200:
- *         description: Danh sách chiến dịch bị từ chối
+ *         description: Danh sách bị từ chối
  */
 
 /**
  * @swagger
- * /manager/vaccine-campaigns/{id}/respond:
+ * /api/manager/vaccine-campaigns/{id}/respond:
  *   post:
  *     summary: Phản hồi chiến dịch tiêm chủng
  *     tags: [Manager]
@@ -257,7 +259,7 @@
 
 /**
  * @swagger
- * /manager/vaccine-campaigns/{campaign_id}/status:
+ * /api/manager/vaccine-campaigns/{campaign_id}/status:
  *   patch:
  *     summary: Cập nhật trạng thái chiến dịch tiêm chủng
  *     tags: [Manager]
@@ -282,7 +284,7 @@
 
 /**
  * @swagger
- * /manager/notifications:
+ * /api/manager/notifications:
  *   get:
  *     summary: Lấy danh sách thông báo của hiệu trưởng
  *     tags: [Manager]
@@ -291,14 +293,4 @@
  *     responses:
  *       200:
  *         description: Danh sách thông báo
- */
-
-/**
- * @swagger
- * components:
- *   securitySchemes:
- *     bearerAuth:
- *       type: http
- *       scheme: bearer
- *       bearerFormat: JWT
  */

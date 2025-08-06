@@ -3,7 +3,6 @@ const cors = require("cors");
 const os = require("os");
 const parentRouter = require("../routers/parent.routers");
 const loginRouter = require("../routers/login.routers");
-const adminRouter = require("../routers/admin.routers");
 const nurseRouter = require("../routers/nurse.router");
 const managerRouter = require("../routers/manager.router");
 const { swaggerUi, swaggerSpec } = require("../Utils/swaggerOptions");
@@ -11,20 +10,16 @@ const app = express();
 const port = 3000;
 const path = require("path");
 const cron = require("node-cron");
-const {
-  checkUnupdatedMedicationLogs,
-} = require("../Controller/Medical/medicationDailyLog");
-const router = require("../routers/supply.routers");
-const {
-  updateStatusSupplyWhenExpiredDay,
-} = require("../Controller/Medical/medicalSupply");
+const { checkUnupdatedMedicationLogs } = require("../Controller/Medical/medicationDailyLog");
+const { updateStatusSupplyWhenExpiredDay } = require("../Controller/Medical/medicalSupply");
+const adminRouter = require("../routers/admin.routers");
 
 require("dotenv").config();
 
 const corsOptions = {
   origin: [
     "http://localhost:5173",
-    "http://192.168.1.168:5173",
+    "http://192.168.1.71:5173",
     "http://192.168.1.204:5173",
     "http://172.20.10.4:5173",
     "http://172.20.10.2:5173",
@@ -61,9 +56,7 @@ app.listen(port, "0.0.0.0", () => {
     .flat()
     .forEach((iface) => {
       if (iface.family === "IPv4" && !iface.internal) {
-        console.log(
-          `🌐 Server may be accessible via: http://${iface.address}:${port}`
-        );
+        console.log(`🌐 Server may be accessible via: http://${iface.address}:${port}`);
       }
     });
 
